@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigazione Lago di Garda – Turni del Personale</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #181c26;
+    --border: #2a2f3e;
+    --accent: #4f8ef7;
+    --accent2: #f7c94f;
+    --text: #d6dce8;
+    --muted: #6b7280;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow Condensed', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 24px;
+  }
+
+  .header {
+    text-align: center;
+    margin-bottom: 56px;
+    animation: fadeDown 0.5s ease both;
+  }
+  .company {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .title {
+    font-size: 32px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1.1;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.1em;
+    font-family: 'DM Mono', monospace;
+  }
+  .period {
+    display: inline-block;
+    margin-top: 14px;
+    background: #1a2235;
+    border: 1px solid var(--border);
+    color: var(--accent2);
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    padding: 4px 14px;
+    border-radius: 3px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    width: 100%;
+    max-width: 680px;
+    animation: fadeUp 0.5s 0.15s ease both;
+  }
+
+  .card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 26px 24px;
+    text-decoration: none;
+    color: var(--text);
+    overflow: hidden;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+    min-height: 160px;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--card-color, var(--accent));
+    border-radius: 12px 12px 0 0;
+    transition: height 0.2s;
+  }
+  .card:hover {
+    border-color: var(--card-color, var(--accent));
+    transform: translateY(-3px);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  }
+  .card:hover::before { height: 4px; }
+
+  .card-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+  }
+  .card-name {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #fff;
+    line-height: 1;
+  }
+  .card-lake {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    margin-top: 5px;
+  }
+  .card-arrow {
+    margin-top: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--card-color, var(--accent));
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: gap 0.2s;
+  }
+  .card:hover .card-arrow { gap: 10px; }
+
+  /* Colori per residenza */
+  .card-desenzano { --card-color: #4f8ef7; }
+  .card-riva       { --card-color: #22c55e; }
+  .card-maderno    { --card-color: #f7c94f; }
+  .card-peschiera  { --card-color: #f08080; }
+
+  .card-glow {
+    position: absolute;
+    bottom: -40px; right: -40px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: var(--card-color, var(--accent));
+    opacity: 0.04;
+    transition: opacity 0.2s, transform 0.2s;
+    pointer-events: none;
+  }
+  .card:hover .card-glow { opacity: 0.09; transform: scale(1.2); }
+
+  .footer {
+    margin-top: 48px;
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    text-align: center;
+    animation: fadeUp 0.5s 0.3s ease both;
+  }
+
+  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
+  @keyframes fadeUp   { from { opacity:0; transform:translateY(14px);  } to { opacity:1; transform:none; } }
+
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; max-width: 340px; }
+    .title { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="company">Navigazione sul Lago di Garda</div>
+  <div class="title">Turni del Personale</div>
+  <div class="subtitle">Seleziona la residenza</div>
+  <div class="period">01-06-2026 — 21-06-2026</div>
+</div>
+
+<div class="grid">
+
+  <a href="desenzano.html" class="card card-desenzano">
+    <div>
+      <div class="card-num">RES. 01</div>
+      <div class="card-name">Desenzano</div>
+      <div class="card-lake">del Garda</div>
+    </div>
+    <div class="card-arrow">Apri turni →</div>
+    <div class="card-glow"></div>
+  </a>
+
+  <a href="riva.html" class="card card-riva">
+    <div>
+      <div class="card-num">RES. 02</div>
+      <div class="card-name">Riva</div>
+      <div class="card-lake">del Garda</div>
+    </div>
+    <div class="card-arrow">Apri turni →</div>
+    <div class="card-glow"></div>
+  </a>
+
+  <a href="maderno.html" class="card card-maderno">
+    <div>
+      <div class="card-num">RES. 03</div>
+      <div class="card-name">Maderno</div>
+      <div class="card-lake">Lago di Garda</div>
+    </div>
+    <div class="card-arrow">Apri turni →</div>
+    <div class="card-glow"></div>
+  </a>
+
+  <a href="peschiera.html" class="card card-peschiera">
+    <div>
+      <div class="card-num">RES. 04</div>
+      <div class="card-name">Peschiera</div>
+      <div class="card-lake">del Garda</div>
+    </div>
+    <div class="card-arrow">Apri turni →</div>
+    <div class="card-glow"></div>
+  </a>
+
+</div>
+
+<div class="footer">Clicca su una residenza per visualizzare il turno del personale</div>
+
+</body>
+</html>
