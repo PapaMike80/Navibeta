@@ -33,29 +33,3 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
-
-/* Mantiene la barra identica durante lo zoom Safari (visual viewport). */
-(() => {
-  const install = () => {
-    const bar = document.getElementById('navisuite-mobile-menu');
-    const viewport = window.visualViewport;
-    if (!bar || !viewport) return;
-    const sync = () => {
-      if (innerWidth > 850) return;
-      const scale = Math.max(1, Number(viewport.scale) || 1);
-      bar.style.removeProperty('left');
-      bar.style.removeProperty('right');
-      bar.style.removeProperty('bottom');
-      bar.style.removeProperty('height');
-      bar.style.removeProperty('padding');
-      bar.style.removeProperty('border-radius');
-      bar.style.setProperty('width', `${viewport.width * scale - 24}px`, 'important');
-      bar.style.setProperty('zoom', String(1 / scale));
-      bar.querySelectorAll('a,button,.ns-icon').forEach(item => item.removeAttribute('style'));
-    };
-    viewport.addEventListener('resize', sync, { passive: true });
-    viewport.addEventListener('scroll', sync, { passive: true });
-    sync();
-  };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, { once: true }); else install();
-})();
