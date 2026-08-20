@@ -43,17 +43,15 @@
     const sync = () => {
       if (innerWidth > 850) return;
       const scale = Math.max(1, Number(viewport.scale) || 1);
-      const bottom = Math.max(0, innerHeight - viewport.height - viewport.offsetTop) + 10 / scale;
-      bar.style.setProperty('left', `${viewport.offsetLeft}px`, 'important');
-      bar.style.setProperty('right', 'auto', 'important');
-      bar.style.setProperty('bottom', `${bottom}px`, 'important');
-      bar.style.setProperty('width', `${viewport.width}px`, 'important');
-      bar.style.setProperty('height', `${72 / scale}px`, 'important');
-      bar.querySelectorAll('a,button').forEach(item => {
-        item.style.setProperty('font-size', `${9 / scale}px`, 'important');
-        item.style.setProperty('gap', `${3 / scale}px`, 'important');
-        item.querySelector('.ns-icon')?.style.setProperty('font-size', `${24 / scale}px`, 'important');
-      });
+      bar.style.removeProperty('left');
+      bar.style.removeProperty('right');
+      bar.style.removeProperty('bottom');
+      bar.style.removeProperty('height');
+      bar.style.removeProperty('padding');
+      bar.style.removeProperty('border-radius');
+      bar.style.setProperty('width', `${viewport.width * scale - 24}px`, 'important');
+      bar.style.setProperty('zoom', String(1 / scale));
+      bar.querySelectorAll('a,button,.ns-icon').forEach(item => item.removeAttribute('style'));
     };
     viewport.addEventListener('resize', sync, { passive: true });
     viewport.addEventListener('scroll', sync, { passive: true });
