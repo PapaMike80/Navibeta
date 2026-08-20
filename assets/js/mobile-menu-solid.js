@@ -41,19 +41,18 @@
     const bar = document.getElementById('navisuite-mobile-menu');
     const vv = window.visualViewport;
     if (!bar || !vv) return;
-    const clear = () => ['left','right','top','bottom','width','height','zoom'].forEach(p => bar.style.removeProperty(p));
+    const style = document.createElement('style');
+    style.textContent = '#navisuite-mobile-menu{--ns-zoom:1;transform:scale(var(--ns-zoom))!important;transform-origin:bottom left!important}#navisuite-mobile-menu.is-hidden{transform:scale(var(--ns-zoom)) translateY(calc(100% + 25px))!important}';
+    document.head.appendChild(style);
+    const clear = () => ['left','right','top','bottom','width','height','zoom','--ns-zoom'].forEach(p => bar.style.removeProperty(p));
     const sync = () => {
       if (innerWidth > 850 || vv.scale <= 1.01) return clear();
       const scale = vv.scale;
-      /* Le dimensioni sono in CSS pixel della pagina: convertite qui, diventano
-         sempre 72px di altezza e 12px di margine sullo schermo reale. */
-      bar.style.setProperty('left', `${vv.offsetLeft + 12 / scale}px`, 'important');
-      bar.style.setProperty('right', 'auto', 'important');
-      bar.style.setProperty('top', `${vv.offsetTop + vv.height - 82 / scale}px`, 'important');
-      bar.style.setProperty('bottom', 'auto', 'important');
-      bar.style.setProperty('width', `${vv.width * scale - 24}px`, 'important');
-      bar.style.removeProperty('height');
-      bar.style.setProperty('zoom', String(1 / scale));
+      /* Nessuna coordinata manuale: position:fixed resta ancorato al bordo basso
+         della viewport Safari. Correggiamo soltanto l'ingrandimento del pinch. */
+      ['left','right','top','bottom','width','height','zoom'].forEach(p => bar.style.removeProperty(p));
+      bar.style.removeProperty('zoom');
+      bar.style.setProperty('--ns-zoom', String(1 / scale));
     };
     vv.addEventListener('resize', sync, {passive:true});
     vv.addEventListener('scroll', sync, {passive:true});
