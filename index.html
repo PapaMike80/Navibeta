@@ -1,242 +1,108 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Navigazione Lago di Garda – Turni del Personale</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Barlow+Condensed:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-  :root {
-    --bg: #0f1117;
-    --surface: #181c26;
-    --border: #2a2f3e;
-    --accent: #4f8ef7;
-    --accent2: #f7c94f;
-    --text: #d6dce8;
-    --muted: #6b7280;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: 'Barlow Condensed', sans-serif;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 24px;
-  }
-
-  .header {
-    text-align: center;
-    margin-bottom: 56px;
-    animation: fadeDown 0.5s ease both;
-  }
-  .company {
-    font-size: 12px;
-    font-weight: 700;
-    letter-spacing: 0.25em;
-    text-transform: uppercase;
-    color: var(--accent);
-    margin-bottom: 10px;
-  }
-  .title {
-    font-size: 32px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #fff;
-    line-height: 1.1;
-  }
-  .subtitle {
-    font-size: 13px;
-    color: var(--muted);
-    margin-top: 8px;
-    letter-spacing: 0.1em;
-    font-family: 'DM Mono', monospace;
-  }
-  .period {
-    display: inline-block;
-    margin-top: 14px;
-    background: #1a2235;
-    border: 1px solid var(--border);
-    color: var(--accent2);
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    padding: 4px 14px;
-    border-radius: 3px;
-  }
-
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-    width: 100%;
-    max-width: 680px;
-    animation: fadeUp 0.5s 0.15s ease both;
-  }
-
-  .card {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 28px 26px 24px;
-    text-decoration: none;
-    color: var(--text);
-    overflow: hidden;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-    cursor: pointer;
-    min-height: 160px;
-  }
-  .card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: var(--card-color, var(--accent));
-    border-radius: 12px 12px 0 0;
-    transition: height 0.2s;
-  }
-  .card:hover {
-    border-color: var(--card-color, var(--accent));
-    transform: translateY(-3px);
-    box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  }
-  .card:hover::before { height: 4px; }
-
-  .card-num {
-    font-family: 'DM Mono', monospace;
-    font-size: 11px;
-    color: var(--muted);
-    letter-spacing: 0.1em;
-    margin-bottom: 10px;
-  }
-  .card-name {
-    font-size: 26px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: #fff;
-    line-height: 1;
-  }
-  .card-lake {
-    font-size: 12px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    margin-top: 5px;
-  }
-  .card-arrow {
-    margin-top: 20px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--card-color, var(--accent));
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    transition: gap 0.2s;
-  }
-  .card:hover .card-arrow { gap: 10px; }
-
-  /* Colori per residenza */
-  .card-desenzano { --card-color: #4f8ef7; }
-  .card-riva       { --card-color: #22c55e; }
-  .card-maderno    { --card-color: #f7c94f; }
-  .card-peschiera  { --card-color: #f08080; }
-
-  .card-glow {
-    position: absolute;
-    bottom: -40px; right: -40px;
-    width: 120px; height: 120px;
-    border-radius: 50%;
-    background: var(--card-color, var(--accent));
-    opacity: 0.04;
-    transition: opacity 0.2s, transform 0.2s;
-    pointer-events: none;
-  }
-  .card:hover .card-glow { opacity: 0.09; transform: scale(1.2); }
-
-  .footer {
-    margin-top: 48px;
-    font-family: 'DM Mono', monospace;
-    font-size: 10px;
-    color: var(--muted);
-    letter-spacing: 0.08em;
-    text-align: center;
-    animation: fadeUp 0.5s 0.3s ease both;
-  }
-
-  @keyframes fadeDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:none; } }
-  @keyframes fadeUp   { from { opacity:0; transform:translateY(14px);  } to { opacity:1; transform:none; } }
-
-  @media (max-width: 480px) {
-    .grid { grid-template-columns: 1fr; max-width: 340px; }
-    .title { font-size: 24px; }
-  }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="NaviDiaria">
+  <meta name="theme-color" content="#002b5e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <title>NaviSuite Accesso</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/portal.css">
+  <style>
+    /* Home: nel tema chiaro le aree cliccabili restano leggere, senza riquadri scuri. */
+    html.navisuite-light .app-card,
+    body.navisuite-light .app-card,
+    html[data-theme="light"] .app-card{
+      background:#fff !important;
+      border-color:#c9e0e3 !important;
+      color:#17323a !important;
+      box-shadow:0 5px 14px rgba(27,62,70,.06) !important;
+    }
+    html.navisuite-light .app-card strong,
+    body.navisuite-light .app-card strong,
+    html[data-theme="light"] .app-card strong{color:#17323a !important}
+    html.navisuite-light .app-card p,
+    body.navisuite-light .app-card p,
+    html[data-theme="light"] .app-card p{color:#547078 !important}
+    html.navisuite-light .app-card:hover,
+    body.navisuite-light .app-card:hover,
+    html[data-theme="light"] .app-card:hover{background:#fff !important}
+  </style>
 </head>
 <body>
+  <main class="portal-shell">
+    <section class="portal-intro" aria-labelledby="portalTitle">
+      <a class="portal-brand" href="index.html"><span>N</span> Navi</a>
+      <div>
+        <p class="eyebrow">UN SOLO ACCESSO</p>
+        <h1 id="portalTitle">Il tuo spazio di lavoro,<br><em>tutto in un porto.</em></h1>
+        <p class="intro-copy">Accedi una volta e scegli se consultare i turni oppure aggiornare la tua diaria.</p>
+      </div>
+      <p class="local-note"><i></i> Il PIN resta salvato soltanto su questo dispositivo.</p>
+    </section>
 
-<div class="header">
-  <div class="company">Navigazione sul Lago di Garda</div>
-  <div class="title">Turni del Personale</div>
-  <div class="subtitle">Seleziona la residenza</div>
-  <div class="period">01-06-2026 — 21-06-2026</div>
-</div>
+    <section class="portal-panel">
+      <form id="loginForm" class="access-card">
+        <p class="eyebrow">ACCESSO PERSONALE</p>
+        <h2>Bentornato a bordo</h2>
+        <p>Inserisci il cognome e il tuo PIN personale.</p>
+        <label>Cognome
+          <input id="agentSearch" type="text" autocomplete="off" placeholder="Inizia a digitare il cognome…" required>
+          <datalist id="agentSuggestions"></datalist>
+        </label>
+        <label>PIN personale
+          <input id="agentPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" placeholder="Da 4 a 8 cifre" required>
+        </label>
+        <p id="loginMessage" class="form-message" aria-live="polite"></p>
+        <button id="loginSubmit" type="submit">Accedi <span>→</span></button>
+      </form>
 
-<div class="grid">
+      <form id="firstPinForm" class="access-card" hidden>
+        <p class="eyebrow">PRIMO ACCESSO</p>
+        <h2>Scegli il tuo PIN</h2>
+        <p>Il PIN iniziale è valido una sola volta. Imposta ora un PIN personale da 4 a 8 cifre.</p>
+        <label>Nuovo PIN
+          <input id="firstNewPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="new-password" placeholder="Da 4 a 8 cifre" required>
+        </label>
+        <label>Conferma nuovo PIN
+          <input id="firstConfirmPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="new-password" placeholder="Ripeti il nuovo PIN" required>
+        </label>
+        <p id="firstPinMessage" class="form-message" aria-live="polite"></p>
+        <button id="firstPinSubmit" type="submit">Salva e accedi <span>→</span></button>
+      </form>
 
-  <a href="desenzano.html" class="card card-desenzano">
-    <div>
-      <div class="card-num">RES. 01</div>
-      <div class="card-name">Desenzano</div>
-      <div class="card-lake">del Garda</div>
-    </div>
-    <div class="card-arrow">Apri turni →</div>
-    <div class="card-glow"></div>
-  </a>
-
-  <a href="riva.html" class="card card-riva">
-    <div>
-      <div class="card-num">RES. 02</div>
-      <div class="card-name">Riva</div>
-      <div class="card-lake">del Garda</div>
-    </div>
-    <div class="card-arrow">Apri turni →</div>
-    <div class="card-glow"></div>
-  </a>
-
-  <a href="maderno.html" class="card card-maderno">
-    <div>
-      <div class="card-num">RES. 03</div>
-      <div class="card-name">Maderno</div>
-      <div class="card-lake">Lago di Garda</div>
-    </div>
-    <div class="card-arrow">Apri turni →</div>
-    <div class="card-glow"></div>
-  </a>
-
-  <a href="peschiera.html" class="card card-peschiera">
-    <div>
-      <div class="card-num">RES. 04</div>
-      <div class="card-name">Peschiera</div>
-      <div class="card-lake">del Garda</div>
-    </div>
-    <div class="card-arrow">Apri turni →</div>
-    <div class="card-glow"></div>
-  </a>
-
-</div>
-
-<div class="footer">Clicca su una residenza per visualizzare il turno del personale</div>
-
+      <div id="appChoice" class="choice-card" hidden>
+        <p class="eyebrow">BENTORNATO</p>
+        <h2 id="welcomeUser">Dove vuoi andare?</h2>
+        <p>Scegli l’area da aprire. Potrai passare da una all’altra senza accedere di nuovo.</p>
+        <div class="app-grid">
+          <a class="app-card turni" href="naviturni.html" data-navi-tab="NaviTurniTab"><span class="app-icon">▦</span><small>PIANIFICAZIONE</small><strong>NaviTurni</strong><p>Consulta turni, equipaggi e coperture.</p><b>Apri NaviTurni →</b></a>
+          <a class="app-card trova" href="cambi_turno.html" data-navi-tab="NaviTrovaTurnoTab"><span class="app-icon">⇄</span><small>CAMBI TURNO</small><strong>Trova turno</strong><p>Cerca e confronta i cambi disponibili.</p><b>Apri Trova turno →</b></a>
+          <a class="app-card diaria" href="navidiaria.html" data-navi-tab="NaviDiariaTab"><span class="app-icon">≈</span><small>REGISTRO PERSONALE</small><strong>NaviDiaria</strong><p>Gestisci ore, competenze e diaria.</p><b>Apri NaviDiaria →</b></a>
+          <a class="app-card docs" href="documenti.html" data-navi-tab="NaviOdsTab"><span class="app-icon">▤</span><small>ARCHIVIO PDF</small><strong>NaviOds</strong><p>Consulta turni, bozze e ordini di servizio.</p><b>Apri l’archivio →</b></a>
+          <a class="app-card orario" href="Orario.html" data-navi-tab="NaviOrarioTab" hidden><span class="app-icon">◴</span><small>GRAFICO SERVIZIO</small><strong>Orario</strong><p>Apri il diagramma interattivo di corse e coincidenze.</p><b>Apri Orario →</b></a>
+          <a class="app-card orari-tabella" href="orari-tabella.html" data-navi-tab="NaviOrarioTab" hidden><span class="app-icon">▥</span><small>TABELLE ORARI</small><strong>Orari tabella</strong><p>Consulta e modifica gli orari in due tabelle, nord e sud.</p><b>Apri le tabelle →</b></a>
+          <a class="app-card settings" href="impostazioni.html" data-navi-tab="NaviImpostazioniTab"><span class="app-icon">⚙</span><small>PREFERENZE</small><strong>Impostazioni</strong><p>Gestisci preferenze, settimane e profilo.</p><b>Apri Impostazioni →</b></a>
+          <a class="app-card docs" href="segnalazioni.html" data-navi-tab="NaviSegnalazioniTab"><span class="app-icon">✉</span><small>ASCOLTO</small><strong>Segnalazioni</strong><p>Invia bug e idee di miglioramento.</p><b>Apri segnalazioni →</b></a>
+          <a class="app-card updates" href="aggiornamenti.html" data-navi-tab="NaviAggiornamentiTab" hidden><span class="app-icon">↻</span><small>AMMINISTRAZIONE</small><strong>Aggiornamenti</strong><p>Importa ODS, turni, bozze e variazioni.</p><b>Apri Aggiornamenti →</b></a>
+          <a class="app-card agents" href="agenti.html" data-navi-tab="NaviAgentiTab" hidden><span class="app-icon">♙</span><small>AMMINISTRAZIONE</small><strong>Agenti</strong><p>Gestisci accessi, ruoli e gradi del personale.</p><b>Apri Gestione agenti →</b></a>
+        </div>
+        <button id="logoutButton" class="text-button" type="button">Esci e cambia utente</button>
+      </div>
+    </section>
+  </main>
+  <script src="assets/js/admin-firebase-rest.js?v=35"></script>
+  <script src="assets/js/shared-data.js"></script>
+  <script src="assets/js/firebase-auth.js?v=2.js"></script>
+  <script src="assets/js/portal.js?v=101"></script>
+  <script src="assets/js/shared-menu.js?v=2"></script>
+  <script src="assets/js/announcements-recovered.js?v=1"></script>
 </body>
 </html>
