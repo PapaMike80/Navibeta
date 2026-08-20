@@ -33,3 +33,31 @@
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',install,{once:true});else install();
 })();
+
+/* Durante il pinch zoom Safari mantiene la pagina scalata, ma questa barra resta
+   disegnata con le sue misure fisiche normali nella viewport effettivamente visibile. */
+(() => {
+  const install = () => {
+    const bar = document.getElementById('navisuite-mobile-menu');
+    const vv = window.visualViewport;
+    if (!bar || !vv) return;
+    const clear = () => ['left','right','top','bottom','width','height','zoom'].forEach(p => bar.style.removeProperty(p));
+    const sync = () => {
+      if (innerWidth > 850 || vv.scale <= 1.01) return clear();
+      const scale = vv.scale;
+      /* Le dimensioni sono in CSS pixel della pagina: convertite qui, diventano
+         sempre 72px di altezza e 12px di margine sullo schermo reale. */
+      bar.style.setProperty('left', `${vv.offsetLeft + 12 / scale}px`, 'important');
+      bar.style.setProperty('right', 'auto', 'important');
+      bar.style.setProperty('top', `${vv.offsetTop + vv.height - 82 / scale}px`, 'important');
+      bar.style.setProperty('bottom', 'auto', 'important');
+      bar.style.setProperty('width', `${vv.width * scale - 24}px`, 'important');
+      bar.style.removeProperty('height');
+      bar.style.setProperty('zoom', String(1 / scale));
+    };
+    vv.addEventListener('resize', sync, {passive:true});
+    vv.addEventListener('scroll', sync, {passive:true});
+    sync();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', install, {once:true}); else install();
+})();
