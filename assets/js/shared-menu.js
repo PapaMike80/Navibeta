@@ -676,3 +676,19 @@
 
   // L'autohide è ora gestito dal solo menu mobile comune.
 })();
+
+
+/* Feedback immediato: la voce selezionata resta visibile durante la navigazione. */
+(() => {
+  const style=document.createElement('style');
+  style.textContent='@keyframes ns-navigation-pulse{0%,100%{opacity:1;filter:none}50%{opacity:.52;filter:brightness(1.35)}}.ns-navigation-pending{pointer-events:none!important;animation:ns-navigation-pulse .72s ease-in-out infinite!important;outline:2px solid rgba(90,245,221,.8)!important;outline-offset:-2px!important;background:rgba(45,212,191,.24)!important;color:#d9fffb!important}';
+  document.head.appendChild(style);
+  document.addEventListener('click',event=>{
+    const link=event.target.closest('a[href]');
+    if(!link||event.defaultPrevented||event.button!==0||event.metaKey||event.ctrlKey||event.shiftKey||event.altKey||link.target==='_blank'||link.hasAttribute('download'))return;
+    const href=link.getAttribute('href')||'';
+    if(!href||href[0]==='#'||/^javascript:/i.test(href))return;
+    link.classList.add('ns-navigation-pending');
+    link.setAttribute('aria-busy','true');
+  },true);
+})();
