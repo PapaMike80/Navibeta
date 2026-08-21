@@ -221,15 +221,18 @@
   }
 
   async function getShipConfigurations() {
+    let direct = {};
     try {
       const result = await databaseRequest("private/adminUpdates/shipConfigurations");
-      const value = result.data && typeof result.data === "object" ? result.data : {};
-      return { configurations:value.configurations || value, updatedAt:String(value.updatedAt || "") };
-    } catch (error) {
-      const result = await databaseRequest("private/adminUpdates");
-      const value = result.data && typeof result.data === "object" ? result.data : {};
-      return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
+      direct = result.data && typeof result.data === "object" ? result.data : {};
+    } catch (error) {}
+    const directConfiguration = direct.configurations || (Object.keys(direct).length ? direct : null);
+    if (directConfiguration && Object.keys(directConfiguration).length) {
+      return { configurations:directConfiguration, updatedAt:String(direct.updatedAt || "") };
     }
+    const result = await databaseRequest("private/adminUpdates");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
   }
 
   async function saveShipConfigurations(configurations = {}) {
