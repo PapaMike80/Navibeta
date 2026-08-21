@@ -233,10 +233,20 @@
       updatedAt:new Date().toISOString(),
       updatedBy:auth.uid
     };
-    await databaseRequest("private/adminUpdates/shipConfigurations", {
-      method:"PUT",
-      body:JSON.stringify(item)
-    });
+    try {
+      await databaseRequest("private/adminUpdates/shipConfigurations", {
+        method:"PUT",
+        body:JSON.stringify(item)
+      });
+    } catch (error) {
+      // Compatibilità con le regole Firebase già in uso da NaviBeta: il nodo
+      // principale adminUpdates è autorizzato per gli amministratori, mentre
+      // un nuovo sotto-percorso può non esserlo ancora.
+      await databaseRequest("private/adminUpdates", {
+        method:"PATCH",
+        body:JSON.stringify({ ownerUid:auth.uid, updatedAt:item.updatedAt, gestioneNaviConfig:item.configurations })
+      });
+    }
     return item;
   }
 
