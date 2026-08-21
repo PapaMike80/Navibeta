@@ -23,7 +23,7 @@
   if(page==='archive')document.body.classList.add('archive-page');
   let sessionAgent=null;try{sessionAgent=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{}
   const isAdminAgent=agent=>['91','92'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin';
-  const isNaviPage=/\\/gestione_navi\\.html$/i.test(location.pathname);
+  const isNaviPage=location.pathname.toLowerCase().endsWith('/gestione_navi.html');
   const isDiariaTester=agent=>isAdminAgent(agent)||['superuser','super_user','super-user'].includes(String(agent?.role||'').toLowerCase());
   const isBaristaAgent=agent=>String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista';
   const isHibaBarista=agent=>String(agent?.id||'').toUpperCase()==='BARISTA_HIBA'||(isBaristaAgent(agent)&&String(agent?.name||agent?.agente||agent?.cognome||'').trim().toUpperCase()==='HIBA');
