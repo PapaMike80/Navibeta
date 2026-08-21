@@ -221,9 +221,15 @@
   }
 
   async function getShipConfigurations() {
-    const result = await databaseRequest("private/adminUpdates/shipConfigurations");
-    const value = result.data && typeof result.data === "object" ? result.data : {};
-    return { configurations:value.configurations || value, updatedAt:String(value.updatedAt || "") };
+    try {
+      const result = await databaseRequest("private/adminUpdates/shipConfigurations");
+      const value = result.data && typeof result.data === "object" ? result.data : {};
+      return { configurations:value.configurations || value, updatedAt:String(value.updatedAt || "") };
+    } catch (error) {
+      const result = await databaseRequest("private/adminUpdates");
+      const value = result.data && typeof result.data === "object" ? result.data : {};
+      return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
+    }
   }
 
   async function saveShipConfigurations(configurations = {}) {
