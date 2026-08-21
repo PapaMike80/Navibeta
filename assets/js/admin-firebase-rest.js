@@ -220,6 +220,26 @@
     return { ...item, currentUid:auth.uid };
   }
 
+  async function getShipConfigurations() {
+    const result = await databaseRequest("private/adminUpdates/shipConfigurations");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return { configurations:value.configurations || value, updatedAt:String(value.updatedAt || "") };
+  }
+
+  async function saveShipConfigurations(configurations = {}) {
+    const auth = await ensureAuth();
+    const item = {
+      configurations:configurations && typeof configurations === "object" ? configurations : {},
+      updatedAt:new Date().toISOString(),
+      updatedBy:auth.uid
+    };
+    await databaseRequest("private/adminUpdates/shipConfigurations", {
+      method:"PUT",
+      body:JSON.stringify(item)
+    });
+    return item;
+  }
+
   async function getAnnouncements() {
     const result = await databaseRequest("private/adminUpdates/announcements");
     return result.data && typeof result.data === "object" ? result.data : {};
@@ -630,6 +650,8 @@
     deleteChangeRequest,
     getAdminUpdates,
     saveAdminUpdates,
+    getShipConfigurations,
+    saveShipConfigurations,
     getBaristaUpdates,
     saveBaristaUpdates,
     getAnnouncements,
