@@ -9,7 +9,7 @@
 
 // Cambio obbligatorio dopo il ripristino dello script popup: invalida anche
 // le copie memorizzate dalla PWA e da Safari.
-const CACHE_VERSION = 'navisuite-v179-navigation-feedback';
+const CACHE_VERSION = 'navisuite-v180-clean-menu';
 const CACHE_NAME = CACHE_VERSION;
 
 // File statici da pre-caricare durante l'installazione.
@@ -28,13 +28,6 @@ const STATIC_ASSETS = [
   'navidiaria.html',
   'naviturni.html',
   'cambi_turno.html',
-  'aggiornamenti.html',
-  'agenti.html',
-  'documenti.html',
-  'impostazioni.html',
-  'segnalazioni.html',
-  'Orario.html',
-  'orari-tabella.html',
   'assets/css/portal.css',
   'assets/css/styles.css',
   'assets/css/navidiaria-weekly.css',
@@ -42,18 +35,11 @@ const STATIC_ASSETS = [
   'assets/css/navi-layout.css',
   'assets/css/navi-shared.css',
   'assets/css/naviturni-theme.css',
-  'assets/css/orario.css',
-  'assets/css/turni.css',
-  'assets/css/turni-common.css',
   'assets/css/shared-menu.css',
   'assets/js/shared-data.js',
   'assets/js/firebase-data.js',
   'assets/js/admin-firebase-rest.js',
   'assets/js/draft-period.js',
-  'assets/js/cambi-change-arrows.js',
-  'assets/js/aggiornamenti-data.js',
-  'vendor/pdfjs/pdf.min.js',
-  'vendor/pdfjs/pdf.worker.min.js',
   'assets/js/firebase-auth.js',
   'assets/js/portal.js',
   'assets/js/app.js',
@@ -62,13 +48,7 @@ const STATIC_ASSETS = [
   'assets/js/shared-menu.js',
   'assets/js/mobile-menu-solid.js',
   'assets/js/turni-shared.js',
-  'assets/js/announcements-recovered.js',
-  'assets/js/documenti.js',
-  'assets/js/orari-tabella.js',
-  'assets/js/orario-main.js',
-  'assets/js/orario-shared.js',
-  'assets/js/orario-tooltip.js',
-  'assets/js/cambia-pin.js'
+  'assets/js/announcements.js'
 ];
 
 self.addEventListener('install', event => {
