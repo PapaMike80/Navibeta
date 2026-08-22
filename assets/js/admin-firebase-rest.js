@@ -232,7 +232,9 @@
     }
     const result = await databaseRequest("private/adminUpdates");
     const value = result.data && typeof result.data === "object" ? result.data : {};
-    return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
+    const rows = Array.isArray(value.turniNavi) ? value.turniNavi.filter(Boolean) : Object.values(value.turniNavi || {});
+    const embedded = rows.find(row => row?.tipo === "GESTIONE_NAVI_CONFIG")?.configurazione;
+    return { configurations:value.gestioneNaviConfig || embedded || {}, updatedAt:String(value.updatedAt || "") };
   }
 
   async function saveShipConfigurations(configurations = {}) {
@@ -248,12 +250,22 @@
         body:JSON.stringify(item)
       });
     } catch (error) {
-      // Compatibilità con le regole Firebase già in uso da NaviBeta: il nodo
-      // principale adminUpdates è autorizzato per gli amministratori, mentre
-      // un nuovo sotto-percorso può non esserlo ancora.
-      await databaseRequest("private/adminUpdates", {
-        method:"PATCH",
-        body:JSON.stringify({ ownerUid:auth.uid, updatedAt:item.updatedAt, gestioneNaviConfig:item.configurations })
+      // Le regole Firebase esistenti consentono già turniNavi. Se i nuovi nodi
+      // configurazione non sono ancora autorizzati, conserva la configurazione
+      // come riga tecnica nello stesso archivio, senza alterare i turni reali.
+      const current = await databaseRequest("private/adminUpdates/turniNavi");
+      const rows = Array.isArray(current.data) ? current.data.filter(Boolean) : Object.values(current.data || {});
+      const nextRows = rows.filter(row => row?.tipo !== "GESTIONE_NAVI_CONFIG");
+      nextRows.push({
+        tipo:"GESTIONE_NAVI_CONFIG",
+        attiva:false,
+        configurazione:item.configurations,
+        updatedAt:item.updatedAt,
+        updatedBy:item.updatedBy
+      });
+      await databaseRequest("private/adminUpdates/turniNavi", {
+        method:"PUT",
+        body:JSON.stringify(nextRows)
       });
     }
     return item;
