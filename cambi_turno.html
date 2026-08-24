@@ -4270,7 +4270,7 @@
         }
         const welcomeNotice = document.getElementById("welcome-notice");
         welcomeNotice.classList.add("is-error");
-        welcomeNotice.innerHTML = `<h3>⚠️ Dati non disponibili</h3><p>Non è stato possibile caricare i turni. Riprova con il pulsante Aggiorna.</p>`;
+        welcomeNotice.innerHTML = `<h3>⚠️ Dati non disponibili</h3><p>Non è stato possibile caricare i turni.</p><small>${String(errore?.message || errore || "Errore sconosciuto")}</small>`;
         welcomeNotice.style.display = "block";
         document.getElementById("upload-status").textContent = "❌ Impossibile caricare i dati: " + errore.message;
       }
