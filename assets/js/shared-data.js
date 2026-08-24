@@ -283,13 +283,18 @@
   }
 
   async function mergeAdminUpdates(data) {
-    const provider = window.NaviFirebase?.getAdminUpdates
-      ? window.NaviFirebase
-      : window.NaviAdminFirebase;
-    if (!data || !provider?.getAdminUpdates) return data;
-    try {
-      await provider.ready;
-      const updates = await provider.getAdminUpdates();
+    // Il modulo Firebase SDK e quello REST non sono sempre pronti nello
+    // stesso istante, soprattutto aprendo direttamente Cambi su iPhone.
+    // Se il primo non legge gli aggiornamenti, prova l'altro: non bisogna
+    // mai lasciare la tabella ferma all'ultimo giorno del turno base.
+    const providers = [window.NaviFirebase, window.NaviAdminFirebase]
+      .filter((provider, index, list) => provider?.getAdminUpdates && list.indexOf(provider) === index);
+    if (!data || !providers.length) return data;
+    let lastError = null;
+    for (const provider of providers) {
+      try {
+        await provider.ready;
+        const updates = await provider.getAdminUpdates();
       applyScheduleImports(data, updates.scheduleImports);
       const profileOverrides = updates.agentProfiles || {};
       data.agentProfileOverrides = profileOverrides;
@@ -325,9 +330,12 @@
         item => `${item?.data || ''}|${item?.corsa || ''}|${String(item?.nave || '').trim().toLocaleUpperCase('it')}`
       );
       data.dismissedOdsApprovals = Array.isArray(updates.dismissedOdsApprovals) ? updates.dismissedOdsApprovals : [];
-    } catch (error) {
-      console.warn('Aggiornamenti amministrativi Firebase non disponibili.', error);
+        return data;
+      } catch (error) {
+        lastError = error;
+      }
     }
+    console.warn('Aggiornamenti amministrativi Firebase non disponibili.', lastError);
     return data;
   }
 
