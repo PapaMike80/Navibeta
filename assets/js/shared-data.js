@@ -153,7 +153,8 @@
     const raw = String(value ?? '').trim().toUpperCase().replace(/[‐‑–—]/g, '-');
     if (!raw || /^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw)) return 'RIP';
     if (/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw)) return 'CON';
-    if (/^(?:LAV\.?|TERRA)$/.test(raw)) return 'TERRA';
+    if (/^LAV\.?$/.test(raw)) return 'LAV';
+    if (raw === 'TERRA') return 'TERRA';
     if (/^F\.?P\.?-*$/.test(raw)) return 'F.P.';
     return raw.replace(/\.{2,}$/g, '.').replace(/-+$/g, '');
   }
@@ -293,6 +294,22 @@
     const bitturini = agents.find(agent => normalizeAgentName(agent?.agente) === 'BITTURINI D');
     if (bitturini && active.some(batch => String(batch.inizio) === '2026-09-07' && String(batch.fine) === '2026-10-04')) {
       bitturini.turni = { ...(bitturini.turni || {}), ...bitturiniBozza };
+    }
+    // Correzione verificata sulla bozza 07/09-04/10/2026: LAV indica
+    // lavori da 8 ore e non il turno generico TERRA. Il # del 14/09 resta
+    // una giornata impegnata come riportato nel prospetto.
+    const zenegagliaBozza = {
+      '2026-09-07':'LAV', '2026-09-08':'LAV', '2026-09-09':'LAV', '2026-09-10':'LAV',
+      '2026-09-11':'LAV', '2026-09-12':'RIP', '2026-09-13':'RIP', '2026-09-14':'#',
+      '2026-09-15':'LAV', '2026-09-16':'LAV', '2026-09-17':'LAV', '2026-09-18':'LAV',
+      '2026-09-19':'RIP', '2026-09-20':'RIP', '2026-09-21':'LAV', '2026-09-22':'LAV',
+      '2026-09-23':'LAV', '2026-09-24':'LAV', '2026-09-25':'LAV', '2026-09-26':'RIP',
+      '2026-09-27':'RIP', '2026-09-28':'LAV', '2026-09-29':'LAV', '2026-09-30':'LAV',
+      '2026-10-01':'LAV', '2026-10-02':'LAV', '2026-10-03':'RIP', '2026-10-04':'F.P.'
+    };
+    const zenegaglia = agents.find(agent => normalizeAgentName(agent?.agente) === 'ZENEGAGLIA D');
+    if (zenegaglia && active.some(batch => String(batch.inizio) === '2026-09-07' && String(batch.fine) === '2026-10-04')) {
+      zenegaglia.turni = { ...(zenegaglia.turni || {}), ...zenegagliaBozza };
     }
     data.date = [...dateMap.values()].sort((a,b) => a.iso.localeCompare(b.iso));
     data.scheduleImports = active;
