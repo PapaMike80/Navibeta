@@ -1657,7 +1657,7 @@
   <script src="assets/js/turni-shared.js"></script>
   <script src="assets/js/admin-firebase-rest.js?v=35"></script>
   <script src="assets/js/draft-period.js?v=1"></script>
-  <script src="assets/js/shared-data.js?v=119"></script>
+  <script src="assets/js/shared-data.js?v=120"></script>
   <script src="assets/js/firebase-auth.js"></script>
   <script src="assets/js/shared-menu.js?v=1.44"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
@@ -4088,7 +4088,7 @@
     function normalizeOdsShift(value) {
       const shift = String(value || "").trim();
       if (!shift || /^={3,}$/.test(shift) || /^(rip|rip\.|riposo)$/i.test(shift)) return "rip";
-      if (/^lav\.?$/i.test(shift)) return "TERRA";
+      if (/^lav\.?$/i.test(shift)) return "LAV";
       return shift.toUpperCase();
     }
 
