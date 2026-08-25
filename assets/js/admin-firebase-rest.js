@@ -271,6 +271,21 @@
     return item;
   }
 
+  async function getServiceConfigurations() {
+    const result = await databaseRequest("private/adminUpdates/serviceConfigurations");
+    return result.data?.configurations || {};
+  }
+
+  async function saveServiceConfigurations(configurations = {}) {
+    const auth = await ensureAuth();
+    const item = { configurations, updatedAt:new Date().toISOString(), updatedBy:auth.uid };
+    await databaseRequest("private/adminUpdates/serviceConfigurations", {
+      method:"PUT",
+      body:JSON.stringify(item)
+    });
+    return item;
+  }
+
   async function getAnnouncements() {
     const result = await databaseRequest("private/adminUpdates/announcements");
     return result.data && typeof result.data === "object" ? result.data : {};
@@ -693,6 +708,8 @@
     saveAdminUpdates,
     getShipConfigurations,
     saveShipConfigurations,
+    getServiceConfigurations,
+    saveServiceConfigurations,
     getBaristaUpdates,
     saveBaristaUpdates,
     getAnnouncements,
