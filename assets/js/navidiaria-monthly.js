@@ -56,86 +56,19 @@ try{(()=>{
   function toggle(entry,row,date){if(row.kind==='allowance')entry.allowanceRate=Number(entry.allowanceRate)===row.rate?null:row.rate;else if(row.kind==='holiday')entry.holidayWorked=!holidayValue(entry,new Date(`${date}T12:00:00`));else if(row.kind==='ticket'){entry.ticketPresence=!ticketValue(entry);entry.mealUsed=entry.ticketPresence}else{entry[row.field]=!entry[row.field];if(row.key==='cashHandling')entry.cashHandlingManual=true}save(entry)}
   grid.addEventListener('click',event=>{const cell=event.target.closest('td[data-date][data-row]');if(!cell||cell.querySelector('input,select'))return;const row=rows.find(r=>r.key===cell.dataset.row),entry=entryFor(cell.dataset.date);if(!row||!entry)return;if(row.kind==='shift'){openDayBubbleEditor(cell.dataset.date);return}if(!isWorking(entry))return;if(row.kind==='number'||row.kind==='serviceMinutes'||row.kind==='worked'){editNumber(cell,entry,row);return}if(['toggle','allowance','holiday','ticket'].includes(row.kind))toggle(entry,row,cell.dataset.date)});
   document.addEventListener('click',event=>{const head=event.target.closest('th[data-date]');if(head)openDayBubbleEditor(head.dataset.date)});
-  const bubbleShiftRow={key:'shift',label:'Servizio',kind:'shift'};
-  const bubblePrimaryRows=[
-    {key:'worked',label:'Ore lavorate',kind:'worked',field:'workedMinutes'},
-    {key:'delay',label:'Straordinario',kind:'number',field:'delay'},
-    {key:'bank',label:'Banca ore',kind:'number',field:'bank'},
-    {key:'ticket',label:'Buono',kind:'ticket'},
-    {key:'allowance',label:'Diaria',kind:'allowance'}
-  ];
-  const bubbleOtherRows=[
-    {key:'overnight40',label:'Pernotto',kind:'toggle',field:'overnight40'},
-    {key:'holiday',label:'Festività',kind:'holiday'},
-    {key:'secondMeal',label:'2° ticket',kind:'toggle',field:'secondMeal'},
-    {key:'embark',label:'Imbarco',kind:'toggle',field:'embark'},
-    {key:'refuel',label:'Rifornimento',kind:'refuel',field:'refuel'},
-    {key:'hydrofoil',label:'Aliscafo',kind:'hydrofoil'}
-  ];
-  let bubbleDraft=null,bubbleDate=null,bubbleDateLabel='';
-  function bubbleHydrofoilValue(e){return e.hydrofoil===undefined?isWorking(e)&&String(e.shift).toUpperCase()==='SR1':Number(e.hydrofoil)>0}
-  function bubbleMinutes(v){const n=Math.round(Number(v)||0);return n?`${n} min`:''}
-  function bubbleValue(row){
-    const e=bubbleDraft;if(!e)return '';
-    switch(row.key){
-      case 'shift':return e.shift||'';
-      case 'worked':return isWorking(e)?clock(workedMinutes(e)):'';
-      case 'delay':return bubbleMinutes(e.delay);
-      case 'bank':return bubbleMinutes(e.bank);
-      case 'ticket':return ticketValue(e)?'Sì':'';
-      case 'allowance':return Number(e.allowanceRate)?`${e.allowanceRate}%`:'';
-      case 'overnight40':return e.overnight40?'Sì':'';
-      case 'holiday':return holidayValue(e,bubbleDate)?'Sì':'';
-      case 'secondMeal':return Number(e.secondMeal)>0?'Sì':'';
-      case 'embark':return e.embark?'Sì':'';
-      case 'refuel':{const value=refuelSuggestionMinutes(e.date,e.shift);return e.refuel&&value?`+${clock(value)}`:''}
-      case 'hydrofoil':return bubbleHydrofoilValue(e)?'Sì':'';
-      default:return '';
-    }
+  function openDayBubbleEditor(dateIso){
+    window.NaviDayModal.open({
+      date:dateIso,
+      shifts:SHIFTS,
+      shiftFor,
+      shiftColors,
+      shipForService,
+      refuelSuggestionMinutes,
+      loadEntry:()=>{const existing=entries.find(e=>e.date===dateIso);return existing?{...existing}:{date:dateIso,shift:'Riposo',serviceMinutes:0,delay:0,bank:0,allowanceRate:null,overnight40:false,holidayWorked:false,ticketPresence:false,mealUsed:false,secondMeal:0,embark:false,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false}},
+      saveEntry:draft=>{if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;entries.push(draft)}else{const existing=entries.find(e=>e.id===draft.id);if(existing)Object.assign(existing,draft)}persist();return draft},
+      onClose:()=>document.dispatchEvent(new CustomEvent('navidiaria:render'))
+    });
   }
-  function dayBubbleDialog(){let modal=document.getElementById('monthlyDayBubbleDialog');if(modal)return modal;modal=document.createElement('div');modal.id='monthlyDayBubbleDialog';modal.className='weekly-edit-overlay';modal.hidden=true;modal.innerHTML='<section class="weekly-edit-dialog monthly-bubble-dialog"><button type="button" class="weekly-edit-close" data-bubble-close aria-label="Chiudi">✕</button><small>GIORNATA</small><h3 data-bubble-title></h3><button type="button" class="weekly-service" data-bubble-field="shift"></button><div class="weekly-bubble-grid" data-bubble-grid></div><div class="monthly-bubble-actions"><button type="button" class="weekly-edit-cancel" data-bubble-close>Chiudi</button></div></section>';document.body.appendChild(modal);return modal}
-  const closeDayBubble=()=>{dayBubbleDialog().hidden=true;document.body.classList.toggle('weekly-dialog-open',false)};
-  function renderDayBubbles(){
-    const modal=dayBubbleDialog(),e=bubbleDraft,working=isWorking(e),color=working?shiftColors[String(e.shift||'').toUpperCase()]||'#64748b':'#64748b',ship=working?shipForService(e.date,e.shift):'',configuredMinutes=working?Math.max(0,Math.round((Number(shiftFor(e.shift).hours)||0)*60)):0;
-    modal.querySelector('[data-bubble-title]').textContent=bubbleDateLabel;
-    const service=modal.querySelector('.weekly-service');
-    service.className=`weekly-service${working?' has-service':''}`;
-    service.style.setProperty('--shift-color',color);
-    const serviceTitle=[e.shift||'Servizio',ship].filter(Boolean).join(' · ');
-    service.innerHTML=`<strong>${escapeHtml(serviceTitle)}</strong>${configuredMinutes?`<small>${escapeHtml(clock(configuredMinutes))}</small>`:''}`;
-    modal.querySelector('[data-bubble-grid]').innerHTML=bubblePrimaryRows.concat(bubbleOtherRows).map(row=>{const value=bubbleValue(row),disabled=row.kind==='refuel'&&!refuelSuggestionMinutes(e.date,e.shift);return `<button type="button" class="weekly-bubble${value?' has-value':' is-empty'}" data-bubble-field="${row.key}" ${disabled?'disabled title="Nessun suggerimento configurato"':''}><span>${row.label}</span><strong>${escapeHtml(value||'—')}</strong></button>`}).join('');
-  }
-  function bubbleSave(){const draft=bubbleDraft;if(!draft)return;draft.imported=false;if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;entries.push(draft)}else{const existing=entries.find(e=>e.id===draft.id);if(existing)Object.assign(existing,draft)}persist()}
-  function toggleBubble(row){const e=bubbleDraft;if(!e||row.kind==='refuel'&&!refuelSuggestionMinutes(e.date,e.shift))return;if(row.kind==='holiday')e.holidayWorked=!holidayValue(e,bubbleDate);else if(row.kind==='ticket'){e.ticketPresence=!ticketValue(e);e.mealUsed=e.ticketPresence}else if(row.kind==='hydrofoil')e.hydrofoil=bubbleHydrofoilValue(e)?0:1;else if(row.key==='secondMeal')e.secondMeal=Number(e.secondMeal)>0?0:1;else e[row.field]=!e[row.field];bubbleSave();renderDayBubbles()}
-  function bubbleValueDialog(){let modal=document.getElementById('monthlyBubbleValueDialog');if(modal)return modal;modal=document.createElement('div');modal.id='monthlyBubbleValueDialog';modal.className='weekly-edit-overlay';modal.hidden=true;modal.innerHTML='<form class="weekly-edit-dialog"><button type="button" class="weekly-edit-close" aria-label="Chiudi">✕</button><small>MODIFICA DATO</small><h3></h3><label><span></span><select></select><input></label><p class="weekly-edit-preview" hidden></p><div><button type="button" class="weekly-edit-cancel">Annulla</button><button type="submit" class="weekly-edit-save">Salva</button></div></form>';document.body.appendChild(modal);return modal}
-  function openBubbleValue(row){
-    const modal=bubbleValueDialog(),form=modal.querySelector('form'),select=modal.querySelector('select'),input=modal.querySelector('input'),preview=modal.querySelector('.weekly-edit-preview'),label=modal.querySelector('label span');
-    modal.querySelector('h3').textContent=`${row.label} · ${bubbleDateLabel}`;
-    label.textContent=row.label;select.hidden=true;input.hidden=true;preview.hidden=true;
-    if(row.kind==='shift'){
-      select.hidden=false;select.replaceChildren(...SHIFTS.map(shift=>new Option(shift.code,shift.code,false,shift.code===bubbleDraft.shift)));
-      const update=()=>{const competence=shiftFor(select.value),rest=['RIP','RIPOSO','MALATTIA'].includes(String(select.value).toUpperCase()),parts=[rest?'Nessuna ora':clock(Math.round((Number(competence.hours)||0)*60))];if(!rest&&competence.meal)parts.push('Ticket');if(!rest&&competence.embark)parts.push('Imbarco');if(!rest&&competence.allowance)parts.push(`Diaria ${competence.allowanceRate}%`);preview.textContent=parts.join(' · ');preview.hidden=false};
-      select.onchange=update;update();
-    }else if(row.key==='allowance'){
-      select.hidden=false;select.replaceChildren(...[0,9,24,50].map(rate=>new Option(rate?`${rate}%`:'0% · nessuna',String(rate),false,Number(bubbleDraft.allowanceRate||0)===rate)));
-    }else if(row.kind==='worked'){
-      input.hidden=false;input.type='text';input.inputMode='numeric';input.autocomplete='off';input.maxLength=5;const value=workedMinutes(bubbleDraft);input.value=`${String(Math.floor(value/60)).padStart(2,'0')}:${String(value%60).padStart(2,'0')}`;input.oninput=()=>{const digits=input.value.replace(/\D/g,'').slice(0,4);input.value=digits.length>2?digits.slice(0,2)+':'+digits.slice(2):digits};
-    }else{
-      input.hidden=false;input.type='number';input.min='0';input.step='1';input.inputMode='numeric';input.value=Number(bubbleDraft[row.field])?String(Number(bubbleDraft[row.field])):'';
-    }
-    modal.hidden=false;document.body.classList.add('weekly-dialog-open');requestAnimationFrame(()=>(select.hidden?input:select).focus());
-    const close=()=>{modal.hidden=true;document.body.classList.toggle('weekly-dialog-open',!dayBubbleDialog().hidden)};
-    modal.querySelector('.weekly-edit-close').onclick=close;modal.querySelector('.weekly-edit-cancel').onclick=close;modal.onclick=event=>{if(event.target===modal)close()};
-    form.onsubmit=event=>{event.preventDefault();const e=bubbleDraft;
-      if(row.kind==='shift'){const next=select.value,original=e.manualFrom||e.shift,competence=shiftFor(next),working=!['RIP','RIPOSO','MALATTIA'].includes(String(next).toUpperCase());e.manualFrom=original;e.manualTo=next;e.manualModified=original!==next;e.manualOverride=e.manualModified;e.shift=next;e.serviceMinutes=working?Math.round((Number(competence.hours)||0)*60):0;e.embark=working&&!!competence.embark;e.ticketPresence=working&&!!competence.meal;e.mealUsed=working&&!!competence.meal;e.allowanceRate=working&&competence.allowance?Number(competence.allowanceRate):null;e.refuel=false;if(!working){e.delay=0;e.bank=0;e.overnight40=false;e.holidayWorked=false;e.secondMeal=0;e.hydrofoil=0}}
-      else if(row.key==='allowance')e.allowanceRate=Number(select.value)||null;
-      else if(row.kind==='worked'){const digits=input.value.replace(/\D/g,'').padEnd(4,'0'),hours=Math.min(99,Number(digits.slice(0,2))||0),minutes=Math.min(59,Number(digits.slice(2,4))||0),value=hours*60+minutes;e.workedMinutes=value;e.delay=value-serviceMinutes(e)}
-      else{e[row.field]=input.value.trim()===''?0:Math.max(0,Math.round(Number(input.value)||0));if(row.key==='delay')e.workedMinutes=serviceMinutes(e)+e.delay}
-      close();bubbleSave();renderDayBubbles()};
-    form.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();close()}};
-  }
-  function openDayBubbleEditor(dateIso){const date=new Date(dateIso+'T12:00:00'),existing=entries.find(e=>e.date===dateIso);bubbleDate=date;bubbleDateLabel=new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'long'}).format(date);bubbleDraft=existing?{...existing}:{date:dateIso,shift:'Riposo',serviceMinutes:0,delay:0,bank:0,allowanceRate:null,overnight40:false,holidayWorked:false,ticketPresence:false,mealUsed:false,secondMeal:0,embark:false,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};const modal=dayBubbleDialog();renderDayBubbles();modal.hidden=false;document.body.classList.add('weekly-dialog-open')}
-  dayBubbleDialog().onclick=event=>{if(event.target===event.currentTarget){closeDayBubble();return}if(event.target.closest('[data-bubble-close]')){closeDayBubble();return}const field=event.target.closest('[data-bubble-field]');if(!field||field.disabled)return;const row=[bubbleShiftRow,...bubblePrimaryRows,...bubbleOtherRows].find(r=>r.key===field.dataset.bubbleField);if(!row)return;if(['toggle','ticket','holiday','hydrofoil','refuel'].includes(row.kind))toggleBubble(row);else openBubbleValue(row)};
   window.NaviDiariaDayEditor={open:openDayBubbleEditor};
   function refreshMonthly(){updateMonthButtons(monthDate());renderMonthly()}function moveMonth(delta){const d=monthDate();d.setMonth(d.getMonth()+delta);document.getElementById('monthFilter').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;render();refreshMonthly()}document.getElementById('monthlyPrevious').addEventListener('click',()=>moveMonth(-1));document.getElementById('monthlyNext').addEventListener('click',()=>moveMonth(1));document.getElementById('monthlyToday').addEventListener('click',()=>{document.getElementById('monthFilter').value=todayIso().slice(0,7);render();refreshMonthly();if(window.NaviDiariaDayEditor?.open)window.NaviDiariaDayEditor.open(todayIso())});
   const monthlyButton=document.getElementById('showMonthlySheet'),weeklyButton=document.getElementById('showWeeklyCalendar');function setView(mode){const monthly=mode==='monthly';sheet.hidden=!monthly;weekly.hidden=monthly;monthlyButton.classList.toggle('active',monthly);weeklyButton.classList.toggle('active',!monthly);localStorage.setItem('navidiaria.view',mode);if(monthly)refreshMonthly()}monthlyButton.addEventListener('click',()=>setView('monthly'));weeklyButton.addEventListener('click',()=>setView('weekly'));document.addEventListener('navidiaria:render',refreshMonthly);setView(localStorage.getItem('navidiaria.view')||'monthly');

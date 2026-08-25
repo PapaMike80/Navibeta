@@ -24,6 +24,7 @@
   <link rel="stylesheet" href="assets/css/navi-layout.css">
   <link rel="stylesheet" href="assets/css/turni-common.css">
   <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=8">
+  <link rel="stylesheet" href="assets/css/navidiaria-monthly.css?v=120">
   <style>
     .cell-pill.private-shift {
       min-width:22px;
@@ -1552,10 +1553,6 @@
     @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
     button.panel-course-name.crew-day-trigger{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;box-shadow:none!important;font:inherit;cursor:pointer;padding:0;margin:0;color:inherit}
     button.panel-course-name.crew-day-trigger:hover,button.panel-course-name.crew-day-trigger:focus-visible{outline:none;filter:brightness(1.12)}
-    .shared-day-loading,.shared-day-error{display:grid;place-items:center;gap:10px;min-height:210px;color:#9db7bf;font:800 .76rem Manrope,sans-serif}
-    .shared-day-loading i{width:26px;height:26px;border:3px solid rgba(45,212,191,.2);border-top-color:#2dd4bf;border-radius:50%;animation:shared-day-spin .75s linear infinite}
-    .shared-day-popup [data-content]{display:block!important}
-    [data-content].is-saving{opacity:.65;pointer-events:none}@keyframes shared-day-spin{to{transform:rotate(360deg)}}
 </style>
 <style id="naviturni-mobile-header-fix">
   @media (max-width:950px) {
@@ -1677,7 +1674,7 @@
   <script src="assets/js/firebase-auth.js"></script>
   <script src="assets/js/shared-menu.js?v=1.44"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
-  <script src="assets/js/day-popup.js?v=1"></script>
+  <script src="assets/js/day-popup.js?v=2"></script>
   <script type="module" src="assets/js/firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
@@ -1796,11 +1793,37 @@
       return String(agent?.id || "") === String(loggedAgentProfile?.id || "");
     }
 
+    let crewDayContext = null;
+    const crewDayDefaultHours = {D1:13,D2:11+25/60,D3:13+20/60,D4:13+15/60,T1:13+35/60,T2:12+29/60,M1:13.5,R1:13.25,R2:13.25,R3:12+20/60,R4:12+40/60,CAR1:12+10/60,P1:12.75,P2:13+5/60,P3:12+55/60,CAP:12+55/60,CAP1:12+55/60,SR1:12.25,BIS:12.25,AGB:10+25/60,POND:9+25/60,DT:9+25/60,PT:9.5,AGM:9.75,AGT:11+10/60,PONM:10+25/60,LD:8,LAV:8,'F.P.':8};
+    function crewDayShiftFor(code) {
+      const key=String(code||'').trim().toUpperCase();
+      return crewDayContext?.shiftMap?.get(key) || {code:code||'Riposo',hours:crewDayDefaultHours[key]||0,allowance:false,allowanceRate:24,meal:!['RIP','RIPOSO','MALATTIA'].includes(key),embark:!['AGB','POND','DT','PT','AGM','AGT','PONM','LD','LAV','F.P.','RIP','RIPOSO','MALATTIA'].includes(key),refuelRules:{}};
+    }
+    function crewDayRefuelMinutes(date,shift) {
+      const rules=crewDayShiftFor(shift).refuelRules||{},items=rules[String(new Date(`${date}T12:00:00`).getDay())]||[],grade=String(loggedAgentProfile?.qualifica||'').trim().toUpperCase().replace(/[_-]+/g,' '),service=String(shift||'').trim().toUpperCase();
+      return Math.max(0,...items.filter(item=>{const component=String(item.component||'').trim().toUpperCase().replace(/[_-]+/g,' ');return component===grade||component===service}).map(item=>Number(item.minutes)||0));
+    }
     function openCrewDayEditor(agentId, date) {
       if (String(agentId || "") !== String(loggedAgentProfile?.id || "")) return;
-      const calInfo=dateCalendario.find(item=>item.iso===String(date||'').slice(0,10));
-      const shift=ottieniTurnoPulito(selectedShiftValue),ship=getShipDayInfo(calInfo,shift)?.nave||'';
-      NaviDayPopup.open({agentId:String(agentId),date,shift,residence:loggedAgentProfile?.residence||currentResidence,ship});
+      const dateIso=String(date||'').slice(0,10),initialShift=ottieniTurnoPulito(selectedShiftValue)||'Riposo',residence=String(loggedAgentProfile?.residence||currentResidence||'').toUpperCase();
+      NaviDayModal.open({
+        date:dateIso,
+        shiftFor:crewDayShiftFor,
+        refuelSuggestionMinutes:crewDayRefuelMinutes,
+        shipForService:(targetDate,targetShift)=>getShipDayInfo(dateCalendario.find(item=>item.iso===targetDate),targetShift)?.nave||'',
+        get shifts(){return crewDayContext?.shifts||[]},
+        loadEntry:async()=>{
+          await NaviAdminFirebase.ready;
+          const [archive,configs]=await Promise.all([NaviAdminFirebase.loadDiaria(String(agentId)),NaviAdminFirebase.getServiceConfigurations?.()||{}]);
+          const configured=configs?.[residence]||{},codes=new Set([...Object.keys(crewDayDefaultHours),...Object.keys(configured),'Riposo','Malattia']);
+          const shifts=[...codes].map(code=>{const upper=String(code).toUpperCase(),saved=configured[code]||configured[upper]||{};return {code,...crewDayShiftFor(upper),...saved,hours:Number.isFinite(Number(saved.hours))?Number(saved.hours):(crewDayDefaultHours[upper]||0)}});
+          crewDayContext={entries:Array.isArray(archive.entries)?archive.entries:[],shifts,shiftMap:new Map(shifts.map(item=>[String(item.code).toUpperCase(),item]))};
+          const existing=crewDayContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());
+          return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};
+        },
+        saveEntry:async draft=>{if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);await loadDiariaShiftOverrides();return draft},
+        onClose:()=>{crewDayContext=null}
+      });
     }
 
     function getLoggedBaristaSchedule() {
