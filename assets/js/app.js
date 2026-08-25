@@ -36,6 +36,7 @@ SHIFTS.forEach(s=>{if(s.embark===undefined)s.embark=!GROUND_SHIFTS.has(String(s.
 SHIFTS.forEach(s=>{const code=String(s.code).toUpperCase();if(GROUND_SHIFTS.has(code)&&!['RIPOSO','MALATTIA'].includes(code))s.meal=true});
 const SERVICE_CONFIG_STORAGE='navidiaria.serviceConfigurations.v1';
 let SERVICE_CONFIGS=JSON.parse(localStorage.getItem(SERVICE_CONFIG_STORAGE)||'{}')||{};
+let SHIP_ASSIGNMENTS=new Map();
 const RESIDENCE_SERVICES={
   DESENZANO:['D1','D2','D3','D4','BIS','AgB','DT','PonD','PT','LD','PIR','CON','F.P.','LAV','Malattia','Riposo'],
   MADERNO:['T1','T2','M1','AgM','AgT','PonM','LD','PIR','CON','F.P.','LAV','Malattia','Riposo'],
@@ -158,6 +159,9 @@ function setCloudUi(label,state=''){
   buttons.forEach(button=>{button.classList.remove('is-syncing','is-saved','is-error');if(state)button.classList.add(`is-${state}`);button.disabled=state==='syncing';const text=button.querySelector('b');if(text)text.textContent=state==='syncing'?'Sincronizzo…':state==='saved'?'Sincronizzato':state==='error'?'Riprova':'Sincronizza dati';button.setAttribute('aria-label',label)});
   if(state==='saved')cloudUiResetTimer=setTimeout(()=>setCloudUi('Online'),2200);
 }
+function shipServiceKey(value){const code=String(scheduleAssignment(value).shift||value||'').trim().toUpperCase();return code==='CAR1'?'CAR':code==='CAP1'?'CAP':code}
+function shipForService(date,shift){const ships=SHIP_ASSIGNMENTS.get(`${date}|${shipServiceKey(shift)}`)||[];return ships.join(' / ')}
+async function loadShipAssignments(){if(!window.NaviAdminFirebase?.getAdminUpdates)return;const updates=await NaviAdminFirebase.getAdminUpdates(),map=new Map();(updates?.turniNavi||[]).filter(row=>row?.attiva!==false&&row.data&&row.corsa&&row.nave).forEach(row=>{const key=`${row.data}|${shipServiceKey(row.corsa)}`,name=String(row.nave).trim().toLocaleUpperCase('it');if(!name)return;const list=map.get(key)||[];if(!list.includes(name))list.push(name);map.set(key,list)});SHIP_ASSIGNMENTS=map}
 function setSaveUi(state='idle'){
   const buttons=[$('monthlySave'),$('weeklySave')].filter(Boolean);if(!buttons.length)return;
   const dirty=state==='dirty'||state==='error';
@@ -288,7 +292,7 @@ async function loginAgent(agentId,pin){
 }
 async function initializeAccess(){
   if(!activeAgent&&!localStorage.getItem(NAVITURNI_SESSION_KEY)){location.replace('index.html');return}
-  if(activeAgent){updateWelcome();$('pinSettingsButton').hidden=false;$('logoutButton').hidden=false;$('syncStatus').textContent='Sincronizzazione…';$('competenze').hidden=!isAdmin();$('competencyNav').hidden=!isAdmin();$('adminPanel').hidden=true;$('adminNav').hidden=true;await NaviFirebaseAuth.migrateStoredPin(activeAgent.id).catch(error=>console.warn('Migrazione PIN Firebase non completata',error));await loadServiceConfigurations().catch(error=>console.warn('Configurazioni servizi non disponibili',error));try{await syncEntriesWithFirebase()}catch(error){console.warn(error);$('syncStatus').textContent='Locale · da sincronizzare'}syncCurrentAgent()}
+  if(activeAgent){updateWelcome();$('pinSettingsButton').hidden=false;$('logoutButton').hidden=false;$('syncStatus').textContent='Sincronizzazione…';$('competenze').hidden=!isAdmin();$('competencyNav').hidden=!isAdmin();$('adminPanel').hidden=true;$('adminNav').hidden=true;await NaviFirebaseAuth.migrateStoredPin(activeAgent.id).catch(error=>console.warn('Migrazione PIN Firebase non completata',error));await Promise.all([loadServiceConfigurations().catch(error=>console.warn('Configurazioni servizi non disponibili',error)),loadShipAssignments().catch(error=>console.warn('Assegnazioni navi non disponibili',error))]);try{await syncEntriesWithFirebase()}catch(error){console.warn(error);$('syncStatus').textContent='Locale · da sincronizzare'}syncCurrentAgent()}
   else{try{await loadAgentDirectory();const turniProfile=JSON.parse(localStorage.getItem(NAVITURNI_SESSION_KEY)||'null'),matched=turniProfile&&agentsDirectory.find(agent=>String(agent.id)===String(turniProfile.id));if(matched){localStorage.setItem(SESSION_KEY,JSON.stringify(matched));location.reload();return}$('loginOverlay').hidden=false;document.body.classList.add('login-open');$('loginAgentSearch').focus()}catch(error){$('loginOverlay').hidden=false;document.body.classList.add('login-open');showLoginMessage('Impossibile caricare gli agenti. Ricarica la pagina.');$('loginAgentSearch').placeholder='Elenco non disponibile';$('loginAgentSearch').disabled=true}}
 }
 

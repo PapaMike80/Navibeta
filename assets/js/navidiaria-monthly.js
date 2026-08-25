@@ -96,12 +96,12 @@ try{(()=>{
   function dayBubbleDialog(){let modal=document.getElementById('monthlyDayBubbleDialog');if(modal)return modal;modal=document.createElement('div');modal.id='monthlyDayBubbleDialog';modal.className='weekly-edit-overlay';modal.hidden=true;modal.innerHTML='<section class="weekly-edit-dialog monthly-bubble-dialog"><button type="button" class="weekly-edit-close" data-bubble-close aria-label="Chiudi">✕</button><small>GIORNATA</small><h3 data-bubble-title></h3><button type="button" class="weekly-service" data-bubble-field="shift"></button><div class="weekly-bubble-grid" data-bubble-grid></div><div class="monthly-bubble-actions"><button type="button" class="weekly-edit-cancel" data-bubble-close>Chiudi</button></div></section>';document.body.appendChild(modal);return modal}
   const closeDayBubble=()=>{dayBubbleDialog().hidden=true;document.body.classList.toggle('weekly-dialog-open',false)};
   function renderDayBubbles(){
-    const modal=dayBubbleDialog(),e=bubbleDraft,working=isWorking(e),color=working?shiftColors[String(e.shift||'').toUpperCase()]||'#64748b':'#64748b',hours=working?clock(serviceMinutes(e)+(Number(e.delay)||0)):'—';
+    const modal=dayBubbleDialog(),e=bubbleDraft,working=isWorking(e),color=working?shiftColors[String(e.shift||'').toUpperCase()]||'#64748b':'#64748b',ship=working?shipForService(e.date,e.shift):'';
     modal.querySelector('[data-bubble-title]').textContent=bubbleDateLabel;
     const service=modal.querySelector('.weekly-service');
     service.className=`weekly-service${working?' has-service':''}`;
     service.style.setProperty('--shift-color',color);
-    service.innerHTML=`<strong>${escapeHtml(e.shift||'Servizio')}</strong><small>${hours}</small>`;
+    service.innerHTML=`<strong>${escapeHtml(e.shift||'Servizio')}</strong><small>${escapeHtml(ship||'—')}</small>`;
     modal.querySelector('[data-bubble-grid]').innerHTML=bubblePrimaryRows.concat(bubbleOtherRows).map(row=>{const value=bubbleValue(row),disabled=row.kind==='refuel'&&!refuelSuggestionMinutes(e.date,e.shift);return `<button type="button" class="weekly-bubble${value?' has-value':' is-empty'}" data-bubble-field="${row.key}" ${disabled?'disabled title="Nessun suggerimento configurato"':''}><span>${row.label}</span><strong>${escapeHtml(value||'—')}</strong></button>`}).join('');
   }
   function bubbleSave(){const draft=bubbleDraft;if(!draft)return;draft.imported=false;if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;entries.push(draft)}else{const existing=entries.find(e=>e.id===draft.id);if(existing)Object.assign(existing,draft)}persist()}
