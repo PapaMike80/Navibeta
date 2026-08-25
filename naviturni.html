@@ -1759,7 +1759,7 @@
       return manual?.shift || ods || scheduled;
     }
 
-    async function loadDiariaShiftOverrides() {
+    async function loadDiariaShiftOverrides({ refresh = true } = {}) {
       if (!window.NaviAdminFirebase?.loadAllDiaria) return false;
       try {
         await NaviAdminFirebase.ready;
@@ -1774,7 +1774,7 @@
           });
         }));
         diariaShiftOverrides = next;
-        if (globalData) {
+        if (globalData && refresh) {
           renderTable();
           if (selectedCol !== null) {
             const cal = dateCalendario.find(item => item.col === selectedCol);
@@ -1821,7 +1821,18 @@
           const existing=crewDayContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());
           return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};
         },
-        saveEntry:async draft=>{if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);await loadDiariaShiftOverrides();return draft},
+        saveEntry:async draft=>{
+          if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}
+          else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}
+          await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);
+          await loadDiariaShiftOverrides({refresh:false});
+          renderTable();
+          renderCoverageTable();
+          const cal=dateCalendario.find(item=>item.iso===dateIso);
+          const focus=Object.values(globalData?.residenze||{}).flat().find(agent=>String(agent.id||'')===String(agentId))||selectedCrewAgent;
+          if(cal){selectedCol=null;selectedShiftValue=draft.shift;selectDay(cal.col,cal.labelEstesa,draft.shift,focus)}
+          return draft;
+        },
         onClose:()=>{crewDayContext=null}
       });
     }
@@ -2415,10 +2426,14 @@
     };
     const crewGradeRank = agent => gradeRankMap[getGradeClass(agent.id, agent.agente, agent.qualifica)] || 99;
 
+    function isRiposoShift(v) {
+      const txt = String(v || "").toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
+      return ["", "RIP", "RIP.", "RIPOSO", "----"].includes(txt);
+    }
+
     function ottieniTurnoPulito(v) {
-      if (!v) return "";
-      let txt = v.toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
-      if (txt === "" || txt === "RIP" || txt === "RIP." || txt === "----") return "";
+      if (isRiposoShift(v)) return "";
+      let txt = String(v).toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
 
       let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
       if (match && match[1]) {

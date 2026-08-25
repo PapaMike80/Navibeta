@@ -2084,10 +2084,14 @@
       return map[q] || "grado-marinaio";
     }
 
+    function isRiposoShift(v) {
+      const txt = String(v || "").toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
+      return ["", "RIP", "RIP.", "RIPOSO", "----", "---", "==="].includes(txt);
+    }
+
     function ottieniTurnoPulito(v) {
-      if (!v) return "";
-      let txt = v.toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
-      if (txt === "" || txt === "RIP" || txt === "RIP." || txt === "----" || txt === "---" || txt === "===") return "";
+      if (isRiposoShift(v)) return "";
+      let txt = String(v).toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
 
       let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
       if (match && match[1]) {
