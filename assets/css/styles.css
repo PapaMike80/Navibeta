@@ -11,3 +11,9 @@
   .topbar .eyebrow{display:block;font-size:9px}
   .topbar-context{display:none}
 }
+
+.competency-service-bubble{border-color:color-mix(in srgb,var(--service-color) 82%,#fff 8%);background:color-mix(in srgb,var(--service-color) 22%,#092731);color:var(--service-color);box-shadow:inset 3px 0 var(--service-color)}
+.competency-service-bubble small{color:color-mix(in srgb,var(--service-color) 48%,#dceef1)}
+.competency-service-bubble:hover{border-color:var(--service-color);background:color-mix(in srgb,var(--service-color) 34%,#092731)}
+.service-config-dialog .service-config-hero{border-color:var(--service-color,#1fa8bd);background:color-mix(in srgb,var(--service-color,#1fa8bd) 25%,#082b36);box-shadow:inset 4px 0 var(--service-color,#1fa8bd)}
+.service-config-dialog .service-config-hero strong{color:color-mix(in srgb,var(--service-color,#72e7ef) 70%,#fff)}
