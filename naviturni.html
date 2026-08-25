@@ -23,6 +23,7 @@
   <link rel="stylesheet" href="assets/css/navi-shared.css">
   <link rel="stylesheet" href="assets/css/navi-layout.css">
   <link rel="stylesheet" href="assets/css/turni-common.css">
+  <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=8">
   <style>
     .cell-pill.private-shift {
       min-width:22px;
@@ -1549,11 +1550,12 @@
   }
     .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
     @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
-    .panel-course-name.crew-day-trigger{border:0;font:inherit;cursor:pointer}
-    .panel-course-name.crew-day-trigger:hover,.panel-course-name.crew-day-trigger:focus-visible{outline:2px solid rgba(45,212,191,.7);outline-offset:3px;filter:brightness(1.12)}
-    .crew-day-overlay{position:fixed;inset:0;z-index:100050;display:grid;place-items:center;padding:12px;background:rgba(1,12,18,.76);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
-    .crew-day-overlay[hidden]{display:none!important}
-    .crew-day-frame{width:min(460px,100%);height:min(720px,calc(100dvh - 24px));border:0;border-radius:24px;background:#061d26;box-shadow:0 24px 70px #000b}
+    button.panel-course-name.crew-day-trigger{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;box-shadow:none!important;font:inherit;cursor:pointer;padding:0;margin:0;color:inherit}
+    button.panel-course-name.crew-day-trigger:hover,button.panel-course-name.crew-day-trigger:focus-visible{outline:none;filter:brightness(1.12)}
+    .shared-day-loading,.shared-day-error{display:grid;place-items:center;gap:10px;min-height:210px;color:#9db7bf;font:800 .76rem Manrope,sans-serif}
+    .shared-day-loading i{width:26px;height:26px;border:3px solid rgba(45,212,191,.2);border-top-color:#2dd4bf;border-radius:50%;animation:shared-day-spin .75s linear infinite}
+    .shared-day-popup [data-content]{display:block!important}
+    [data-content].is-saving{opacity:.65;pointer-events:none}@keyframes shared-day-spin{to{transform:rotate(360deg)}}
 </style>
 <style id="naviturni-mobile-header-fix">
   @media (max-width:950px) {
@@ -1675,6 +1677,7 @@
   <script src="assets/js/firebase-auth.js"></script>
   <script src="assets/js/shared-menu.js?v=1.44"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
+  <script src="assets/js/day-popup.js?v=1"></script>
   <script type="module" src="assets/js/firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
@@ -1793,54 +1796,11 @@
       return String(agent?.id || "") === String(loggedAgentProfile?.id || "");
     }
 
-    function crewDayOverlay() {
-      let overlay = document.getElementById("crew-day-overlay");
-      if (overlay) return overlay;
-      overlay = document.createElement("div");
-      overlay.id = "crew-day-overlay";
-      overlay.className = "crew-day-overlay";
-      overlay.hidden = true;
-      overlay.innerHTML = '<iframe class="crew-day-frame" title="Scheda giornata"></iframe>';
-      overlay.addEventListener("click", event => { if (event.target === overlay) closeCrewDayEditor(); });
-      document.body.appendChild(overlay);
-      return overlay;
-    }
-
-    function closeCrewDayEditor() {
-      const overlay = document.getElementById("crew-day-overlay");
-      if (!overlay) return;
-      overlay.hidden = true;
-      overlay.querySelector("iframe")?.setAttribute("src", "about:blank");
-      document.body.style.overflow = "";
-    }
-
     function openCrewDayEditor(agentId, date) {
       if (String(agentId || "") !== String(loggedAgentProfile?.id || "")) return;
-      const url = new URL("navidiaria.html", location.href);
-      url.searchParams.set("editDate", String(date || "").slice(0, 10));
-      url.searchParams.set("popupOnly", "1");
-      const overlay = crewDayOverlay();
-      const frame = overlay.querySelector("iframe");
-      frame.src = url.href;
-      overlay.hidden = false;
-      document.body.style.overflow = "hidden";
-      frame.onload = () => {
-        try {
-          const innerDocument = frame.contentDocument;
-          innerDocument?.documentElement.classList.add("popup-only-day-editor");
-          const watcher = new MutationObserver(() => {
-            const dayPopup = innerDocument.getElementById("monthlyDayBubbleDialog");
-            if (dayPopup?.hidden) { watcher.disconnect(); closeCrewDayEditor(); }
-          });
-          const waitForPopup = window.setInterval(() => {
-            const dayPopup = innerDocument.getElementById("monthlyDayBubbleDialog");
-            if (!dayPopup || dayPopup.hidden) return;
-            window.clearInterval(waitForPopup);
-            watcher.observe(dayPopup, { attributes:true, attributeFilter:["hidden"] });
-          }, 80);
-          window.setTimeout(() => window.clearInterval(waitForPopup), 10000);
-        } catch (error) { console.warn("Controllo chiusura Scheda giornata non disponibile", error); }
-      };
+      const calInfo=dateCalendario.find(item=>item.iso===String(date||'').slice(0,10));
+      const shift=ottieniTurnoPulito(selectedShiftValue),ship=getShipDayInfo(calInfo,shift)?.nave||'';
+      NaviDayPopup.open({agentId:String(agentId),date,shift,residence:loggedAgentProfile?.residence||currentResidence,ship});
     }
 
     function getLoggedBaristaSchedule() {
