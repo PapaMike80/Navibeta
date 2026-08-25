@@ -1547,8 +1547,13 @@
     background:rgba(13,148,136,.14);color:#99f6e4;font:700 11px/1.1 inherit;
     padding:7px 10px;white-space:nowrap;cursor:pointer;
   }
-  .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
-  @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
+    .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
+    @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
+    .panel-course-name.crew-day-trigger{border:0;font:inherit;cursor:pointer}
+    .panel-course-name.crew-day-trigger:hover,.panel-course-name.crew-day-trigger:focus-visible{outline:2px solid rgba(45,212,191,.7);outline-offset:3px;filter:brightness(1.12)}
+    .crew-day-overlay{position:fixed;inset:0;z-index:100050;display:grid;place-items:center;padding:12px;background:rgba(1,12,18,.76);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+    .crew-day-overlay[hidden]{display:none!important}
+    .crew-day-frame{width:min(460px,100%);height:min(720px,calc(100dvh - 24px));border:0;border-radius:24px;background:#061d26;box-shadow:0 24px 70px #000b}
 </style>
 <style id="naviturni-mobile-header-fix">
   @media (max-width:950px) {
@@ -1788,11 +1793,54 @@
       return String(agent?.id || "") === String(loggedAgentProfile?.id || "");
     }
 
+    function crewDayOverlay() {
+      let overlay = document.getElementById("crew-day-overlay");
+      if (overlay) return overlay;
+      overlay = document.createElement("div");
+      overlay.id = "crew-day-overlay";
+      overlay.className = "crew-day-overlay";
+      overlay.hidden = true;
+      overlay.innerHTML = '<iframe class="crew-day-frame" title="Scheda giornata"></iframe>';
+      overlay.addEventListener("click", event => { if (event.target === overlay) closeCrewDayEditor(); });
+      document.body.appendChild(overlay);
+      return overlay;
+    }
+
+    function closeCrewDayEditor() {
+      const overlay = document.getElementById("crew-day-overlay");
+      if (!overlay) return;
+      overlay.hidden = true;
+      overlay.querySelector("iframe")?.setAttribute("src", "about:blank");
+      document.body.style.overflow = "";
+    }
+
     function openCrewDayEditor(agentId, date) {
       if (String(agentId || "") !== String(loggedAgentProfile?.id || "")) return;
       const url = new URL("navidiaria.html", location.href);
       url.searchParams.set("editDate", String(date || "").slice(0, 10));
-      location.href = url.href;
+      url.searchParams.set("popupOnly", "1");
+      const overlay = crewDayOverlay();
+      const frame = overlay.querySelector("iframe");
+      frame.src = url.href;
+      overlay.hidden = false;
+      document.body.style.overflow = "hidden";
+      frame.onload = () => {
+        try {
+          const innerDocument = frame.contentDocument;
+          innerDocument?.documentElement.classList.add("popup-only-day-editor");
+          const watcher = new MutationObserver(() => {
+            const dayPopup = innerDocument.getElementById("monthlyDayBubbleDialog");
+            if (dayPopup?.hidden) { watcher.disconnect(); closeCrewDayEditor(); }
+          });
+          const waitForPopup = window.setInterval(() => {
+            const dayPopup = innerDocument.getElementById("monthlyDayBubbleDialog");
+            if (!dayPopup || dayPopup.hidden) return;
+            window.clearInterval(waitForPopup);
+            watcher.observe(dayPopup, { attributes:true, attributeFilter:["hidden"] });
+          }, 80);
+          window.setTimeout(() => window.clearInterval(waitForPopup), 10000);
+        } catch (error) { console.warn("Controllo chiusura Scheda giornata non disponibile", error); }
+      };
     }
 
     function getLoggedBaristaSchedule() {
@@ -3424,9 +3472,9 @@
       panelGroups.innerHTML = "";
 
       const shipDayInfo = isCrewShift ? renderShipDayInfo(calInfo, cleanShift) : "";
-      const personalEditButton = focusAgent && canEditCrewDay(focusAgent)
-        ? `<button class="crew-edit-day" type="button" onclick="openCrewDayEditor('${escapeAttribute(String(focusAgent.id || ""))}', '${calInfo.iso}')">✎ Modifica giornata</button>`
-        : "";
+      const personalCourseAction = focusAgent && canEditCrewDay(focusAgent)
+        ? ` type="button" class="panel-course-name crew-day-trigger" onclick="openCrewDayEditor('${escapeAttribute(String(focusAgent.id || ""))}', '${calInfo.iso}')"`
+        : ` class="panel-course-name"`;
       const infoDiv = document.createElement("div");
       infoDiv.className = "shift-group crew-info-group";
       infoDiv.innerHTML = `<div class="colleague-cards"><div class="colleague-card crew-info-card">
@@ -3435,7 +3483,7 @@
           <div class="panel-header-main">
             <div class="panel-title-row">
               <div class="panel-date" id="panel-date-label"></div>
-              <div class="panel-course-name" aria-label="${isRest ? "Riposo" : (myShiftPuro === "TERRA" ? "Servizi a terra" : "Corsa selezionata")}">${isRest ? "" : (myShiftPuro === "TERRA" ? "<small>Servizi</small>" : "<small>Corsa</small>")}<strong>${escapeAttribute(panelShiftLabel)}</strong></div>
+              <button${personalCourseAction} aria-label="Apri la giornata ${escapeAttribute(panelShiftLabel)}">${isRest ? "" : (myShiftPuro === "TERRA" ? "<small>Servizi</small>" : "<small>Corsa</small>")}<strong>${escapeAttribute(panelShiftLabel)}</strong></button>
             </div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente"><svg class="panel-arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -3444,7 +3492,7 @@
             </div>
           </div>
         </div>
-        ${shipDayInfo}${personalEditButton}
+        ${shipDayInfo}
       </div></div>`;
       panelGroups.appendChild(infoDiv);
       document.getElementById("panel-shift-selector").innerHTML = renderResidenceShiftBubbles(cleanShift);
@@ -3546,12 +3594,9 @@
           : "";
         const manualDay = diariaShiftOverrides.get(`${String(r.id || "")}|${calInfo.iso}`);
         const manualBadge = manualDay ? `<span class="c-res" title="Turno previsto: ${escapeAttribute(manualDay.from || "—")}">MODIFICATO</span>` : "";
-        const editDayButton = !r.isBarista && canEditCrewDay(r)
-          ? `<button class="crew-edit-day" type="button" onclick="openCrewDayEditor('${escapeAttribute(String(r.id || ""))}', '${calInfo.iso}')">✎ Modifica giornata</button>`
-          : "";
         card.innerHTML = `<span class="c-num">${r.id || "—"}</span>
           <span class="c-name">${r.agente}${odsBadge}${manualBadge}${groundService}${instructorMark} ${infoResidenza}</span>
-          ${futureSharedDot}<span class="c-grade" style="color:${grade.color}; background:${grade.color}22; border:1px solid ${grade.color}44;">${grade.label}</span>${editDayButton}`;
+          ${futureSharedDot}<span class="c-grade" style="color:${grade.color}; background:${grade.color}22; border:1px solid ${grade.color}44;">${grade.label}</span>`;
           if (!r.isBarista) {
             card.classList.add("pinnable-colleague");
             card.title = [card.title, "Clicca per pinnare l’agente"].filter(Boolean).join(" · ");
