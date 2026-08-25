@@ -612,6 +612,16 @@
     };
   }
 
+  async function loadAllDiaria() {
+    const result = await databaseRequest("private/adminUpdates/diaria");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return Object.entries(value).map(([key, record]) => ({
+      ...(record && typeof record === "object" ? record : {}),
+      agentId:String(record?.agentId || key),
+      entries:Array.isArray(record?.entries) ? record.entries.filter(Boolean) : []
+    }));
+  }
+
   function diariaChecksum(entries) {
     const source = JSON.stringify(entries || []);
     let hash = 2166136261;
@@ -715,6 +725,7 @@
     updateFeedbackTicket,
     deleteFeedbackTicket,
     loadDiaria,
+    loadAllDiaria,
     saveDiaria,
     provider:"Firebase REST"
   };
