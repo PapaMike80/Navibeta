@@ -1586,11 +1586,12 @@
   body.turni-page #welcome-notice { margin:0 !important; }
 }
 </style>
-<style id="navi-island-prototype">
-  #navi-island{position:fixed;z-index:1800;top:max(8px,calc(env(safe-area-inset-top,0px) - 42px));left:50%;transform:translateX(-50%);display:none;align-items:center;justify-content:center;max-width:calc(100vw - 32px);min-height:34px;padding:0 15px;border:1px solid rgba(148,225,220,.3);border-radius:999px;background:rgba(3,12,17,.96);box-shadow:0 7px 22px rgba(0,0,0,.36);color:#efffff;font:900 12px/34px Manrope,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer}
-  #navi-island.is-rest{color:#5eead4;border-color:rgba(94,234,212,.48)}
-  #navi-island:focus-visible{outline:2px solid #5eead4;outline-offset:3px}
-  @media (max-width:800px) and (orientation:portrait){#navi-island:not([hidden]){display:flex}}
+<style id="crew-panel-close-control">
+  #day-panel .panel-controls-top{display:flex;align-items:flex-start;gap:8px;width:100%}
+  #day-panel .panel-controls-top .panel-shift-selector{flex:1 1 auto;min-width:0}
+  #day-panel .panel-close{display:grid;place-items:center;flex:0 0 42px;width:42px!important;height:42px!important;min-width:42px!important;min-height:42px!important;margin:0!important;padding:0!important;border:2px solid rgba(255,255,255,.45)!important;border-radius:50%!important;background:#dc2626!important;color:#fff!important;font:1000 21px/1 system-ui,sans-serif!important;box-shadow:0 4px 13px rgba(127,29,29,.42)!important;cursor:pointer}
+  #day-panel .panel-close:hover,#day-panel .panel-close:focus-visible{background:#ef4444!important;outline:2px solid #fecaca;outline-offset:2px}
+  @media(max-width:520px){#day-panel .panel-controls-top{gap:6px}#day-panel .panel-close{flex-basis:40px;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important}}
 </style>
 </head>
 <body class="turni-page">
@@ -1653,9 +1654,6 @@
     </div>
 
     <div id="day-panel" aria-hidden="true">
-      <div class="panel-header">
-        <button class="panel-close" onclick="resetCleanTable()">✕ Chiudi finestra</button>
-      </div>
       <div class="panel-groups" id="panel-groups"></div>
     </div>
 
@@ -1858,28 +1856,6 @@
       });
     }
 
-    function naviIslandNode() {
-      let node=document.getElementById("navi-island");
-      if (node) return node;
-      node=document.createElement("button");
-      node.id="navi-island"; node.type="button"; node.hidden=true;
-      node.setAttribute("aria-label","Apri giornata selezionata");
-      node.addEventListener("click",()=>{const context=node._naviIslandContext;if(context?.date&&loggedAgentProfile?.id)openCrewDayEditor(loggedAgentProfile.id,context.date);});
-      document.body.appendChild(node); return node;
-    }
-    function updateNaviIsland(calInfo, shift) {
-      const node=naviIslandNode(),clean=ottieniTurnoPulito(shift);
-      if (!calInfo?.iso) { node.hidden=true; return; }
-      if (!clean) { node.textContent="RIPOSO"; node.classList.add("is-rest"); }
-      else {
-        const ship=String(getShipDayInfo(calInfo,clean)?.nave||"").trim().toUpperCase();
-        const minutes=Math.round((Number(crewDayShiftFor(clean).hours)||0)*60);
-        const duration=minutes?String(Math.floor(minutes/60))+":"+String(minutes%60).padStart(2,"0"):"";
-        node.textContent=[clean.toUpperCase(),ship,duration].filter(Boolean).join(" · "); node.classList.remove("is-rest");
-      }
-      node._naviIslandContext={date:calInfo.iso,shift:clean}; node.hidden=false;
-    }
-    function hideNaviIsland() { const node=document.getElementById("navi-island");if(node)node.hidden=true; }
 
     function getLoggedBaristaSchedule() {
       const baristas = globalData?.residenze?.BARISTE || [];
@@ -3522,7 +3498,7 @@
       infoDiv.className = "shift-group crew-info-group";
       infoDiv.innerHTML = `<div class="colleague-cards"><div class="colleague-card crew-info-card">
         <div class="panel-controls-box" aria-label="Selezione corsa e data">
-          <div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div>
+          <div class="panel-controls-top"><div class="panel-shift-selector" id="panel-shift-selector" aria-label="Corse della residenza"></div><button class="panel-close" type="button" onclick="resetCleanTable()" aria-label="Chiudi scheda equipaggio">✕</button></div>
           <div class="panel-header-main">
             <div class="panel-title-row">
               <div class="panel-date" id="panel-date-label"></div>
@@ -3673,7 +3649,6 @@
         document.body.classList.toggle("crew-drawer-coverage", dayPanelPlacement === "coverage");
       }
       drawer.setAttribute("aria-hidden", String(!drawer.classList.contains("open")));
-      updateNaviIsland(calInfo, cleanShift);
       if (drawer.classList.contains("open")) {
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
@@ -3972,7 +3947,6 @@
       selectedCrewAgent = null;
       document.getElementById("day-panel").classList.remove("open");
       document.getElementById("day-panel").setAttribute("aria-hidden", "true");
-      hideNaviIsland();
       document.body.classList.remove("crew-drawer-open", "crew-drawer-main", "crew-drawer-coverage");
       document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
       updateCrewDrawerOffset();
