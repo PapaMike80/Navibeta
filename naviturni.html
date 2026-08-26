@@ -1556,7 +1556,9 @@
   }
     .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
     @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
-    button.panel-course-name.crew-day-trigger{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;box-shadow:none!important;font:inherit;cursor:pointer;padding:0;margin:0;color:inherit}
+    /* La corsa è sempre un button: anche per altri agenti deve restare graficamente neutro. */
+    button.panel-course-name{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;font:inherit;cursor:default;padding:0;margin:0;color:inherit}
+    button.panel-course-name.crew-day-trigger{cursor:pointer}
     button.panel-course-name.crew-day-trigger:hover,button.panel-course-name.crew-day-trigger:focus-visible{outline:none;filter:brightness(1.12)}
 </style>
 <style id="naviturni-mobile-header-fix">
@@ -3524,7 +3526,7 @@
           <div class="panel-header-main">
             <div class="panel-title-row">
               <div class="panel-date" id="panel-date-label"></div>
-              <button${personalCourseAction} aria-label="Apri la giornata ${escapeAttribute(panelShiftLabel)}">${isRest ? "" : (myShiftPuro === "TERRA" ? "<small>Servizi</small>" : "<small>Corsa</small>")}<strong>${escapeAttribute(panelShiftLabel)}</strong></button>
+              <button type="button"${personalCourseAction} aria-label="Apri la giornata ${escapeAttribute(panelShiftLabel)}">${isRest ? "" : (myShiftPuro === "TERRA" ? "<small>Servizi</small>" : "<small>Corsa</small>")}<strong>${escapeAttribute(panelShiftLabel)}</strong></button>
             </div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente"><svg class="panel-arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg></button>
