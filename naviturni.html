@@ -98,6 +98,11 @@
       top:0;
       z-index:45;
     }
+    .quick-residence-selector{display:flex;align-items:center;justify-content:center;gap:3px;width:100%;min-height:34px}
+    .quick-residence-btn{display:grid;place-items:center;width:27px;height:27px;padding:0;border:1px solid var(--quick-res-color);border-radius:999px;background:color-mix(in srgb,var(--quick-res-color) 17%,#0c2934);color:color-mix(in srgb,var(--quick-res-color) 88%,#f3ffff);font:900 11px/1 Manrope,sans-serif;cursor:pointer;touch-action:manipulation}
+    .quick-residence-btn:hover,.quick-residence-btn:focus-visible{outline:none;filter:brightness(1.18)}
+    .quick-residence-btn.active{background:color-mix(in srgb,var(--quick-res-color) 58%,#0c2934);border-color:var(--quick-res-color);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--quick-res-color) 30%,transparent),0 3px 10px color-mix(in srgb,var(--quick-res-color) 36%,transparent)}
+    .quick-residence-btn[data-res="DESENZANO"]{--quick-res-color:#24b7f2}.quick-residence-btn[data-res="MADERNO"]{--quick-res-color:#f59e0b}.quick-residence-btn[data-res="RIVA"]{--quick-res-color:#a78bfa}.quick-residence-btn[data-res="PESCHIERA"]{--quick-res-color:#52c879}
 
     /* L'agente collegato resta sempre visibile sotto la riga delle date. */
     tbody tr.logged-agent-row {
@@ -2508,7 +2513,7 @@
 
     function buildTableHeader() {
       const container = document.getElementById("thead-container");
-      let html = buildMonthHeader() + `<tr class="date-header"><th>Agente</th>`;
+      let html = buildMonthHeader() + `<tr class="date-header"><th>${renderQuickResidenceSelector()}</th>`;
       dateCalendario.forEach(d => {
         const clsArr = [];
         clsArr.push(d.weekIdx % 2 === 0 ? "week-even" : "week-odd");
@@ -3981,6 +3986,7 @@
       clearSelection();
       currentResidence = resName;
       activeShiftFilter = null;
+      syncQuickResidenceSelector();
 
       if (resName === "TUTTE") {
         // Aggrega tutti gli agenti di tutte le residenze visibili.
@@ -4002,6 +4008,24 @@
       } else {
         clearSelection();
       }
+    }
+
+    function renderQuickResidenceSelector() {
+      const residences = [
+        { code:"D", name:"DESENZANO" },
+        { code:"M", name:"MADERNO" },
+        { code:"R", name:"RIVA" },
+        { code:"P", name:"PESCHIERA" }
+      ].filter(item => !!globalData?.residenze?.[item.name]);
+      return `<div class="quick-residence-selector" aria-label="Cambia residenza">${residences.map(item => `<button type="button" class="quick-residence-btn${currentResidence===item.name?' active':''}" data-res="${item.name}" aria-label="Visualizza ${item.name}" aria-pressed="${currentResidence===item.name}" onclick="selectResidence('${item.name}')">${item.code}</button>`).join('')}</div>`;
+    }
+
+    function syncQuickResidenceSelector() {
+      document.querySelectorAll(".quick-residence-btn").forEach(button => {
+        const active = button.dataset.res === currentResidence;
+        button.classList.toggle("active", active);
+        button.setAttribute("aria-pressed", String(active));
+      });
     }
 
     function hidePastColumns() {
