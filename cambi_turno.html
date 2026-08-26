@@ -1506,6 +1506,20 @@
 <style id="change-register-both-agents-style">
 .change-day-block{display:grid;grid-template-columns:minmax(82px,auto) minmax(0,1fr);gap:2px 12px;align-items:start}.change-day-date{grid-row:1 / span 2;color:#5eead4;font-weight:900;text-transform:capitalize;white-space:nowrap}.change-agent-line{display:block;line-height:1.45;white-space:nowrap}.change-agent-line+ .change-agent-line{margin-top:2px;color:#fdba74}.change-day-separator{border:0;border-top:1px solid rgba(255,255,255,.12);margin:8px 0}
 </style>
+<style id="mobile-stable-matrix-layout">
+@media (max-width:800px) {
+  body.turni-page .page-header { display:none !important; }
+  body.turni-page main#turni-operativi { padding:0 !important; }
+  body.turni-page #matrix-scroll-wrap { margin-top:0; border-radius:0; }
+  body.turni-page #welcome-notice { margin:0 !important; }
+}
+</style>
+<style id="navi-island-prototype">
+  #navi-island{position:fixed;z-index:1800;top:max(8px,calc(env(safe-area-inset-top,0px) - 42px));left:50%;transform:translateX(-50%);display:none;align-items:center;justify-content:center;max-width:calc(100vw - 32px);min-height:34px;padding:0 15px;border:1px solid rgba(148,225,220,.3);border-radius:999px;background:rgba(3,12,17,.96);box-shadow:0 7px 22px rgba(0,0,0,.36);color:#efffff;font:900 12px/34px Manrope,system-ui,sans-serif;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);cursor:pointer}
+  #navi-island.is-rest{color:#5eead4;border-color:rgba(94,234,212,.48)}
+  #navi-island:focus-visible{outline:2px solid #5eead4;outline-offset:3px}
+  @media (max-width:800px) and (orientation:portrait){#navi-island:not([hidden]){display:flex}}
+</style>
 </head>
 <body class="turni-page trova-turno-page">
 
@@ -1608,6 +1622,7 @@
   <script src="assets/js/firebase-auth.js"></script>
   <script src="assets/js/shared-menu.js?v=1.44"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
+  <script src="assets/js/day-popup.js?v=2"></script>
   <script type="module" src="assets/js/firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
@@ -2681,6 +2696,21 @@
         : `<span class="agent-ods-badge" title="${label}">${change}</span>`;
     }
 
+    let crewDayContext = null;
+    const crewDayDefaultHours = {D1:13,D2:11+25/60,D3:13+20/60,D4:13+15/60,T1:13+35/60,T2:12+29/60,M1:13.5,R1:13.25,R2:13.25,R3:12+20/60,R4:12+40/60,CAR1:12+10/60,P1:12.75,P2:13+5/60,P3:12+55/60,CAP:12+55/60,CAP1:12+55/60,SR1:12.25,BIS:12.25,AGB:10+25/60,POND:9+25/60,DT:9+25/60,PT:9.5,AGM:9.75,AGT:11+10/60,PONM:10+25/60,LD:8,LAV:8,'F.P.':8};
+    function crewDayShiftFor(code) { const key=String(code||'').trim().toUpperCase();return crewDayContext?.shiftMap?.get(key)||{code:code||'Riposo',hours:crewDayDefaultHours[key]||0,allowance:false,allowanceRate:24,meal:!['RIP','RIPOSO','MALATTIA'].includes(key),embark:!['AGB','POND','DT','PT','AGM','AGT','PONM','LD','LAV','F.P.','RIP','RIPOSO','MALATTIA'].includes(key),refuelRules:{}}; }
+    function crewDayRefuelMinutes(date,shift) { const rules=crewDayShiftFor(shift).refuelRules||{},items=rules[String(new Date(String(date)+"T12:00:00").getDay())]||[],grade=String(loggedAgentProfile?.qualifica||'').trim().toUpperCase().replace(/[_-]+/g,' '),service=String(shift||'').trim().toUpperCase();return Math.max(0,...items.filter(item=>{const component=String(item.component||'').trim().toUpperCase().replace(/[_-]+/g,' ');return component===grade||component===service}).map(item=>Number(item.minutes)||0)); }
+    function openCrewDayEditor(agentId,date) {
+      if(String(agentId||'')!==String(loggedAgentProfile?.id||'')||!window.NaviDayModal)return;
+      const dateIso=String(date||'').slice(0,10),initialShift=ottieniTurnoPulito(selectedShiftValue)||'Riposo',residence=String(loggedAgentProfile?.residence||currentResidence||'').toUpperCase();
+      NaviDayModal.open({date:dateIso,shiftFor:crewDayShiftFor,refuelSuggestionMinutes:crewDayRefuelMinutes,shipForService:(targetDate,targetShift)=>getShipDayInfo(dateCalendario.find(item=>item.iso===targetDate),targetShift)?.nave||'',get shifts(){return crewDayContext?.shifts||[]},
+        loadEntry:async()=>{await NaviAdminFirebase.ready;const [archive,configs]=await Promise.all([NaviAdminFirebase.loadDiaria(String(agentId)),NaviAdminFirebase.getServiceConfigurations?.()||{}]);const configured=configs?.[residence]||{},codes=new Set([...Object.keys(crewDayDefaultHours),...Object.keys(configured),'Riposo','Malattia']),shifts=[...codes].map(code=>{const upper=String(code).toUpperCase(),saved=configured[code]||configured[upper]||{};return {code,...crewDayShiftFor(upper),...saved,hours:Number.isFinite(Number(saved.hours))?Number(saved.hours):(crewDayDefaultHours[upper]||0)}});crewDayContext={entries:Array.isArray(archive.entries)?archive.entries:[],shifts,shiftMap:new Map(shifts.map(item=>[String(item.code).toUpperCase(),item]))};const existing=crewDayContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};},
+        saveEntry:async draft=>{if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);renderTable();if(typeof renderCoverageTable==='function')renderCoverageTable();const cal=dateCalendario.find(item=>item.iso===dateIso);if(cal){selectedCol=null;selectedShiftValue=draft.shift;selectDay(cal.col,cal.labelEstesa,draft.shift,selectedCrewAgent)}return draft;},onClose:()=>{crewDayContext=null}});
+    }
+    function naviIslandNode() { let node=document.getElementById('navi-island');if(node)return node;node=document.createElement('button');node.id='navi-island';node.type='button';node.hidden=true;node.setAttribute('aria-label','Apri giornata selezionata');node.addEventListener('click',()=>{const context=node._naviIslandContext;if(context?.date&&loggedAgentProfile?.id)openCrewDayEditor(loggedAgentProfile.id,context.date);});document.body.appendChild(node);return node; }
+    function updateNaviIsland(calInfo,shift) { const node=naviIslandNode(),clean=ottieniTurnoPulito(shift);if(!calInfo?.iso){node.hidden=true;return}if(!clean){node.textContent='RIPOSO';node.classList.add('is-rest')}else{const ship=String(getShipDayInfo(calInfo,clean)?.nave||'').trim().toUpperCase(),minutes=Math.round((Number(crewDayShiftFor(clean).hours)||0)*60),duration=minutes?String(Math.floor(minutes/60))+':'+String(minutes%60).padStart(2,'0'):'';node.textContent=[clean.toUpperCase(),ship,duration].filter(Boolean).join(' · ');node.classList.remove('is-rest')}node._naviIslandContext={date:calInfo.iso,shift:clean};node.hidden=false; }
+    function hideNaviIsland(){const node=document.getElementById('navi-island');if(node)node.hidden=true}
+
     function getShipDayInfo(calInfo, shift) {
       const cleanShift = ottieniTurnoPulito(shift).toUpperCase();
       if (!calInfo?.iso || !cleanShift || !Array.isArray(globalData?.turni_navi)) return null;
@@ -3157,6 +3187,7 @@
 
     function selectDay(col, label, cellShiftValue, focusAgent = null) {
       if (isEditMode) return;
+      const mobileMatrixAnchor = captureMobileMatrixPosition();
       const clickedShiftKey = getCrewShiftKey(ottieniTurnoPulito(cellShiftValue));
       const selectedShiftKey = getCrewShiftKey(ottieniTurnoPulito(selectedShiftValue));
       if (selectedCol === col && clickedShiftKey === selectedShiftKey) {
@@ -3392,9 +3423,11 @@
       drawerToggle.setAttribute("aria-expanded", String(drawer.classList.contains("open")));
       drawerToggle.setAttribute("aria-label", drawer.classList.contains("open") ? "Nascondi equipaggio" : "Mostra equipaggio");
       drawer.setAttribute("aria-hidden", String(!drawer.classList.contains("open")));
+      updateNaviIsland(calInfo, cleanShift);
       if (drawer.classList.contains("open")) {
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
+          restoreMobileMatrixPosition(mobileMatrixAnchor);
           scrollCrewPanelIntoView();
         });
       }
@@ -3438,6 +3471,7 @@
 
 
     function scrollGroupedCrewTableToTop() {
+      if (isMobileCrewLayout()) return;
       const target = dayPanelPlacement === "coverage"
         ? document.getElementById("coverage-matrix-wrap")
         : document.getElementById("matrix-scroll-wrap");
@@ -3446,6 +3480,26 @@
       const panelHeight = panel?.classList.contains("open") ? panel.getBoundingClientRect().height : 0;
       const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - panelHeight - 10);
       window.scrollTo({ top, behavior:"smooth" });
+    }
+
+    function isMobileCrewLayout() {
+      return window.matchMedia("(max-width:800px)").matches;
+    }
+    function captureMobileMatrixPosition() {
+      if (!isMobileCrewLayout()) return null;
+      const wrap = document.getElementById("matrix-scroll-wrap");
+      if (!wrap) return null;
+      return { top:wrap.getBoundingClientRect().top, scrollY:window.scrollY, scrollLeft:wrap.scrollLeft };
+    }
+    function restoreMobileMatrixPosition(anchor) {
+      if (!anchor || !isMobileCrewLayout()) return;
+      requestAnimationFrame(() => {
+        const wrap = document.getElementById("matrix-scroll-wrap");
+        if (!wrap) return;
+        const delta = wrap.getBoundingClientRect().top - anchor.top;
+        wrap.scrollLeft = anchor.scrollLeft;
+        if (Math.abs(delta) > .5) window.scrollTo({ top:Math.max(0, anchor.scrollY + delta), left:window.scrollX, behavior:"auto" });
+      });
     }
 
     function getDefaultCrewSelection() {
@@ -3725,13 +3779,16 @@
     }
 
     function clearSelection() {
+      const mobileMatrixAnchor = captureMobileMatrixPosition();
       selectedCol = null;
       selectedShiftValue = "";
       selectedCrewAgent = null;
       document.getElementById("day-panel").classList.remove("open");
       document.getElementById("day-panel").setAttribute("aria-hidden", "true");
+      hideNaviIsland();
       document.body.classList.remove("crew-drawer-open", "crew-drawer-main", "crew-drawer-coverage");
       document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
+      updateCrewDrawerOffset();
       const drawerToggle = document.getElementById("crew-drawer-toggle");
       drawerToggle.hidden = true;
       drawerToggle.textContent = "⌄";
@@ -3751,13 +3808,16 @@
 
       // Quando la scheda equipaggio viene chiusa, riporta dolcemente
       // l'inizio della tabella nella parte alta dello schermo.
-      requestAnimationFrame(() => {
-        const tableWrap = document.getElementById("matrix-scroll-wrap");
-        if (!tableWrap) return;
-        const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
-        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-      });
-      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+      if (isMobileCrewLayout()) restoreMobileMatrixPosition(mobileMatrixAnchor);
+      else {
+        requestAnimationFrame(() => {
+          const tableWrap = document.getElementById("matrix-scroll-wrap");
+          if (!tableWrap) return;
+          const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
+          window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+        });
+        window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
+      }
     }
 
     // Un clic sullo sfondo, fuori dalla tabella e dai relativi comandi,
