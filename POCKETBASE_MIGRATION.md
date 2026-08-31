@@ -160,7 +160,11 @@ cp .env.example .env.local
 node src/cli.js --dry-run
 ```
 
-Il dry-run legge e trasforma, poi stampa i conteggi per collection senza autenticarsi a PocketBase. Attualmente il trasformatore eseguibile copre le aree più critiche e verificabili (`agenti`, `diaria`, `cambi_turno`, `segnalazioni`); il mapping delle altre aree è definito nello schema e va completato/testato su un export reale prima dell’importazione autorizzata.
+Il dry-run legge e trasforma, poi stampa conteggi e audit per collection senza autenticarsi a PocketBase. L'audit interrompe l'operazione se rileva chiavi duplicate o relazioni mancanti.
+
+Il trasformatore copre le aree presenti nell'export reale verificato: agenti, importazioni, turni, Diaria, cambi, variazioni, navi, turni nave, documenti con file, annunci, configurazioni, periodo bozza, attività utenti, segnalazioni, stati settimana e correzioni quiz. Gli hash/PIN di `userAuth`, le presenze effimere grezze e i backup duplicati della Diaria non vengono trasformati in dati applicativi. Le attività mantengono solo l'ultimo contatto; il JSON sorgente resta l'archivio di audit completo.
+
+La copia pubblica approvata di `turni_navi` ha precedenza sulla copia amministrativa legacy: nell'export reale quest'ultima contiene anche righe malformate provenienti da tabelle agenti. Il filtro evita di creare false navi senza cancellare o modificare la sorgente.
 
 Solo dopo verifica separata:
 
