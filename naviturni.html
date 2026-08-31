@@ -23,7 +23,7 @@
   <link rel="stylesheet" href="assets/css/navi-shared.css">
   <link rel="stylesheet" href="assets/css/navi-layout.css">
   <link rel="stylesheet" href="assets/css/turni-common.css">
-  <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=8">
+  <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=110">
   <link rel="stylesheet" href="assets/css/navidiaria-monthly.css?v=120">
   <style>
     .cell-pill.private-shift {
@@ -98,11 +98,6 @@
       top:0;
       z-index:45;
     }
-    .quick-residence-selector{display:flex;align-items:center;justify-content:center;gap:3px;width:100%;min-height:34px}
-    .quick-residence-btn{display:grid;place-items:center;width:27px;height:27px;padding:0;border:1px solid var(--quick-res-color);border-radius:999px;background:color-mix(in srgb,var(--quick-res-color) 17%,#0c2934);color:color-mix(in srgb,var(--quick-res-color) 88%,#f3ffff);font:900 11px/1 Manrope,sans-serif;cursor:pointer;touch-action:manipulation}
-    .quick-residence-btn:hover,.quick-residence-btn:focus-visible{outline:none;filter:brightness(1.18)}
-    .quick-residence-btn.active{background:color-mix(in srgb,var(--quick-res-color) 58%,#0c2934);border-color:var(--quick-res-color);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--quick-res-color) 30%,transparent),0 3px 10px color-mix(in srgb,var(--quick-res-color) 36%,transparent)}
-    .quick-residence-btn[data-res="DESENZANO"]{--quick-res-color:#24b7f2}.quick-residence-btn[data-res="MADERNO"]{--quick-res-color:#f59e0b}.quick-residence-btn[data-res="RIVA"]{--quick-res-color:#a78bfa}.quick-residence-btn[data-res="PESCHIERA"]{--quick-res-color:#52c879}
 
     /* L'agente collegato resta sempre visibile sotto la riga delle date. */
     tbody tr.logged-agent-row {
@@ -1192,6 +1187,14 @@
       line-height:.9;
       letter-spacing:.04em;
     }
+    /* La corsa è sempre un button: anche per altri agenti deve restare graficamente neutro. */
+    button.panel-course-name { appearance:none; -webkit-appearance:none; border:0!important; background:transparent!important; background-image:none!important; box-shadow:none!important; padding:0; margin:0; cursor:default; font:inherit; color:inherit; }
+    button.panel-course-name.crew-day-trigger { cursor:pointer; }
+    .quick-residence-selector{display:flex;align-items:center;justify-content:center;gap:3px;width:100%;min-height:34px}
+    .quick-residence-btn{display:grid;place-items:center;width:27px;height:27px;padding:0;border:1px solid var(--quick-res-color);border-radius:999px;background:color-mix(in srgb,var(--quick-res-color) 17%,#0c2934);color:color-mix(in srgb,var(--quick-res-color) 88%,#f3ffff);font:900 11px/1 Manrope,sans-serif;cursor:pointer;touch-action:manipulation}
+    .quick-residence-btn:hover,.quick-residence-btn:focus-visible{outline:none;filter:brightness(1.18)}
+    .quick-residence-btn.active{background:color-mix(in srgb,var(--quick-res-color) 58%,#0c2934);border-color:var(--quick-res-color);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--quick-res-color) 30%,transparent),0 3px 10px color-mix(in srgb,var(--quick-res-color) 36%,transparent)}
+    .quick-residence-btn[data-res="DESENZANO"]{--quick-res-color:#24b7f2}.quick-residence-btn[data-res="MADERNO"]{--quick-res-color:#f59e0b}.quick-residence-btn[data-res="RIVA"]{--quick-res-color:#a78bfa}.quick-residence-btn[data-res="PESCHIERA"]{--quick-res-color:#52c879}
     #day-panel .panel-date {
       border-color:color-mix(in srgb, var(--crew-shift-color) 65%, transparent);
       background:color-mix(in srgb, var(--crew-shift-color) 18%, rgba(5,25,32,.82));
@@ -1557,12 +1560,8 @@
     background:rgba(13,148,136,.14);color:#99f6e4;font:700 11px/1.1 inherit;
     padding:7px 10px;white-space:nowrap;cursor:pointer;
   }
-    .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
-    @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
-    /* La corsa è sempre un button: anche per altri agenti deve restare graficamente neutro. */
-    button.panel-course-name{appearance:none;-webkit-appearance:none;border:0!important;background:transparent!important;background-image:none!important;box-shadow:none!important;font:inherit;cursor:default;padding:0;margin:0;color:inherit}
-    button.panel-course-name.crew-day-trigger{cursor:pointer}
-    button.panel-course-name.crew-day-trigger:hover,button.panel-course-name.crew-day-trigger:focus-visible{outline:none;filter:brightness(1.12)}
+  .crew-edit-day:hover,.crew-edit-day:focus-visible { background:rgba(13,148,136,.28);outline:none; }
+  @media (max-width:700px) { .crew-edit-day { width:100%;margin-top:6px;justify-content:center; } }
 </style>
 <style id="naviturni-mobile-header-fix">
   @media (max-width:950px) {
@@ -1580,14 +1579,6 @@
     #matrix-scroll-wrap .month-header th:first-child,
     #matrix-scroll-wrap .date-header th:first-child { width:126px !important; min-width:126px !important; max-width:126px !important; }
   }
-</style>
-<style id="mobile-stable-matrix-layout">
-@media (max-width:800px) {
-  body.turni-page .page-header { display:none !important; }
-  body.turni-page main#turni-operativi { padding:0 !important; }
-  body.turni-page #matrix-scroll-wrap { margin-top:0; border-radius:0; }
-  body.turni-page #welcome-notice { margin:0 !important; }
-}
 </style>
 <style id="crew-panel-close-control">
   #day-panel .panel-controls-top{display:flex;align-items:flex-start;gap:8px;width:100%}
@@ -1690,13 +1681,14 @@
   </footer>
 
   <script src="assets/js/turni-shared.js"></script>
-  <script src="assets/js/admin-firebase-rest.js?v=36"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=38"></script>
   <script src="assets/js/draft-period.js?v=1"></script>
-  <script src="assets/js/shared-data.js?v=120"></script>
+  <script src="assets/js/shared-data.js?v=118"></script>
   <script src="assets/js/firebase-auth.js"></script>
-  <script src="assets/js/shared-menu.js?v=1.44"></script>
+  <script src="assets/js/shared-menu.js?v=1.46"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
-  <script src="assets/js/day-popup.js?v=3"></script>
+  <script src="assets/js/overtime-components.js?v=5"></script>
+  <script src="assets/js/day-popup.js?v=15"></script>
   <script type="module" src="assets/js/firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
@@ -1734,6 +1726,8 @@
     } = window.TurniShared;
     const isBaristaProfile = (profile = loggedAgentProfile) =>
       window.TurniShared.isBaristaProfile(profile);
+    const isHibaProfile = (profile = loggedAgentProfile) =>
+      window.TurniShared.isHibaProfile(profile);
     const isOfficeProfile = (profile = loggedAgentProfile) =>
       window.TurniShared.isOfficeProfile(profile);
 
@@ -1778,7 +1772,15 @@
       const scheduled = (agent?.turni_settimanali?.[week.key] || [])[dayIndex] || "rip";
       const ods = agent?.variazioni_ods?.[iso]?.turno_nuovo;
       const manual = diariaShiftOverrides.get(`${String(agent?.id || "")}|${iso}`);
-      return manual?.shift || ods || scheduled;
+      const isLoggedHibaRow = isHibaProfile() &&
+        normalizeOdsAgentName(agent?.agente) === normalizeOdsAgentName(loggedAgentProfile?.name);
+      const hibaRecord = isLoggedHibaRow ? getBaristaRecords().find(record => {
+        const name = normalizeOdsAgentName(record.barista || record.agente || record.nome);
+        const active = record.attiva !== false && !/^(no|false|0)$/i.test(String(record.attiva || ""));
+        return active && name === normalizeOdsAgentName(loggedAgentProfile?.name) &&
+          String(record.data || "").slice(0, 10) === iso && String(record.corsa || "").trim();
+      }) : null;
+      return manual?.shift || hibaRecord?.corsa || ods || scheduled;
     }
 
     async function loadDiariaShiftOverrides({ refresh = true } = {}) {
@@ -1816,49 +1818,20 @@
     }
 
     let crewDayContext = null;
+    const crewDayArchiveCache = new Map();
+    let crewDayConfigurationsCache = null;
+    let crewDayConfigurationsPending = null;
+    const CREW_DAY_CACHE_MS = 60 * 1000;
     const crewDayDefaultHours = {D1:13,D2:11+25/60,D3:13+20/60,D4:13+15/60,T1:13+35/60,T2:12+29/60,M1:13.5,R1:13.25,R2:13.25,R3:12+20/60,R4:12+40/60,CAR1:12+10/60,P1:12.75,P2:13+5/60,P3:12+55/60,CAP:12+55/60,CAP1:12+55/60,SR1:12.25,BIS:12.25,AGB:10+25/60,POND:9+25/60,DT:9+25/60,PT:9.5,AGM:9.75,AGT:11+10/60,PONM:10+25/60,LD:8,LAV:8,'F.P.':8};
-    function crewDayShiftFor(code) {
-      const key=String(code||'').trim().toUpperCase();
-      return crewDayContext?.shiftMap?.get(key) || {code:code||'Riposo',hours:crewDayDefaultHours[key]||0,allowance:false,allowanceRate:24,meal:!['RIP','RIPOSO','MALATTIA'].includes(key),embark:!['AGB','POND','DT','PT','AGM','AGT','PONM','LD','LAV','F.P.','RIP','RIPOSO','MALATTIA'].includes(key),refuelRules:{}};
-    }
-    function crewDayRefuelMinutes(date,shift) {
-      const rules=crewDayShiftFor(shift).refuelRules||{},items=rules[String(new Date(`${date}T12:00:00`).getDay())]||[],grade=String(loggedAgentProfile?.qualifica||'').trim().toUpperCase().replace(/[_-]+/g,' '),service=String(shift||'').trim().toUpperCase();
-      return Math.max(0,...items.filter(item=>{const component=String(item.component||'').trim().toUpperCase().replace(/[_-]+/g,' ');return component===grade||component===service}).map(item=>Number(item.minutes)||0));
-    }
+    function crewDayShiftFor(code) { const key=String(code||'').trim().toUpperCase(); return crewDayContext?.shiftMap?.get(key) || {code:code||'Riposo',hours:crewDayDefaultHours[key]||0,allowance:false,allowanceRate:24,meal:!['RIP','RIPOSO','MALATTIA'].includes(key),embark:!['AGB','POND','DT','PT','AGM','AGT','PONM','LD','LAV','F.P.','RIP','RIPOSO','MALATTIA'].includes(key),refuelRules:{}}; }
+    function crewDayRefuelMinutes(date,shift) { const rules=crewDayShiftFor(shift).refuelRules||{},items=rules[String(new Date(`${date}T12:00:00`).getDay())]||[],grade=String(loggedAgentProfile?.qualifica||'').trim().toUpperCase().replace(/[_-]+/g,' '),service=String(shift||'').trim().toUpperCase(); return Math.max(0,...items.filter(item=>{const component=String(item.component||'').trim().toUpperCase().replace(/[_-]+/g,' ');return component===grade||component===service}).map(item=>Number(item.minutes)||0)); }
     function openCrewDayEditor(agentId, date) {
-      if (String(agentId || "") !== String(loggedAgentProfile?.id || "")) return;
-      const dateIso=String(date||'').slice(0,10),initialShift=ottieniTurnoPulito(selectedShiftValue)||'Riposo',residence=String(loggedAgentProfile?.residence||currentResidence||'').toUpperCase();
-      NaviDayModal.open({
-        date:dateIso,
-        shiftFor:crewDayShiftFor,
-        refuelSuggestionMinutes:crewDayRefuelMinutes,
-        shipForService:(targetDate,targetShift)=>getShipDayInfo(dateCalendario.find(item=>item.iso===targetDate),targetShift)?.nave||'',
-        get shifts(){return crewDayContext?.shifts||[]},
-        loadEntry:async()=>{
-          await NaviAdminFirebase.ready;
-          const [archive,configs]=await Promise.all([NaviAdminFirebase.loadDiaria(String(agentId)),NaviAdminFirebase.getServiceConfigurations?.()||{}]);
-          const configured=configs?.[residence]||{},codes=new Set([...Object.keys(crewDayDefaultHours),...Object.keys(configured),'Riposo','Malattia']);
-          const shifts=[...codes].map(code=>{const upper=String(code).toUpperCase(),saved=configured[code]||configured[upper]||{};return {code,...crewDayShiftFor(upper),...saved,hours:Number.isFinite(Number(saved.hours))?Number(saved.hours):(crewDayDefaultHours[upper]||0)}});
-          crewDayContext={entries:Array.isArray(archive.entries)?archive.entries:[],shifts,shiftMap:new Map(shifts.map(item=>[String(item.code).toUpperCase(),item]))};
-          const existing=crewDayContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());
-          return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};
-        },
-        saveEntry:async draft=>{
-          if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}
-          else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}
-          await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);
-          await loadDiariaShiftOverrides({refresh:false});
-          renderTable();
-          renderCoverageTable();
-          const cal=dateCalendario.find(item=>item.iso===dateIso);
-          const focus=Object.values(globalData?.residenze||{}).flat().find(agent=>String(agent.id||'')===String(agentId))||selectedCrewAgent;
-          if(cal){selectedCol=null;selectedShiftValue=draft.shift;selectDay(cal.col,cal.labelEstesa,draft.shift,focus)}
-          return draft;
-        },
-        onClose:()=>{crewDayContext=null}
-      });
+      if (String(agentId || "") !== String(loggedAgentProfile?.id || "") || !window.NaviDayModal) return;
+      const dateIso=String(date||'').slice(0,10),initialShift=ottieniTurnoPulito(selectedShiftValue)||'Riposo',residence=String(loggedAgentProfile?.residence||currentResidence||'').toUpperCase();let editorContext=null;
+      NaviDayModal.open({date:dateIso,showDiariaButton:true,shiftFor:crewDayShiftFor,refuelSuggestionMinutes:crewDayRefuelMinutes,shipForService:(targetDate,targetShift)=>getShipDayInfo(dateCalendario.find(item=>item.iso===targetDate),targetShift)?.nave||'',get shifts(){return crewDayContext?.shifts||[]},
+        loadEntry:async()=>{await NaviAdminFirebase.ready;const cacheKey=String(agentId),cached=crewDayArchiveCache.get(cacheKey),archivePromise=cached&&Date.now()-cached.loadedAt<CREW_DAY_CACHE_MS?Promise.resolve({entries:cached.entries}):NaviAdminFirebase.loadDiaria(cacheKey);if(!crewDayConfigurationsCache&&!crewDayConfigurationsPending)crewDayConfigurationsPending=Promise.resolve(NaviAdminFirebase.getServiceConfigurations?.()||{}).then(value=>(crewDayConfigurationsCache=value||{})).finally(()=>{crewDayConfigurationsPending=null});const [archive,configs]=await Promise.all([archivePromise,crewDayConfigurationsCache||crewDayConfigurationsPending||{}]);const archiveEntries=Array.isArray(archive.entries)?archive.entries:[];crewDayArchiveCache.set(cacheKey,{entries:archiveEntries,loadedAt:Date.now()});const configured=configs?.[residence]||{},codes=new Set([...Object.keys(crewDayDefaultHours),...Object.keys(configured),'Riposo','Malattia']),shifts=[...codes].map(code=>{const upper=String(code).toUpperCase(),saved=configured[code]||configured[upper]||{};return {code,...crewDayShiftFor(upper),...saved,hours:Number.isFinite(Number(saved.hours))?Number(saved.hours):(crewDayDefaultHours[upper]||0)}});editorContext=crewDayContext={entries:archiveEntries,shifts,shiftMap:new Map(shifts.map(item=>[String(item.code).toUpperCase(),item]))};const existing=editorContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};},
+        saveEntry:async draft=>{const context=editorContext;if(!context)throw new Error('Editor giornata non disponibile');const previous=context.entries.find(item=>item.id===draft.id)||context.entries.find(item=>item.date===draft.date),shiftChanged=!previous||String(previous.shift)!==String(draft.shift);if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;context.entries.push(draft)}else if(previous)Object.assign(previous,draft);crewDayArchiveCache.set(String(agentId),{entries:context.entries,loadedAt:Date.now()});await NaviAdminFirebase.saveDiaria(String(agentId),context.entries);if(shiftChanged){const overrideKey=`${String(agentId)}|${dateIso}`;if(draft.manualOverride===true&&draft.manualModified===true)diariaShiftOverrides.set(overrideKey,{shift:String(draft.shift),from:String(draft.manualFrom||''),updatedAt:new Date().toISOString()});else diariaShiftOverrides.delete(overrideKey);requestAnimationFrame(()=>{renderTable();renderCoverageTable();const cal=dateCalendario.find(item=>item.iso===dateIso),focus=Object.values(globalData?.residenze||{}).flat().find(agent=>String(agent.id||'')===String(agentId))||selectedCrewAgent;if(cal){selectedCol=null;selectedShiftValue=draft.shift;selectDay(cal.col,cal.labelEstesa,draft.shift,focus)}})}return draft;},onSaveError:error=>console.warn('Giornata non sincronizzata da Turni',error),onClose:()=>{if(crewDayContext===editorContext)crewDayContext=null}});
     }
-
 
     function getLoggedBaristaSchedule() {
       const baristas = globalData?.residenze?.BARISTE || [];
@@ -1993,8 +1966,7 @@
       label.title = loggedAgentProfile ? "Rimetti l'agente in cima" : "Accesso non effettuato";
       if (changeButton) changeButton.style.display = loggedAgentProfile ? "inline-flex" : "none";
       if (diariaNavLink) {
-        const role = String(loggedAgentProfile?.role || "").toLowerCase();
-        const canUseDiaria = ["92"].includes(String(loggedAgentProfile?.id || "")) || role === "admin" || ["superuser","super_user","super-user"].includes(role);
+        const canUseDiaria = Boolean(String(loggedAgentProfile?.id || "").trim());
         diariaNavLink.hidden = !canUseDiaria;
       }
       if (archiveNavLink) archiveNavLink.hidden = isBaristaProfile();
@@ -2449,11 +2421,7 @@
     };
     const crewGradeRank = agent => gradeRankMap[getGradeClass(agent.id, agent.agente, agent.qualifica)] || 99;
 
-    function isRiposoShift(v) {
-      const txt = String(v || "").toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
-      return ["", "RIP", "RIP.", "RIPOSO", "----"].includes(txt);
-    }
-
+    function isRiposoShift(v) { const txt=String(v||"").toUpperCase().trim().replace(/\*/g,"").replace(/--/g,""); return ["","RIP","RIP.","RIPOSO","----"].includes(txt); }
     function ottieniTurnoPulito(v) {
       if (isRiposoShift(v)) return "";
       let txt = String(v).toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
@@ -2553,6 +2521,8 @@
       container.innerHTML = html;
       requestAnimationFrame(updateLoggedStickyOffset);
     }
+    function renderQuickResidenceSelector() { const residences=[{code:"D",name:"DESENZANO"},{code:"M",name:"MADERNO"},{code:"R",name:"RIVA"},{code:"P",name:"PESCHIERA"}].filter(item=>!!globalData?.residenze?.[item.name]); return `<div class="quick-residence-selector" aria-label="Cambia residenza">${residences.map(item=>`<button type="button" class="quick-residence-btn${currentResidence===item.name?' active':''}" data-res="${item.name}" aria-label="Visualizza ${item.name}" aria-pressed="${currentResidence===item.name}" onclick="selectResidence('${item.name}')">${item.code}</button>`).join('')}</div>`; }
+    function syncQuickResidenceSelector() { document.querySelectorAll(".quick-residence-btn").forEach(button=>{const active=button.dataset.res===currentResidence;button.classList.toggle("active",active);button.setAttribute("aria-pressed",String(active));}); }
 
     function eseguiRicercaHeader(colonnaCliccata) {
       if (isEditMode) return;
@@ -2929,7 +2899,7 @@
 
     function getCrewBaristas(calInfo, shift) {
       const cleanShift = ottieniTurnoPulito(shift).toUpperCase();
-      if (!calInfo?.iso || !["D2", "D3", "P2", "P3"].includes(cleanShift)) return [];
+      if (!calInfo?.iso || !["D2", "D3", "P1", "P2"].includes(cleanShift)) return [];
       const records = Array.isArray(globalData?.bariste)
         ? globalData.bariste
         : (Array.isArray(globalData?.barista) ? globalData.barista : []);
@@ -3433,7 +3403,6 @@
 
     function selectDay(col, label, cellShiftValue, focusAgent = null) {
       if (isEditMode) return;
-      const mobileMatrixAnchor = captureMobileMatrixPosition();
       const clickedShiftKey = getCrewShiftKey(ottieniTurnoPulito(cellShiftValue));
       const selectedShiftKey = getCrewShiftKey(ottieniTurnoPulito(selectedShiftValue));
       if (selectedCol === col && clickedShiftKey === selectedShiftKey) {
@@ -3505,7 +3474,7 @@
           <div class="panel-header-main">
             <div class="panel-title-row">
               <div class="panel-date" id="panel-date-label"></div>
-              <button type="button"${personalCourseAction} aria-label="Apri la giornata ${escapeAttribute(panelShiftLabel)}">${isRest ? "" : (focusAgent && canEditCrewDay(focusAgent) ? '<span class="panel-course-edit-indicator" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>' : "")}<strong>${escapeAttribute(panelShiftLabel)}</strong></button>
+              <button type="button"${personalCourseAction} aria-label="${isRest ? "Riposo" : (myShiftPuro === "TERRA" ? "Servizi a terra" : "Corsa selezionata")}">${isRest ? "" : (focusAgent && canEditCrewDay(focusAgent) ? '<span class="panel-course-edit-indicator" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></span>' : "")}<strong>${escapeAttribute(panelShiftLabel)}</strong></button>
             </div>
             <div class="panel-date-navigation" aria-label="Navigazione primaria della data">
               <button class="panel-arrow" id="previous-day-btn" type="button" onclick="changeSelectedDay(-1)" aria-label="Giorno precedente"><svg class="panel-arrow-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M15 18l-6-6 6-6"/></svg></button>
@@ -3655,7 +3624,6 @@
       if (drawer.classList.contains("open")) {
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
-          restoreMobileMatrixPosition(mobileMatrixAnchor);
           scrollCrewPanelIntoView();
         });
       }
@@ -3699,7 +3667,6 @@
 
 
     function scrollGroupedCrewTableToTop() {
-      if (isMobileCrewLayout()) return;
       const target = dayPanelPlacement === "coverage"
         ? document.getElementById("coverage-matrix-wrap")
         : document.getElementById("matrix-scroll-wrap");
@@ -3708,26 +3675,6 @@
       const panelHeight = panel?.classList.contains("open") ? panel.getBoundingClientRect().height : 0;
       const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - panelHeight - 10);
       window.scrollTo({ top, behavior:"smooth" });
-    }
-
-    function isMobileCrewLayout() {
-      return window.matchMedia("(max-width:800px)").matches;
-    }
-    function captureMobileMatrixPosition() {
-      if (!isMobileCrewLayout()) return null;
-      const wrap = document.getElementById("matrix-scroll-wrap");
-      if (!wrap) return null;
-      return { top:wrap.getBoundingClientRect().top, scrollY:window.scrollY, scrollLeft:wrap.scrollLeft };
-    }
-    function restoreMobileMatrixPosition(anchor) {
-      if (!anchor || !isMobileCrewLayout()) return;
-      requestAnimationFrame(() => {
-        const wrap = document.getElementById("matrix-scroll-wrap");
-        if (!wrap) return;
-        const delta = wrap.getBoundingClientRect().top - anchor.top;
-        wrap.scrollLeft = anchor.scrollLeft;
-        if (Math.abs(delta) > .5) window.scrollTo({ top:Math.max(0, anchor.scrollY + delta), left:window.scrollX, behavior:"auto" });
-      });
     }
 
     function updateCrewDrawerOffset() {
@@ -3944,7 +3891,6 @@
     }
 
     function clearSelection() {
-      const mobileMatrixAnchor = captureMobileMatrixPosition();
       selectedCol = null;
       selectedShiftValue = "";
       selectedCrewAgent = null;
@@ -3952,7 +3898,6 @@
       document.getElementById("day-panel").setAttribute("aria-hidden", "true");
       document.body.classList.remove("crew-drawer-open", "crew-drawer-main", "crew-drawer-coverage");
       document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
-      updateCrewDrawerOffset();
       document.getElementById("tbody").classList.remove("has-selection");
       trElements.forEach(tr => {
         tr.classList.remove("row-match");
@@ -3964,16 +3909,13 @@
 
       // Quando la scheda equipaggio viene chiusa, riporta dolcemente
       // l'inizio della tabella nella parte alta dello schermo.
-      if (isMobileCrewLayout()) restoreMobileMatrixPosition(mobileMatrixAnchor);
-      else {
-        requestAnimationFrame(() => {
-          const tableWrap = document.getElementById("matrix-scroll-wrap");
-          if (!tableWrap) return;
-          const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
-          window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-        });
-        window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
-      }
+      requestAnimationFrame(() => {
+        const tableWrap = document.getElementById("matrix-scroll-wrap");
+        if (!tableWrap) return;
+        const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      });
+      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
     }
 
     // Un clic sullo sfondo, fuori dalla tabella e dai relativi comandi,
@@ -4031,8 +3973,8 @@
       clearPinnedAgentSelection();
       clearSelection();
       currentResidence = resName;
-      activeShiftFilter = null;
       syncQuickResidenceSelector();
+      activeShiftFilter = null;
 
       if (resName === "TUTTE") {
         // Aggrega tutti gli agenti di tutte le residenze visibili.
@@ -4054,24 +3996,6 @@
       } else {
         clearSelection();
       }
-    }
-
-    function renderQuickResidenceSelector() {
-      const residences = [
-        { code:"D", name:"DESENZANO" },
-        { code:"M", name:"MADERNO" },
-        { code:"R", name:"RIVA" },
-        { code:"P", name:"PESCHIERA" }
-      ].filter(item => !!globalData?.residenze?.[item.name]);
-      return `<div class="quick-residence-selector" aria-label="Cambia residenza">${residences.map(item => `<button type="button" class="quick-residence-btn${currentResidence===item.name?' active':''}" data-res="${item.name}" aria-label="Visualizza ${item.name}" aria-pressed="${currentResidence===item.name}" onclick="selectResidence('${item.name}')">${item.code}</button>`).join('')}</div>`;
-    }
-
-    function syncQuickResidenceSelector() {
-      document.querySelectorAll(".quick-residence-btn").forEach(button => {
-        const active = button.dataset.res === currentResidence;
-        button.classList.toggle("active", active);
-        button.setAttribute("aria-pressed", String(active));
-      });
     }
 
     function hidePastColumns() {
@@ -4248,7 +4172,7 @@
     function normalizeOdsShift(value) {
       const shift = String(value || "").trim();
       if (!shift || /^={3,}$/.test(shift) || /^(rip|rip\.|riposo)$/i.test(shift)) return "rip";
-      if (/^lav\.?$/i.test(shift)) return "LAV";
+      if (/^lav\.?$/i.test(shift)) return "TERRA";
       return shift.toUpperCase();
     }
 
@@ -4760,6 +4684,27 @@
     });
   </script>
 
+  <!-- Navigazione Mobile Liquid Glass -->
+  <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+    <a href="naviturni.html" class="nav-item active">
+      <span class="nav-icon">▦</span>
+      <span>Turni</span>
+    </a>
+    <a href="cambi_turno.html" class="nav-item" id="mobile-change-link">
+      <span class="nav-icon">⇄</span>
+      <span>Cambio</span>
+    </a>
+    <a href="documenti.html" class="nav-item">
+      <span class="nav-icon">▤</span>
+      <span>Doc</span>
+    </a>
+    <button type="button" class="nav-item" id="mobile-filter-btn" aria-label="Apri menu e filtri">
+      <span class="nav-icon">☰</span>
+      <span>Menu</span>
+    </button>
+  </nav>
+
+
   <!-- Popup Filtri Liquid Glass -->
   <div id="mobile-filter-modal" class="liquid-modal-overlay" hidden>
     <div class="liquid-modal-content">
@@ -4987,6 +4932,6 @@
     }
   }
 </style>
-  <script src="assets/js/announcements.js?v=2"></script>
+  <script src="assets/js/announcements-recovered.js?v=1"></script>
 </body>
 </html>

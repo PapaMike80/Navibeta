@@ -139,11 +139,12 @@
   </nav>
   <script src="assets/js/turni-shared.js"></script>
   <script src="assets/js/admin-firebase-rest.js?v=36"></script>
-  <script src="assets/js/shared-menu.js?v=1.44"></script>
+  <script src="assets/js/shared-menu.js?v=1.46"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
   <script src="assets/js/shared-data.js?v=3"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script src="vendor/pdfjs/pdf.worker.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <script>
   (() => {
     document.querySelectorAll('.card.foldable').forEach(card=>{const toggle=card.querySelector('.card-fold-toggle'),heading=card.querySelector('.card-heading');const change=()=>card.dataset.collapsed=card.dataset.collapsed==='true'?'false':'true';toggle.addEventListener('click',change);heading.addEventListener('click',event=>{if(!event.target.closest('button,input,select,textarea,a'))change()})});
@@ -156,7 +157,10 @@
     const isAdmin=p=>['91','92'].includes(String(p?.id||''))||String(p?.role||'').toLowerCase()==='admin';
     const isHiba=p=>String(p?.id||'').toUpperCase()==='BARISTA_HIBA'||(String(p?.role||'').toLowerCase()==='barista'&&normalize(String(p?.name||p?.agente||p?.cognome||''))==='HIBA');
     const canManageBariste=p=>isAdmin(p)||isHiba(p);
-    const variationKey=v=>`${v.data}|${v.id_agente||v.agente}|${v.tipo||''}|${v.ods||''}`;
+    // Una stessa variazione ODS è identificata da agente, data e numero ODS.
+    // La provenienza (ufficio/volontaria) è informativa e non deve generare un
+    // doppione quando si rielabora lo stesso documento.
+    const variationKey=v=>`${v.data}|${v.id_agente||v.agente}|${v.ods||''}`;
     const baristaKey=v=>`${v.data}|${v.corsa}|${v.id||v.barista}`;
     const turnoNaveKey=v=>`${v.data}|${v.corsa}|${v.nave||''}`;
     const merge=(base,extra,key)=>{const m=new Map((base||[]).map(v=>[key(v),v]));(extra||[]).forEach(v=>m.set(key(v),v));return [...m.values()]};
@@ -544,9 +548,41 @@
       const pages=[];
       for(let pageNo=1;pageNo<=pdf.numPages;pageNo++){
         const page=await pdf.getPage(pageNo),content=await page.getTextContent();
-        pages.push(content.items.filter(item=>item.str?.trim()).map(item=>({text:item.str.trim(),x:item.transform[4],y:item.transform[5],width:Number(item.width||0),height:Number(item.height||0),page:pageNo})));
+        const textItems=content.items.filter(item=>item.str?.trim()).map(item=>({text:item.str.trim(),x:item.transform[4],y:item.transform[5],width:Number(item.width||0),height:Number(item.height||0),page:pageNo}));
+        // Alcuni ODS sono scansioni: PDF.js non può estrarne testo, anche se la
+        // pagina contiene variazioni valide. L'OCR avviene nel browser e non
+        // effettua alcuna scrittura Firebase.
+        pages.push(textItems.length?textItems:await ocrScannedPdfPage(page,pageNo));
       }
       return pages;
+    }
+    async function ocrScannedPdfPage(page,pageNo){
+      if(location.protocol==='file:')throw new Error(`La pagina ${pageNo} del PDF è una scansione. Apri NaviSuite tramite server locale per eseguire l'OCR.`);
+      const viewport=page.getViewport({scale:2});
+      const canvas=document.createElement('canvas');
+      canvas.width=Math.ceil(viewport.width);canvas.height=Math.ceil(viewport.height);
+      await page.render({canvasContext:canvas.getContext('2d',{willReadFrequently:false}),viewport}).promise;
+      // Il motore OCR principale lavora sul dispositivo: la pagina non viene
+      // inviata a servizi esterni. Il server locale resta solo un fallback.
+      try{
+        if(!window.Tesseract?.createWorker)throw new Error('Motore OCR browser non caricato');
+        const worker=await window.Tesseract.createWorker('eng',1,{langPath:'https://tessdata.projectnaptha.com/4.0.0'});
+        try{
+          const result=await worker.recognize(canvas),text=String(result?.data?.text||'').trim();
+          if(text)return ocrTextItems(text,pageNo);
+        }finally{await worker.terminate()}
+      }catch(browserError){
+        try{
+          const response=await fetch('/api/ocr',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({image:canvas.toDataURL('image/png')})});
+          const payload=await response.json();
+          if(response.ok&&payload?.text)return ocrTextItems(payload.text,pageNo);
+        }catch(serverError){}
+        throw new Error(`La pagina ${pageNo} del PDF è una scansione e l'OCR non è disponibile. Verifica la connessione Internet e riprova.`);
+      }
+      throw new Error(`OCR non riuscito per la pagina ${pageNo}`);
+    }
+    function ocrTextItems(value,pageNo){
+      return String(value).split(/\r?\n/).map(line=>line.trim()).filter(Boolean).map((text,index)=>({text,x:0,y:10000-index*20,width:0,height:0,page:pageNo,ocr:true}));
     }
     function linesFromItems(pages){
       return pages.flatMap(items=>{
@@ -570,11 +606,11 @@
         const parsed=JSON.parse(trimmed),rows=Array.isArray(parsed)?parsed:(parsed.records||parsed.variations||parsed.turni||[]);
         return rows.map(fromJson);
       }
-      const rows=trimmed.split(/\r?\n/).filter(Boolean).map(line=>line.split(/[;,]/).map(v=>v.trim()));
+      const rows=parseCsvMatrix(trimmed);
       const header=rows.shift().map(normalize);
       const get=(row,...names)=>{const index=header.findIndex(h=>names.includes(h));return index>=0?row[index]:''};
       const fromCsv=row=>{
-        if(kind==='ods')return {data:isoDate(get(row,'DATA','DATE')),agente:get(row,'AGENTE','AGENT'),id_agente:get(row,'IDAGENTE','AGENTID'),turno_originale:get(row,'TURNOORIGINALE','OLDSHIFT'),turno_nuovo:String(get(row,'TURNONUOVO','NEWSHIFT','TURNO')).toUpperCase(),note:get(row,'NOTE','NOTA')};
+        if(kind==='ods')return {data:isoDate(get(row,'DATA','DATE')),agente:get(row,'AGENTE','AGENT','DIPENDENTE','NOMINATIVO','PERSONALE'),id_agente:get(row,'IDAGENTE','AGENTID'),turno_originale:get(row,'TURNOORIGINALE','OLDSHIFT'),turno_nuovo:String(get(row,'TURNONUOVO','NEWSHIFT','TURNO','TURNOASSEGNATO','NUOVOTURNO')).toUpperCase(),tipo:get(row,'TIPOVARIAZIONE','TIPO','SOURCE'),note:get(row,'NOTE','NOTA')};
         if(kind==='nave')return {data:isoDate(get(row,'DATA','DATE')),corsa:String(get(row,'CORSA','TURNO','SHIFT')).toUpperCase(),nave:get(row,'NAVE','SHIP','MOTONAVE'),rifornimento_mattina:get(row,'RIFORNIMENTOMATTINA','RIFORNIMENTO'),ormeggio_serale:get(row,'ORMEGGIOSERALE','ORMEGGIO')};
         return {data:isoDate(get(row,'DATA','DATE')),corsa:String(get(row,'CORSA','TURNO','SHIFT')).toUpperCase(),barista:get(row,'BARISTA','NOME','NAME')};
       };
@@ -582,20 +618,31 @@
     }
     function parseOdsPdf(pages,ods){
       const lines=linesFromItems(pages);
-      let currentDate='',inVariations=false;
+      let currentDate='',section='';
       const records=[];
+      const sectionForHeading=line=>{
+        const heading=normalize(line);
+        // L'OCR può leggere "TURNI" come "TURN!": riconosciamo quindi il
+        // prefisso semantico, non una frase letterale o una singola grafia.
+        if(!heading.includes('VARIAZIONITURN'))return '';
+        if(heading.includes('VOLONTAR'))return 'ODS VOLONTARIO';
+        if(heading.includes('DAUFFICIO'))return 'ODS UFFICIO';
+        return 'ODS';
+      };
       for(const line of lines){
-        if(/VARIAZIONI\s+TURNI/i.test(line)){inVariations=true;continue}
-        // L'allegato "Turno navi" non contiene variazioni del personale: non
-        // deve mai finire nell'anteprima delle variazioni.
-        if(inVariations&&/\bTURNO\s+NAVI\b|ALLEGATO\s+ALL[’']?ODS/i.test(line)){inVariations=false;continue}
-        if(!inVariations)continue;
+        const heading=sectionForHeading(line);
+        if(heading){section=heading;continue}
+        // Un allegato può contenere sia variazioni del personale sia il turno
+        // navi: non azzerare la sezione solo perché compare "allegato ODS".
+        // Ci si ferma esclusivamente a una vera intestazione del turno navi.
+        if(section&&/^\s*(?:TURNO\s+NAVI|PROGRAMMAZIONE\s+RIFORNIMENTI|ORMEGGI\s+SERALI)\b/i.test(line)){section='';continue}
+        if(!section)continue;
         const foundDate=italianDate(line);if(foundDate){currentDate=foundDate;continue}
         const m=line.match(/^([A-ZÀ-Ü][A-ZÀ-Ü .,'’-]{2,}):\s*(.+)$/i);
         if(!m||!currentDate)continue;
         const content=m[2],service=content.match(/\bservizio\s+([A-Z0-9.=/-]+)/i);
-        // "===" indica riposo negli ODS. Non può stare dentro \b…\b,
-        // perché il simbolo = non è un carattere di parola.
+        // Nei precedenti ODS già gestiti da NaviSuite "===" rappresenta RIP.
+        // Manteniamo quindi la stessa semantica anche nelle sezioni volontarie.
         const explicitCode=content.match(/\b(?:L\.?\s*D\.?|F\.?\s*P\.?|AGB\d?)(?![A-Z0-9])/i)?.[0]||'';
         const tokens=content.toUpperCase().match(/={3}|\b(?:RIP|[A-Z]{1,5}\d{0,2})\b/g)||[];
         let shift=(service?.[1]||explicitCode||tokens.find(t=>!['DALLE','ALLE','SONO','PRONTI','MUOVERE','CON','COME','PER','IL','LA','DI','IN','A'].includes(t))||'').replace(/^={3}$/,'RIP');
@@ -604,13 +651,15 @@
         if(!shift)continue;
         m[1].split(/\s*,\s*|\s+E\s+/i).forEach(name=>{
           const agent=resolveAgent(name.trim());
-          // Un nominativo non riconosciuto deve essere corretto dall'admin, non
-          // trasformato in una riga senza agente (come accadeva con D1/M1/R1).
           if(!agent)return;
-          records.push({data:currentDate,agente:agent.agente,id_agente:String(agent.id),turno_originale:baseShift(agent,currentDate),turno_nuovo:shift.toUpperCase(),ods:`ODS ${ods||'da definire'}`,tipo:'ODS',note:content});
+          records.push({data:currentDate,agente:agent.agente,id_agente:String(agent.id),turno_originale:baseShift(agent,currentDate),turno_nuovo:shift.toUpperCase(),ods:ods||'da definire',tipo:section,note:content});
         });
       }
-      return records;
+      const unique=[...new Map(records.map(row=>[`${row.data}|${row.id_agente}|${row.turno_nuovo}`,row])).values()];
+      const byAgentDate=new Map();
+      unique.forEach(row=>{const key=`${row.data}|${row.id_agente}`;if(!byAgentDate.has(key))byAgentDate.set(key,[]);byAgentDate.get(key).push(row)});
+      byAgentDate.forEach(rows=>{if(new Set(rows.map(row=>row.turno_nuovo)).size>1)rows.forEach(row=>{row.conflict=true;row.note=`⚠ Conflitto nello stesso ODS: ${row.note}`})});
+      return unique;
     }
     function odsDateRange(items){
       const header=items.map(item=>item.text).join(' ').replace(/\s+/g,' ').toUpperCase();
@@ -732,6 +781,9 @@
       return (best?.items||[]).sort((a,b)=>a.x-b.x).slice(0,expected).map(item=>item.x+(item.width||0)/2);
     }
     function resolvePdfRowAgents(prefix){
+      // Alcuni PDF OpenOffice incorporano la B di certi cognomi come Ɓ:
+      // uniformarla evita che righe complete (es. BERTUZZO) vengano scartate.
+      prefix=String(prefix||'').replace(/[Ɓɓ]/g,'B');
       const number=String(prefix||'').match(/^\s*(\d+)(?:\s*[-/]\s*(\d+))?/);
       const list=agents().filter(agent=>String(agent.residence||'').toUpperCase()!=='BARISTE');
       const withoutNumber=String(prefix||'').replace(/^\s*\d+(?:\s*[-/]\s*\d+)?\s*/,'').trim();
@@ -816,7 +868,7 @@
       }
       const options=agents().filter(a=>String(a.residence).toUpperCase()!=='BARISTE').sort((a,b)=>String(a.agente).localeCompare(String(b.agente),'it')).map(a=>`<option value="${esc(a.id)}">${esc(a.agente)}</option>`).join('');
       result.innerHTML=kind==='ods'
-        ?`${rows.length?`<h3>Variazioni del personale (${rows.length})</h3><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Agente</th><th>Prima</th><th>Dopo</th><th>Nota</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-ods="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><select data-field="id_agente"><option value="">— scegli —</option>${options}</select></td><td><input data-field="turno_originale" value="${esc(v.turno_originale)}"></td><td><input data-field="turno_nuovo" value="${esc(v.turno_nuovo)}"></td><td><input data-field="note" value="${esc(v.note)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessuna variazione del personale riconosciuta.</div>'}${pendingOdsNavi.length?`<h3>Turni nave, rifornimenti e ormeggi (${pendingOdsNavi.length})</h3><p>Controlla l’anteprima: ogni riga sarà salvata nella NaviDiaria con il nome nave, il rifornimento e l’ormeggio serale.</p><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Nave</th><th>Rifornimento</th><th>Ormeggio serale</th></tr></thead><tbody>${pendingOdsNavi.map((v,i)=>`<tr data-pending-ods-nave="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="nave" value="${esc(v.nave)}"></td><td><input data-field="rifornimento_mattina" value="${esc(v.rifornimento_mattina)}"></td><td><input data-field="ormeggio_serale" value="${esc(v.ormeggio_serale)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessun turno nave riconosciuto nell’allegato ODS.</div>'}`
+        ?`${rows.length?`<h3>Variazioni del personale (${rows.length})</h3><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Agente</th><th>Prima</th><th>Dopo</th><th>Nota</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-ods="${i}" data-tipo="${esc(v.tipo||'ODS')}"><td><input type="checkbox" data-field="use" ${v.conflict?'':'checked'}></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><select data-field="id_agente"><option value="">— scegli —</option>${options}</select></td><td><input data-field="turno_originale" value="${esc(v.turno_originale)}"></td><td><input data-field="turno_nuovo" value="${esc(v.turno_nuovo)}"></td><td><input data-field="note" value="${esc(v.note)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessuna variazione del personale riconosciuta.</div>'}${pendingOdsNavi.length?`<h3>Turni nave, rifornimenti e ormeggi (${pendingOdsNavi.length})</h3><p>Controlla l’anteprima: ogni riga sarà salvata nella NaviDiaria con il nome nave, il rifornimento e l’ormeggio serale.</p><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Nave</th><th>Rifornimento</th><th>Ormeggio serale</th></tr></thead><tbody>${pendingOdsNavi.map((v,i)=>`<tr data-pending-ods-nave="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="nave" value="${esc(v.nave)}"></td><td><input data-field="rifornimento_mattina" value="${esc(v.rifornimento_mattina)}"></td><td><input data-field="ormeggio_serale" value="${esc(v.ormeggio_serale)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessun turno nave riconosciuto nell’allegato ODS.</div>'}`
         :`<table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Barista</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-barista="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="barista" value="${esc(v.barista)}"></td></tr>`).join('')}</tbody></table>`;
       if(kind==='ods')result.querySelectorAll('[data-pending-ods]').forEach((tr,i)=>{tr.querySelector('[data-field=id_agente]').value=String(rows[i].id_agente||resolveAgent(rows[i].agente)?.id||'')});
     }
@@ -827,7 +879,7 @@
         if(kind==='nave')return {attiva:true,data:value('data'),corsa:value('corsa').toUpperCase(),nave:value('nave'),rifornimento_mattina:value('rifornimento_mattina'),ormeggio_serale:value('ormeggio_serale'),inserita_il:new Date().toISOString()};
         if(kind==='barista')return {data:value('data'),corsa:value('corsa').toUpperCase(),barista:value('barista')};
         const agent=agents().find(a=>String(a.id)===value('id_agente'));
-        return {attiva:true,data:value('data'),id_agente:value('id_agente'),agente:agent?.agente||'',turno_originale:value('turno_originale').toUpperCase(),turno_nuovo:value('turno_nuovo').toUpperCase(),ods:$('new-ods-number').value.trim()||'importato',tipo:'ODS',note:value('note'),inserita_il:new Date().toISOString()};
+        return {attiva:true,data:value('data'),id_agente:value('id_agente'),agente:agent?.agente||'',turno_originale:value('turno_originale').toUpperCase(),turno_nuovo:value('turno_nuovo').toUpperCase(),ods:$('new-ods-number').value.trim()||'importato',tipo:tr.dataset.tipo||'ODS',note:value('note'),inserita_il:new Date().toISOString()};
       }).filter(v=>v.data&&(kind==='nave'?v.corsa&&v.nave:kind==='barista'?v.corsa&&v.barista:v.id_agente&&v.turno_nuovo));
     }
     function collectOdsNavi(){
@@ -938,6 +990,7 @@
     });
     $('save-new-ods').addEventListener('click',async()=>{
       const rows=collectPending('ods'),navi=collectOdsNavi();if(!rows.length&&!navi.length)return setStatus('Nessuna riga ODS valida da salvare.','bad');
+      const selectedKeys=rows.map(row=>`${row.data}|${row.id_agente}`);if(new Set(selectedKeys).size!==selectedKeys.length)return setStatus('Conflitto ODS: per lo stesso agente e giorno seleziona una sola variazione.','bad');
       if(rows.length)state.odsVariations=merge(state.odsVariations,rows,variationKey);
       if(navi.length)state.turniNavi=merge(state.turniNavi,navi,turnoNaveKey);
       const touchesRequest=request=>rows.some(variation=>odsVariationMatchesRequest(variation,request));
@@ -986,6 +1039,6 @@
   })();
   </script>
 
-  <script src="assets/js/announcements.js?v=2"></script>
+  <script src="assets/js/announcements-recovered.js?v=1"></script>
 </body>
 </html>

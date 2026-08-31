@@ -1,87 +1,62 @@
 /*
- * Service Worker per NaviDiaria.
+ * Service Worker NaviSuite - hotfix minimo Diaria.
  *
- * Obiettivi:
- * - mantenere in cache la shell dell'app;
- * - eliminare automaticamente le cache obsolete;
- * - provare sempre prima la rete e usare la cache solo come fallback.
+ * Non usa cache. Intercetta solo gli script che hanno causato blocchi:
+ * - navidiaria-monthly.js: rimuove il MutationObserver globale dei ticket;
+ * - shared-menu.js: aggiunge fallback colori se manca una residenza.
  */
 
-// Cambio obbligatorio dopo il ripristino dello script popup: invalida anche
-// le copie memorizzate dalla PWA e da Safari.
-const CACHE_VERSION = 'navibeta-v187-nave-popup-diaria';
-const CACHE_NAME = CACHE_VERSION;
-
-// File statici da pre-caricare durante l'installazione.
-// La lista include le pagine principali, i fogli di stile e gli script comuni.
-const STATIC_ASSETS = [
-  './',
-  'index.html',
-  'manifest.json',
-  'assets/images/favicon.svg',
-  'assets/images/icona_192.png',
-  'assets/images/icona_512.png',
-  'assets/images/icona_apple_180.png',
-  'assets/images/logo_maskable.svg',
-  'assets/images/logo_principale.svg',
-  'assets/images/splash_ios.png',
-  'navidiaria.html',
-  'naviturni.html',
-  'cambi_turno.html',
-  'assets/css/portal.css',
-  'assets/css/styles.css',
-  'assets/css/navidiaria-weekly.css',
-  'assets/css/navidiaria-monthly.css',
-  'assets/css/navi-layout.css',
-  'assets/css/navi-shared.css',
-  'assets/css/naviturni-theme.css',
-  'assets/css/shared-menu.css',
-  'assets/js/shared-data.js',
-  'assets/js/firebase-data.js',
-  'assets/js/admin-firebase-rest.js',
-  'assets/js/draft-period.js',
-  'assets/js/firebase-auth.js',
-  'assets/js/portal.js',
-  'assets/js/app.js',
-  'assets/js/navidiaria-weekly.js',
-  'assets/js/navidiaria-monthly.js',
-  'assets/js/shared-menu.js',
-  'assets/js/mobile-menu-solid.js',
-  'assets/js/turni-shared.js',
-  'assets/js/announcements.js'
-];
+const CACHE_VERSION = 'navisuite-v192-diaria-loop-hotfix';
 
 self.addEventListener('install', event => {
-  // Durante l'installazione salviamo la shell minima dell'app.
-  event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(STATIC_ASSETS);
-    await self.skipWaiting();
-  })());
+  event.waitUntil(self.skipWaiting());
 });
 
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
-    await Promise.all(names.filter(name => name !== CACHE_NAME).map(name => caches.delete(name)));
+    await Promise.all(names.map(name => caches.delete(name)));
     await self.clients.claim();
   })());
 });
 
+function js(text) {
+  return new Response(text, {
+    status: 200,
+    headers: {
+      'Content-Type': 'application/javascript; charset=utf-8',
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0'
+    }
+  });
+}
+
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
-  event.respondWith((async () => {
-    try {
-      const response = await fetch(event.request);
-      if (response.ok && new URL(event.request.url).origin === self.location.origin) {
-        const cache = await caches.open(CACHE_NAME);
-        cache.put(event.request, response.clone());
-      }
-      return response;
-    } catch (error) {
-      const cached = await caches.match(event.request);
-      if (cached) return cached;
-      throw error;
-    }
-  })());
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  if (url.pathname === '/NaviSuite/assets/js/navidiaria-monthly.js') {
+    event.respondWith((async () => {
+      const response = await fetch(event.request, { cache: 'reload' });
+      let text = await response.text();
+      text = text.replace(
+        "new MutationObserver(fix).observe(document.body,{childList:true,subtree:true,characterData:true});setTimeout(fix,0)",
+        "document.addEventListener('navidiaria:render',()=>setTimeout(fix,0));setTimeout(fix,0)"
+      );
+      return js(text);
+    })());
+    return;
+  }
+
+  if (url.pathname === '/NaviSuite/assets/js/shared-menu.js') {
+    event.respondWith((async () => {
+      const response = await fetch(event.request, { cache: 'reload' });
+      let text = await response.text();
+      text = text.replace(
+        "const palette=type==='residence'\n        ? residenceColors[raw]\n        : shiftColors[raw] || ['#94a3b8','rgba(148,163,184,.13)'];",
+        "const palette=(type==='residence'\n        ? residenceColors[raw]\n        : shiftColors[raw]) || ['#2dd4bf','rgba(45,212,191,.13)'];"
+      );
+      return js(text);
+    })());
+  }
 });

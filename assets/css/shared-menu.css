@@ -33,6 +33,79 @@
 .ods-variation-status{margin:10px 1px 2px;padding:10px 11px;border:1px solid rgba(45,212,191,.28);border-radius:9px;background:rgba(45,212,191,.08);color:#9fe9df;font:700 10px/1.45 "DM Sans",sans-serif}.ods-variation-status[hidden]{display:none!important}
 .diaria-page .app-shell{display:block!important;padding-left:230px;transition:padding-left .22s ease}.diaria-page.menu-collapsed .app-shell{padding-left:0}.diaria-page .app-shell>main{min-width:0}@media(max-width:800px){.diaria-page .app-shell{padding-left:0}.diaria-page .app-shell>main{grid-column:auto}}
 
+/* Nascondi il menu di default su PC */
+body.turni-page .mobile-liquid-nav { display: none; }
+
+/* Menu mobile in basso, fisso e responsive */
+@media (max-width: 800px) {
+	body.turni-page .app-shell main,
+	body.turni-page > main { padding-bottom: 90px; }
+
+	body.turni-page .mobile-liquid-nav {
+		display: flex; position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+		width: 94%; height: 68px; z-index: 99999;
+		justify-content: space-evenly; align-items: center;
+		border-radius: 40px;
+		background: rgba(18, 34, 45, 0.42);
+		backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+		border-top: 1px solid rgba(255, 255, 255, 0.2);
+		border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 -1px 0 rgba(0, 0, 0, 0.25);
+		transition: transform .28s cubic-bezier(.22,.8,.28,1), opacity .2s ease;
+		will-change: transform, opacity;
+	}
+
+	body.turni-page.mobile-nav-hidden .mobile-liquid-nav {
+		transform: translateX(-50%) translateY(calc(100% + 40px));
+		opacity: 0;
+		pointer-events: none;
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item {
+		display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+		text-decoration: none; color: var(--ink-dim, #9fb8c2); font-family: 'DM Sans', sans-serif;
+		font-size: 9px; font-weight: 600; flex: 1 1 0; min-width: 0; max-width: 62px; height: 58px; border-radius: 50%;
+		transition: all 0.25s ease;
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item .nav-icon {
+		font-size: 20px;
+		line-height: 1;
+	}
+
+	body.turni-page .mobile-liquid-nav .nav-item.active {
+		color: var(--accent, #2dd4bf); background: rgba(45, 212, 191, 0.1);
+		box-shadow: inset 0 2px 5px rgba(45, 212, 191, 0.15);
+	}
+
+	/* Adattamento automatico al tema chiaro del telefono */
+	@media (prefers-color-scheme: light) {
+		body.turni-page .mobile-liquid-nav {
+			background: rgba(248, 250, 252, 0.5);
+			backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
+			border-top: 1px solid rgba(255, 255, 255, 0.7); border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+			box-shadow: 0 24px 48px rgba(0, 0, 0, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.85), inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+		}
+		body.turni-page .mobile-liquid-nav .nav-item { color: #4b5563; }
+		body.turni-page .mobile-liquid-nav .nav-item.active {
+			color: #0d9488; background: rgba(13, 148, 136, 0.1);
+			box-shadow: inset 0 2px 5px rgba(13, 148, 136, 0.15);
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+		body.turni-page .mobile-liquid-nav { transition-duration: .01ms; }
+	}
+}
+
+/* Reset per il button nella nav */
+body.turni-page button.nav-item {
+	background: transparent;
+	border: none;
+	padding: 0;
+	font-family: inherit;
+	cursor: pointer;
+}
 
 /* Stili per il Modale Liquid Glass */
 body.turni-page .liquid-modal-overlay {
@@ -151,6 +224,109 @@ body.turni-page #modal-residence-buttons.modal-buttons-grid {
 	grid-template-columns: repeat(3, 1fr);
 }
 
+/* Menu mobile completo: filtri compatti e azioni del menu laterale. */
+@media (max-width:800px) {
+	body.turni-page .liquid-modal-content {
+		box-sizing:border-box;
+		max-height:calc(88dvh - env(safe-area-inset-top, 0px));
+		padding:12px 14px calc(22px + env(safe-area-inset-bottom, 0px));
+	}
+
+	body.turni-page .liquid-modal-header {
+		align-items:center;
+		justify-content:space-between;
+		min-height:32px;
+		margin-bottom:8px;
+	}
+
+	body.turni-page .liquid-modal-header strong {
+		color:#e8f7f7;
+		font:800 15px Manrope, sans-serif;
+	}
+
+	body.turni-page .filter-section {
+		margin-bottom:16px!important;
+	}
+
+	body.turni-page .filter-section-title,
+	body.trova-turno-page .filter-section > span:first-child {
+		margin-bottom:9px!important;
+		font-size:10px!important;
+		letter-spacing:.14em!important;
+	}
+
+	body.turni-page #modal-residence-buttons.modal-buttons-grid,
+	body.turni-page #modal-shift-buttons.modal-buttons-grid {
+		grid-template-columns:repeat(3,minmax(0,1fr));
+		gap:7px;
+	}
+
+	body.turni-page #modal-residence-buttons.modal-buttons-grid button,
+	body.turni-page #modal-shift-buttons.modal-buttons-grid button {
+		height:34px!important;
+		min-height:34px!important;
+		padding:4px 6px!important;
+		border-width:1px!important;
+		font-size:10px!important;
+		letter-spacing:.02em!important;
+	}
+
+	body.turni-page .mobile-complete-menu {
+		margin:12px 0 0!important;
+		padding-top:14px;
+		border-top:1px solid rgba(126,243,226,.14);
+	}
+
+	body.turni-page .mobile-menu-actions {
+		display:grid;
+		grid-template-columns:repeat(2,minmax(0,1fr));
+		gap:8px;
+	}
+
+	body.turni-page .mobile-menu-actions a,
+	body.turni-page .mobile-menu-actions button {
+		display:flex!important;
+		align-items:center;
+		justify-content:flex-start;
+		gap:9px;
+		box-sizing:border-box;
+		width:100%;
+		min-width:0;
+		min-height:42px!important;
+		height:auto!important;
+		margin:0;
+		padding:8px 11px!important;
+		border:1px solid rgba(255,255,255,.16)!important;
+		border-radius:13px!important;
+		background:rgba(255,255,255,.07)!important;
+		backdrop-filter:blur(10px);
+		-webkit-backdrop-filter:blur(10px);
+		box-shadow:inset 0 1px 0 rgba(255,255,255,.09);
+		color:#d8eef1!important;
+		font:750 11px/1.15 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif!important;
+		letter-spacing:0!important;
+		text-align:left;
+		text-decoration:none;
+		text-transform:none!important;
+	}
+
+	body.turni-page .mobile-menu-actions a span,
+	body.turni-page .mobile-menu-actions button span {
+		flex:0 0 20px;
+		color:#2dd4bf;
+		font-size:17px;
+		text-align:center;
+	}
+
+	body.turni-page .mobile-menu-actions b { font:inherit; }
+	body.turni-page .mobile-menu-actions .admin-mobile-action { border-color:rgba(45,212,191,.5)!important; }
+	body.turni-page .mobile-menu-actions .mobile-menu-logout {
+		border-color:rgba(251,113,133,.5)!important;
+		background:rgba(251,113,133,.1)!important;
+		color:#fda4af!important;
+	}
+	body.turni-page .mobile-menu-actions .mobile-menu-logout span { color:#fb7185; }
+}
 
 /* ================================================================
    RESTYLE SIDEBAR: fondo sfumato, voci raffinato e pannello utente

@@ -1506,14 +1506,6 @@
 <style id="change-register-both-agents-style">
 .change-day-block{display:grid;grid-template-columns:minmax(82px,auto) minmax(0,1fr);gap:2px 12px;align-items:start}.change-day-date{grid-row:1 / span 2;color:#5eead4;font-weight:900;text-transform:capitalize;white-space:nowrap}.change-agent-line{display:block;line-height:1.45;white-space:nowrap}.change-agent-line+ .change-agent-line{margin-top:2px;color:#fdba74}.change-day-separator{border:0;border-top:1px solid rgba(255,255,255,.12);margin:8px 0}
 </style>
-<style id="mobile-stable-matrix-layout">
-@media (max-width:800px) {
-  body.turni-page .page-header { display:none !important; }
-  body.turni-page main#turni-operativi { padding:0 !important; }
-  body.turni-page #matrix-scroll-wrap { margin-top:0; border-radius:0; }
-  body.turni-page #welcome-notice { margin:0 !important; }
-}
-</style>
 <style id="crew-panel-close-control">
   #day-panel .panel-controls-top{display:flex;align-items:flex-start;gap:8px;width:100%}
   #day-panel .panel-controls-top .panel-shift-selector{flex:1 1 auto;min-width:0}
@@ -1614,13 +1606,12 @@
   </footer>
 
   <script src="assets/js/turni-shared.js"></script>
-  <script src="assets/js/admin-firebase-rest.js?v=35"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=38"></script>
   <script src="assets/js/draft-period.js?v=1"></script>
-  <script src="assets/js/shared-data.js?v=120"></script>
+  <script src="assets/js/shared-data.js?v=118"></script>
   <script src="assets/js/firebase-auth.js"></script>
-  <script src="assets/js/shared-menu.js?v=1.44"></script>
+  <script src="assets/js/shared-menu.js?v=1.46"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
-  <script src="assets/js/day-popup.js?v=3"></script>
   <script type="module" src="assets/js/firebase-data.js?v=2"></script>
   <script>
     let globalData = null;
@@ -1653,6 +1644,10 @@
     } = window.TurniShared;
     const isBaristaProfile = (profile = loggedAgentProfile) =>
       window.TurniShared.isBaristaProfile(profile);
+    const isHibaProfile = (profile = loggedAgentProfile) =>
+      window.TurniShared.isHibaProfile(profile);
+    const isAnyBaristaProfile = (profile = loggedAgentProfile) =>
+      isBaristaProfile(profile) || isHibaProfile(profile);
     const isOfficeProfile = (profile = loggedAgentProfile) =>
       window.TurniShared.isOfficeProfile(profile);
 
@@ -1660,6 +1655,54 @@
       return Array.isArray(globalData?.bariste)
         ? globalData.bariste
         : (Array.isArray(globalData?.barista) ? globalData.barista : []);
+    }
+
+    function normalizeBaristaShift(value) {
+      const raw = String(value || "").trim();
+      const key = raw.toUpperCase().replace(/\./g, "");
+      if (!raw || ["RIP", "RIPOSO", "===", "---", "----"].includes(key)) return "rip";
+      if (["MAL", "MALATTIA"].includes(key)) return "Malattia";
+      return ["D2", "D3", "P1", "P2"].includes(key) ? key : "rip";
+    }
+
+    function buildBaristaResidence() {
+      if (!globalData?.residenze || !settimaneInfo.length) return;
+      const byName = new Map();
+      const ensureBarista = (name, id = "") => {
+        const cleanName = String(name || "").trim();
+        const key = normalizeOdsAgentName(cleanName);
+        if (!key) return null;
+        if (!byName.has(key)) {
+          const turniSettimanali = {};
+          settimaneInfo.forEach(week => { turniSettimanali[week.key] = (week.dateIso || []).map(() => "rip"); });
+          byName.set(key, { id:String(id || `BARISTA_${key.replace(/[^a-z0-9]+/g, "_").toUpperCase()}`), agente:cleanName, qualifica:"barista", turni_settimanali:turniSettimanali });
+        }
+        return byName.get(key);
+      };
+
+      (globalData.residenze.BARISTE || []).forEach(agent => {
+        const target = ensureBarista(agent.agente, agent.id);
+        if (!target) return;
+        settimaneInfo.forEach(week => {
+          const source = agent.turni_settimanali?.[week.key] || [];
+          target.turni_settimanali[week.key] = (week.dateIso || []).map((iso, index) => normalizeBaristaShift(source[index]));
+        });
+      });
+
+      getBaristaRecords().forEach(record => {
+        const active = record.attiva !== false && !/^(no|false|0)$/i.test(String(record.attiva || ""));
+        const name = record.barista || record.agente || record.nome;
+        const iso = String(record.data || "").slice(0, 10);
+        const rawShift = String(record.corsa || "").trim();
+        const shift = normalizeBaristaShift(rawShift);
+        if (!active || !/^\d{4}-\d{2}-\d{2}$/.test(iso) || !rawShift) return;
+        const target = ensureBarista(name, getBaristaProfileId(record, name));
+        const week = settimaneInfo.find(item => item.dateIso?.includes(iso));
+        if (!target || !week) return;
+        target.turni_settimanali[week.key][week.dateIso.indexOf(iso)] = shift;
+      });
+
+      globalData.residenze.BARISTE = [...byName.values()].sort((a, b) => a.agente.localeCompare(b.agente, "it"));
     }
 
     function updateLoginUserPanel() {
@@ -1676,8 +1719,7 @@
       label.title = loggedAgentProfile ? "Rimetti l'agente in cima" : "Accesso non effettuato";
       if (changeButton) changeButton.style.display = loggedAgentProfile ? "inline-flex" : "none";
       if (diariaNavLink) {
-        const role = String(loggedAgentProfile?.role || "").toLowerCase();
-        const canUseDiaria = ["92"].includes(String(loggedAgentProfile?.id || "")) || role === "admin" || ["superuser","super_user","super-user"].includes(role);
+        const canUseDiaria = Boolean(String(loggedAgentProfile?.id || "").trim());
         diariaNavLink.hidden = !canUseDiaria;
       }
       if (archiveNavLink) archiveNavLink.hidden = isBaristaProfile();
@@ -1779,7 +1821,7 @@
 
       if (matches.length > 1 && !choice.classList.contains("visible")) {
         choice.innerHTML = matches.map((item, index) =>
-          `<option value="${index}">${escapeAttribute(item.name)} — ${escapeAttribute(item.residence)}</option>`
+          `<option value="${index}">${escapeAttribute(item.name)}${String(item.residence).toUpperCase() === "BARISTE" ? "" : ` — ${escapeAttribute(item.residence)}`}</option>`
         ).join("");
         choice.dataset.matches = JSON.stringify(matches);
         choice.classList.add("visible");
@@ -1822,18 +1864,10 @@
     }
 
     function applyLoggedAgentProfile() {
-      if (isBaristaProfile()) {
-        const today = formatDateISOClient(new Date());
-        const profileName = normalizeOdsAgentName(loggedAgentProfile.name);
-        const assignment = getBaristaRecords()
-          .filter(record => normalizeOdsAgentName(record.barista || record.agente || record.nome) === profileName)
-          .filter(record => !record.data || String(record.data).slice(0, 10) >= today)
-          .sort((a, b) => String(a.data || "").localeCompare(String(b.data || "")))[0];
-        const targetResidence = getShiftResidence(assignment?.corsa) ||
-          Object.keys(globalData?.residenze || {}).find(name => name.trim().toLowerCase() === "desenzano") ||
-          Object.keys(globalData?.residenze || {})[0];
-        if (!targetResidence) return false;
-        selectResidence(targetResidence);
+      if (isAnyBaristaProfile()) {
+        if (!globalData?.residenze?.BARISTE?.length) return false;
+        selectResidence("BARISTE");
+        renderResidenceButtons();
         pinnedAgentIdx = null;
         renderTable();
         updateLoginUserPanel();
@@ -1851,7 +1885,7 @@
 
     function repinLoggedAgent() {
       if (!loggedAgentProfile || !globalData) return;
-      if (isBaristaProfile()) return;
+      if (isAnyBaristaProfile() && currentResidence !== "BARISTE") selectResidence("BARISTE");
       if (currentResidence !== loggedAgentProfile.residence) {
         selectResidence(loggedAgentProfile.residence);
       }
@@ -2097,14 +2131,10 @@
       return map[q] || "grado-marinaio";
     }
 
-    function isRiposoShift(v) {
-      const txt = String(v || "").toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
-      return ["", "RIP", "RIP.", "RIPOSO", "----", "---", "==="].includes(txt);
-    }
-
     function ottieniTurnoPulito(v) {
-      if (isRiposoShift(v)) return "";
-      let txt = String(v).toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
+      if (!v) return "";
+      let txt = v.toUpperCase().trim().replace(/\*/g, "").replace(/--/g, "");
+      if (txt === "" || txt === "RIP" || txt === "RIP." || txt === "----" || txt === "---" || txt === "===") return "";
 
       let match = txt.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
       if (match && match[1]) {
@@ -2563,7 +2593,7 @@
 
     function getCrewBaristas(calInfo, shift) {
       const cleanShift = ottieniTurnoPulito(shift).toUpperCase();
-      if (!calInfo?.iso || !["D2", "D3", "P2", "P3"].includes(cleanShift)) return [];
+      if (!calInfo?.iso || !["D2", "D3", "P1", "P2"].includes(cleanShift)) return [];
       const records = Array.isArray(globalData?.bariste)
         ? globalData.bariste
         : (Array.isArray(globalData?.barista) ? globalData.barista : []);
@@ -2692,18 +2722,6 @@
       return href
         ? `<a class="agent-ods-badge" href="${href}" target="_blank" rel="noopener" title="${label}">${change}</a>`
         : `<span class="agent-ods-badge" title="${label}">${change}</span>`;
-    }
-
-    let crewDayContext = null;
-    const crewDayDefaultHours = {D1:13,D2:11+25/60,D3:13+20/60,D4:13+15/60,T1:13+35/60,T2:12+29/60,M1:13.5,R1:13.25,R2:13.25,R3:12+20/60,R4:12+40/60,CAR1:12+10/60,P1:12.75,P2:13+5/60,P3:12+55/60,CAP:12+55/60,CAP1:12+55/60,SR1:12.25,BIS:12.25,AGB:10+25/60,POND:9+25/60,DT:9+25/60,PT:9.5,AGM:9.75,AGT:11+10/60,PONM:10+25/60,LD:8,LAV:8,'F.P.':8};
-    function crewDayShiftFor(code) { const key=String(code||'').trim().toUpperCase();return crewDayContext?.shiftMap?.get(key)||{code:code||'Riposo',hours:crewDayDefaultHours[key]||0,allowance:false,allowanceRate:24,meal:!['RIP','RIPOSO','MALATTIA'].includes(key),embark:!['AGB','POND','DT','PT','AGM','AGT','PONM','LD','LAV','F.P.','RIP','RIPOSO','MALATTIA'].includes(key),refuelRules:{}}; }
-    function crewDayRefuelMinutes(date,shift) { const rules=crewDayShiftFor(shift).refuelRules||{},items=rules[String(new Date(String(date)+"T12:00:00").getDay())]||[],grade=String(loggedAgentProfile?.qualifica||'').trim().toUpperCase().replace(/[_-]+/g,' '),service=String(shift||'').trim().toUpperCase();return Math.max(0,...items.filter(item=>{const component=String(item.component||'').trim().toUpperCase().replace(/[_-]+/g,' ');return component===grade||component===service}).map(item=>Number(item.minutes)||0)); }
-    function openCrewDayEditor(agentId,date) {
-      if(String(agentId||'')!==String(loggedAgentProfile?.id||'')||!window.NaviDayModal)return;
-      const dateIso=String(date||'').slice(0,10),initialShift=ottieniTurnoPulito(selectedShiftValue)||'Riposo',residence=String(loggedAgentProfile?.residence||currentResidence||'').toUpperCase();
-      NaviDayModal.open({date:dateIso,shiftFor:crewDayShiftFor,refuelSuggestionMinutes:crewDayRefuelMinutes,shipForService:(targetDate,targetShift)=>getShipDayInfo(dateCalendario.find(item=>item.iso===targetDate),targetShift)?.nave||'',get shifts(){return crewDayContext?.shifts||[]},
-        loadEntry:async()=>{await NaviAdminFirebase.ready;const [archive,configs]=await Promise.all([NaviAdminFirebase.loadDiaria(String(agentId)),NaviAdminFirebase.getServiceConfigurations?.()||{}]);const configured=configs?.[residence]||{},codes=new Set([...Object.keys(crewDayDefaultHours),...Object.keys(configured),'Riposo','Malattia']),shifts=[...codes].map(code=>{const upper=String(code).toUpperCase(),saved=configured[code]||configured[upper]||{};return {code,...crewDayShiftFor(upper),...saved,hours:Number.isFinite(Number(saved.hours))?Number(saved.hours):(crewDayDefaultHours[upper]||0)}});crewDayContext={entries:Array.isArray(archive.entries)?archive.entries:[],shifts,shiftMap:new Map(shifts.map(item=>[String(item.code).toUpperCase(),item]))};const existing=crewDayContext.entries.find(item=>String(item.date).slice(0,10)===dateIso),competence=crewDayShiftFor(initialShift),active=!['RIP','RIPOSO','MALATTIA'].includes(String(initialShift).toUpperCase());return existing?{...existing}:{date:dateIso,shift:initialShift,serviceMinutes:active?Math.round((Number(competence.hours)||0)*60):0,delay:0,bank:0,allowanceRate:active&&competence.allowance?Number(competence.allowanceRate||24):null,overnight40:false,holidayWorked:false,ticketPresence:active&&!!competence.meal,mealUsed:active&&!!competence.meal,secondMeal:0,embark:active&&!!competence.embark,hydrofoil:0,refuel:false,travel:false,note:'',manualOverride:true,imported:false};},
-        saveEntry:async draft=>{if(!draft.id){draft.id=crypto.randomUUID();draft.manualOverride=true;crewDayContext.entries.push(draft)}else{const existing=crewDayContext.entries.find(item=>item.id===draft.id)||crewDayContext.entries.find(item=>item.date===draft.date);if(existing)Object.assign(existing,draft)}await NaviAdminFirebase.saveDiaria(String(agentId),crewDayContext.entries);renderTable();if(typeof renderCoverageTable==='function')renderCoverageTable();const cal=dateCalendario.find(item=>item.iso===dateIso);if(cal){selectedCol=null;selectedShiftValue=draft.shift;selectDay(cal.col,cal.labelEstesa,draft.shift,selectedCrewAgent)}return draft;},onClose:()=>{crewDayContext=null}});
     }
 
     function getShipDayInfo(calInfo, shift) {
@@ -3182,7 +3200,6 @@
 
     function selectDay(col, label, cellShiftValue, focusAgent = null) {
       if (isEditMode) return;
-      const mobileMatrixAnchor = captureMobileMatrixPosition();
       const clickedShiftKey = getCrewShiftKey(ottieniTurnoPulito(cellShiftValue));
       const selectedShiftKey = getCrewShiftKey(ottieniTurnoPulito(selectedShiftValue));
       if (selectedCol === col && clickedShiftKey === selectedShiftKey) {
@@ -3421,7 +3438,6 @@
       if (drawer.classList.contains("open")) {
         requestAnimationFrame(() => {
           updateCrewDrawerOffset();
-          restoreMobileMatrixPosition(mobileMatrixAnchor);
           scrollCrewPanelIntoView();
         });
       }
@@ -3465,7 +3481,6 @@
 
 
     function scrollGroupedCrewTableToTop() {
-      if (isMobileCrewLayout()) return;
       const target = dayPanelPlacement === "coverage"
         ? document.getElementById("coverage-matrix-wrap")
         : document.getElementById("matrix-scroll-wrap");
@@ -3474,26 +3489,6 @@
       const panelHeight = panel?.classList.contains("open") ? panel.getBoundingClientRect().height : 0;
       const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - panelHeight - 10);
       window.scrollTo({ top, behavior:"smooth" });
-    }
-
-    function isMobileCrewLayout() {
-      return window.matchMedia("(max-width:800px)").matches;
-    }
-    function captureMobileMatrixPosition() {
-      if (!isMobileCrewLayout()) return null;
-      const wrap = document.getElementById("matrix-scroll-wrap");
-      if (!wrap) return null;
-      return { top:wrap.getBoundingClientRect().top, scrollY:window.scrollY, scrollLeft:wrap.scrollLeft };
-    }
-    function restoreMobileMatrixPosition(anchor) {
-      if (!anchor || !isMobileCrewLayout()) return;
-      requestAnimationFrame(() => {
-        const wrap = document.getElementById("matrix-scroll-wrap");
-        if (!wrap) return;
-        const delta = wrap.getBoundingClientRect().top - anchor.top;
-        wrap.scrollLeft = anchor.scrollLeft;
-        if (Math.abs(delta) > .5) window.scrollTo({ top:Math.max(0, anchor.scrollY + delta), left:window.scrollX, behavior:"auto" });
-      });
     }
 
     function getDefaultCrewSelection() {
@@ -3773,7 +3768,6 @@
     }
 
     function clearSelection() {
-      const mobileMatrixAnchor = captureMobileMatrixPosition();
       selectedCol = null;
       selectedShiftValue = "";
       selectedCrewAgent = null;
@@ -3781,7 +3775,6 @@
       document.getElementById("day-panel").setAttribute("aria-hidden", "true");
       document.body.classList.remove("crew-drawer-open", "crew-drawer-main", "crew-drawer-coverage");
       document.documentElement.style.setProperty("--crew-drawer-offset", "0px");
-      updateCrewDrawerOffset();
       const drawerToggle = document.getElementById("crew-drawer-toggle");
       drawerToggle.hidden = true;
       drawerToggle.textContent = "⌄";
@@ -3801,16 +3794,13 @@
 
       // Quando la scheda equipaggio viene chiusa, riporta dolcemente
       // l'inizio della tabella nella parte alta dello schermo.
-      if (isMobileCrewLayout()) restoreMobileMatrixPosition(mobileMatrixAnchor);
-      else {
-        requestAnimationFrame(() => {
-          const tableWrap = document.getElementById("matrix-scroll-wrap");
-          if (!tableWrap) return;
-          const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
-          window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
-        });
-        window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
-      }
+      requestAnimationFrame(() => {
+        const tableWrap = document.getElementById("matrix-scroll-wrap");
+        if (!tableWrap) return;
+        const top = tableWrap.getBoundingClientRect().top + window.scrollY - 8;
+        window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+      });
+      window.scrollTo({ left:0, top:window.scrollY, behavior:"auto" });
     }
 
     // Un clic sullo sfondo, fuori dalla tabella e dai relativi comandi,
@@ -3863,7 +3853,7 @@
     }
 
     function selectResidence(resName) {
-      if (String(resName || "").toUpperCase() === "BARISTE" && !isBaristaProfile()) return;
+      if (String(resName || "").toUpperCase() === "BARISTE" && !isAnyBaristaProfile()) return;
       if (isEditMode) {
         if (!confirm("Uscire dalla modalità modifica senza salvare i cambi correnti?")) return;
         toggleEditMode();
@@ -3879,7 +3869,9 @@
       } else {
         currentAgentsList = globalData.residenze[resName] || [];
       }
-      document.getElementById("stat-residence").textContent = resName;
+      const residenceStat = document.getElementById("stat-residence")?.closest(".stat-card");
+      if (residenceStat) residenceStat.hidden = String(resName || "").toUpperCase() === "BARISTE";
+      document.getElementById("stat-residence").textContent = String(resName || "").toUpperCase() === "BARISTE" ? "" : resName;
       document.getElementById("stat-agents").textContent = currentAgentsList.length;
       const search = document.getElementById("agent-search");
       if (search) search.value = "";
@@ -3984,6 +3976,7 @@
       const modalContainer = document.getElementById("modal-residence-buttons");
       if (!modalContainer) return;
       modalContainer.innerHTML = "";
+      if (isAnyBaristaProfile()) return;
 
       // Solo TUTTE + residenza corrente per Trova Turno.
       const residences = ["TUTTE", currentResidence];
@@ -4020,7 +4013,7 @@
     function getVisibleResidences() {
       return Object.keys(globalData?.residenze || {}).filter(residence => {
         const key = String(residence || "").toUpperCase();
-        return (key !== "BARISTE" || isBaristaProfile()) && key !== "UFFICI";
+        return key !== "BARISTE" && key !== "UFFICI";
       });
     }
 
@@ -4044,7 +4037,7 @@
     function normalizeOdsShift(value) {
       const shift = String(value || "").trim();
       if (!shift || /^={3,}$/.test(shift) || /^(rip|rip\.|riposo)$/i.test(shift)) return "rip";
-      if (/^lav\.?$/i.test(shift)) return "LAV";
+      if (/^lav\.?$/i.test(shift)) return "TERRA";
       return shift.toUpperCase();
     }
 
@@ -4169,6 +4162,7 @@
       data = applyOdsVariations(data);
       globalData = data;
       inizializzaCalendario();
+      buildBaristaResidence();
       buildTableHeader();
       document.getElementById("stat-status").textContent = "Aggiornati";
       document.getElementById("welcome-notice").style.display = "none";
@@ -4327,7 +4321,7 @@
         }
         const welcomeNotice = document.getElementById("welcome-notice");
         welcomeNotice.classList.add("is-error");
-        welcomeNotice.innerHTML = `<h3>⚠️ Dati non disponibili</h3><p>Non è stato possibile caricare i turni.</p><small>${String(errore?.message || errore || "Errore sconosciuto")}</small>`;
+        welcomeNotice.innerHTML = `<h3>⚠️ Dati non disponibili</h3><p>Non è stato possibile caricare i turni. Riprova con il pulsante Aggiorna.</p>`;
         welcomeNotice.style.display = "block";
         document.getElementById("upload-status").textContent = "❌ Impossibile caricare i dati: " + errore.message;
       }
@@ -4791,7 +4785,10 @@
       peschiera: ['desenzano', 'riva', 'maderno'],
       riva: ['maderno', 'peschiera', 'desenzano']
     }[home] || [];
-    const residences = Object.keys(globalData?.residenze || {}).filter(name => normalizeResidenceName(name) !== home);
+    const residences = Object.keys(globalData?.residenze || {}).filter(name => {
+      const normalized = normalizeResidenceName(name);
+      return normalized !== home && normalized !== 'bariste' && normalized !== 'uffici';
+    });
     return residences.sort((a, b) => {
       const ai = preferred.indexOf(normalizeResidenceName(a));
       const bi = preferred.indexOf(normalizeResidenceName(b));
@@ -4832,6 +4829,7 @@
   }
 
   function toggleOtherResidences() {
+    if (isAnyBaristaProfile()) return;
     cambioShowOtherResidences = !cambioShowOtherResidences;
     appendOtherResidenceRows();
     applyPermanentPeerFilter();
@@ -5588,7 +5586,7 @@
     removeSharedCrewDecorations();
 
     const {info} = ensurePanels();
-    const residenceButton =
+    const residenceButton = isAnyBaristaProfile() ? '' :
       `<button type="button" class="cambio-residence-toggle" onclick="toggleOtherResidences()">` +
       `${cambioShowOtherResidences ? 'Nascondi altre residenze' : 'Carica altre residenze'}` +
       `</button>`;
@@ -6324,6 +6322,26 @@
     box-shadow:inset 4px 0 0 #facc15,2px 0 0 var(--line) !important;
   }
 </style>
+
+<!-- Navigazione Mobile Liquid Glass -->
+<nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+  <a href="naviturni.html" class="nav-item">
+    <span class="nav-icon">▦</span>
+    <span>Turni</span>
+  </a>
+  <a href="cambi_turno.html" class="nav-item active">
+    <span class="nav-icon">⇄</span>
+    <span>Cambio</span>
+  </a>
+  <a href="documenti.html" class="nav-item">
+    <span class="nav-icon">▤</span>
+    <span>Doc</span>
+  </a>
+  <button type="button" class="nav-item" id="mobile-altre-btn" aria-label="Apri menu e filtri">
+    <span class="nav-icon">☰</span>
+    <span>Menu</span>
+  </button>
+</nav>
 
 <!-- Popup Filtri Liquid Glass -->
 <div id="mobile-filter-modal" class="liquid-modal-overlay" hidden>

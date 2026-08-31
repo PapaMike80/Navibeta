@@ -136,9 +136,24 @@
     normalizeScheduleAgents(data);
     normalizeScheduleShifts(data);
     injectProfileAgents(data);
-    localStorage.setItem(DATA_KEY, JSON.stringify(data));
-    localStorage.setItem(TIME_KEY, String(Date.now()));
-    localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directoryFrom(data)));
+    const serialized = JSON.stringify(data);
+    const directory = JSON.stringify(directoryFrom(data));
+    try {
+      localStorage.setItem(DATA_KEY, serialized);
+      localStorage.setItem(TIME_KEY, String(Date.now()));
+      localStorage.setItem(DIRECTORY_KEY, directory);
+    } catch (error) {
+      // La cache è un'accelerazione, non un requisito: Safari/Chrome possono
+      // esaurire la quota locale. In quel caso i dati appena letti restano
+      // utilizzabili in memoria e la pagina non deve fermarsi al turno base.
+      console.warn('Cache turni non disponibile; continuo senza cache locale', error);
+      try {
+        localStorage.removeItem(DATA_KEY);
+        localStorage.removeItem(TIME_KEY);
+        localStorage.removeItem(DIRECTORY_KEY);
+        localStorage.setItem(DIRECTORY_KEY, directory);
+      } catch (_) {}
+    }
     return data;
   }
 
@@ -153,8 +168,7 @@
     const raw = String(value ?? '').trim().toUpperCase().replace(/[‐‑–—]/g, '-');
     if (!raw || /^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw)) return 'RIP';
     if (/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw)) return 'CON';
-    if (/^LAV\.?$/.test(raw)) return 'LAV';
-    if (raw === 'TERRA') return 'TERRA';
+    if (/^(?:LAV\.?|TERRA)$/.test(raw)) return 'TERRA';
     if (/^F\.?P\.?-*$/.test(raw)) return 'F.P.';
     return raw.replace(/\.{2,}$/g, '.').replace(/-+$/g, '');
   }
@@ -269,8 +283,10 @@
         const legacyBatch = !row.agent_uid && String(batch.inizio || '') === '2026-06-22' && String(batch.fine || '') === '2026-07-26';
         const legacyName = legacyBatch ? legacyDesenzanoJune2026[Number(row.id_agente)] : '';
         const wantedUid = String(row.agent_uid || stableAgentUid(legacyName || row.agente));
+        const wantedName = normalizeAgentName(row.agente);
         const target = agents.find(agent => String(agent.agent_uid || stableAgentUid(agent.agente)) === wantedUid) ||
-          (!wantedUid ? agents.find(agent => String(agent.id || '') === String(row.id_agente || '')) : null);
+          (wantedName ? agents.find(agent => normalizeAgentName(agent.agente) === wantedName) : null) ||
+          agents.find(agent => String(agent.id || '') === String(row.id_agente || ''));
         if (!target) return;
         if (!target.turni) target.turni = {};
         (batch.dates || []).forEach((iso, index) => {
@@ -295,32 +311,30 @@
     if (bitturini && active.some(batch => String(batch.inizio) === '2026-09-07' && String(batch.fine) === '2026-10-04')) {
       bitturini.turni = { ...(bitturini.turni || {}), ...bitturiniBozza };
     }
-    // Correzione verificata sulla bozza 07/09-04/10/2026: LAV indica
-    // lavori da 8 ore e non il turno generico TERRA. Il # del 14/09 resta
-    // una giornata impegnata come riportato nel prospetto.
-    const zenegagliaBozza = {
-      '2026-09-07':'LAV', '2026-09-08':'LAV', '2026-09-09':'LAV', '2026-09-10':'LAV',
-      '2026-09-11':'LAV', '2026-09-12':'RIP', '2026-09-13':'RIP', '2026-09-14':'#',
-      '2026-09-15':'LAV', '2026-09-16':'LAV', '2026-09-17':'LAV', '2026-09-18':'LAV',
-      '2026-09-19':'RIP', '2026-09-20':'RIP', '2026-09-21':'LAV', '2026-09-22':'LAV',
-      '2026-09-23':'LAV', '2026-09-24':'LAV', '2026-09-25':'LAV', '2026-09-26':'RIP',
-      '2026-09-27':'RIP', '2026-09-28':'LAV', '2026-09-29':'LAV', '2026-09-30':'LAV',
-      '2026-10-01':'LAV', '2026-10-02':'LAV', '2026-10-03':'RIP', '2026-10-04':'F.P.'
+    // Nel PDF originale la B di BERTUZZO è codificata come "Ɓ". Il primo
+    // import non ha quindi riconosciuto il nominativo e ha escluso l'intera
+    // riga. Questi sono i 28 valori letti direttamente dalla riga 116.
+    const bertuzzoBozza = {
+      '2026-09-07':'P2', '2026-09-08':'P2', '2026-09-09':'RIP', '2026-09-10':'P2',
+      '2026-09-11':'RIP', '2026-09-12':'RIP', '2026-09-13':'RIP', '2026-09-14':'RIP',
+      '2026-09-15':'P1', '2026-09-16':'P2', '2026-09-17':'CD2C', '2026-09-18':'S.S.',
+      '2026-09-19':'P1', '2026-09-20':'RIP', '2026-09-21':'P1', '2026-09-22':'P2',
+      '2026-09-23':'P1', '2026-09-24':'P2', '2026-09-25':'RIP', '2026-09-26':'RIP',
+      '2026-09-27':'RIP', '2026-09-28':'RIP', '2026-09-29':'P1', '2026-09-30':'P1',
+      '2026-10-01':'P2', '2026-10-02':'RIP', '2026-10-03':'P2', '2026-10-04':'P1'
     };
-    const zenegaglia = agents.find(agent => normalizeAgentName(agent?.agente) === 'ZENEGAGLIA D');
-    if (zenegaglia && active.some(batch => String(batch.inizio) === '2026-09-07' && String(batch.fine) === '2026-10-04')) {
-      zenegaglia.turni = { ...(zenegaglia.turni || {}), ...zenegagliaBozza };
+    const bertuzzo = agents.find(agent => normalizeAgentName(agent?.agente) === 'BERTUZZO F');
+    if (bertuzzo && active.some(batch => String(batch.inizio) === '2026-09-07' && String(batch.fine) === '2026-10-04')) {
+      bertuzzo.turni = { ...(bertuzzo.turni || {}), ...bertuzzoBozza };
     }
     data.date = [...dateMap.values()].sort((a,b) => a.iso.localeCompare(b.iso));
-    data.scheduleImports = active;
+    // Non conservare anche l'importazione grezza: i valori sono già stati
+    // applicati a agent.turni e duplicarli può esaurire la quota localStorage.
+    delete data.scheduleImports;
     return data;
   }
 
   async function mergeAdminUpdates(data) {
-    // Il modulo Firebase SDK e quello REST non sono sempre pronti nello
-    // stesso istante, soprattutto aprendo direttamente Cambi su iPhone.
-    // Se il primo non legge gli aggiornamenti, prova l'altro: non bisogna
-    // mai lasciare la tabella ferma all'ultimo giorno del turno base.
     const providers = [window.NaviFirebase, window.NaviAdminFirebase]
       .filter((provider, index, list) => provider?.getAdminUpdates && list.indexOf(provider) === index);
     if (!data || !providers.length) return data;

@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="assets/css/naviturni-theme.css">
   <link rel="stylesheet" href="assets/css/shared-menu.css">
   <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=110">
-  <link rel="stylesheet" href="assets/css/navidiaria-monthly.css?v=121">
+  <link rel="stylesheet" href="assets/css/navidiaria-monthly.css?v=122">
   <style>
     .ccnl-result-line{grid-column:1/-1;margin:0;padding:0;font-weight:700;line-height:1.45}
     .ccnl-result-line small{display:block;font-weight:500;opacity:.72;margin-top:3px}
@@ -135,11 +135,13 @@
                 <h2 id="monthlySheetTitle">—</h2>
                 <button id="monthlyNext" class="monthly-month-button" type="button" aria-label="Mese successivo">›</button>
                 <button id="monthlyToday" class="monthly-today-button" type="button">Oggi</button>
+                <button id="monthlyPrint" class="monthly-today-button" type="button">Stampa / PDF</button>
               </div>
+              <p id="monthlyCompetencePeriod" class="monthly-sheet-period"></p>
             </div>
           </div>
           <div id="monthlySheetGrid" class="monthly-sheet-grid"></div>
-          <p class="monthly-sheet-help">Tocca una colonna per modificare la giornata. Scorri orizzontalmente per vedere tutto il mese.</p>
+          <p class="monthly-sheet-help">Tocca una colonna per modificare la giornata. Scorri orizzontalmente per vedere tutto il periodo di competenza.</p>
         </section>
 
         <section id="weeklyCalendar" class="weekly-calendar panel" aria-label="Calendario settimanale" hidden>
@@ -222,10 +224,10 @@
         </section>
 
         <section id="competenze" class="panel competencies" hidden>
-          <button id="toggleCompetencies" class="panel-heading competency-toggle" type="button" aria-expanded="false"><div><p class="eyebrow">CONFIGURAZIONE</p><h3>Competenze e servizi</h3></div><span><small>Servizi e indennità per residenza</small><b id="competencyChevron">⌄</b></span></button>
+          <button id="toggleCompetencies" class="panel-heading competency-toggle" type="button" aria-expanded="false"><div><p class="eyebrow">CONFIGURAZIONE</p><h3>Competenze e servizi</h3></div><span><small>Modifica ore, diaria e buoni</small><b id="competencyChevron">⌄</b></span></button>
           <div id="competencyBody" class="competency-body" hidden>
             <div id="shiftCards" class="shift-grid"></div>
-            <div class="competency-footer"><button id="resetShifts" class="secondary-button" type="button">Ripristina valori iniziali</button></div>
+            <div class="competency-footer"><button id="resetShifts" class="secondary-button" type="button">Ripristina valori PDF</button><button id="saveAllShifts" class="primary-button" type="button">Salva tutte le competenze</button></div>
           </div>
         </section>
 
@@ -263,16 +265,23 @@
       <button id="resetOwnPin" class="reset-pin-button" type="button">Resetta il mio PIN</button>
     </form>
   </div>
+  <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+    <a href="naviturni.html" class="nav-item"><span class="nav-icon">▦</span><span>Turni</span></a>
+    <a href="cambi_turno.html" class="nav-item"><span class="nav-icon">⇄</span><span>Cambio</span></a>
+    <a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>
+    <a href="navidiaria.html" class="nav-item active"><span class="nav-icon">≈</span><span>Diaria</span></a>
+  </nav>
   <div id="toast" class="toast" role="status"></div>
-  <script src="assets/js/admin-firebase-rest.js?v=36"></script>
-  <script src="assets/js/shared-data.js"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=38"></script>
+  <script src="assets/js/shared-data.js?v=118"></script>
   <script src="assets/js/firebase-auth.js"></script>
-  <script src="assets/js/shared-menu.js?v=1.44"></script>
+  <script src="assets/js/shared-menu.js?v=1.46"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
-  <script src="assets/js/app.js?v=111"></script>
-  <script src="assets/js/navidiaria-weekly.js?v=117"></script>
-  <script src="assets/js/day-popup.js?v=4"></script>
-  <script src="assets/js/navidiaria-monthly.js?v=120"></script>
+  <script src="assets/js/overtime-components.js?v=5"></script>
+  <script src="assets/js/app.js?v=118"></script>
+  <script src="assets/js/navidiaria-weekly.js?v=123"></script>
+  <script src="assets/js/day-popup.js?v=15"></script>
+  <script src="assets/js/navidiaria-monthly.js?v=127"></script>
   <script src="assets/js/navidiaria-reset-hours.js?v=1"></script>
   <script>
   (() => {

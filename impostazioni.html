@@ -24,7 +24,7 @@
     .weeks-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.weeks-legend{display:flex;gap:8px;flex-wrap:wrap}.weeks-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:800}.weeks-legend i{width:9px;height:9px;border-radius:3px}.weeks-legend .official{background:#22c55e}.weeks-legend .draft{background:#f59e0b}.weeks-legend .hidden{background:#64748b}.weeks-list{display:grid;gap:10px;margin-top:16px}.week-row{display:grid;grid-template-columns:minmax(190px,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid #294b56;border-radius:11px;background:#0b2029}.week-label strong{display:block;font-size:14px}.week-label span{display:block;margin-top:4px;color:var(--muted);font-size:11px}.week-state{display:flex;gap:6px}.week-state button{padding:7px 9px;border:1px solid #31535e;border-radius:8px;background:#102833;color:#9fb8c2;font-size:10px;font-weight:900;cursor:pointer}.week-state button.active[data-state="ufficiale"]{border-color:#22c55e;background:#143622;color:#86efac}.week-state button.active[data-state="bozza"]{border-color:#f59e0b;background:#3a2910;color:#fcd34d}.week-state button.active[data-state="nascosta"]{border-color:#64748b;background:#202a36;color:#cbd5e1}.month-title{margin:20px 0 2px;color:#6ce9d5;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.weeks-loading{padding:20px;text-align:center;color:var(--muted)}
     .settings-foldable>.section-head{position:relative;cursor:pointer;user-select:none}.settings-foldable>.section-head:focus{outline:2px solid #2dd4bf;outline-offset:4px;border-radius:8px}.settings-foldable .settings-chevron{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:8px;border:1px solid #31535e;border-radius:50%;color:var(--accent);font-size:16px;transition:transform .2s}.settings-foldable[data-collapsed="true"] .settings-chevron{transform:rotate(-90deg)}.settings-foldable[data-collapsed="true"]>:not(.section-head){display:none!important}.settings-foldable>.section-head p{padding-right:42px}
     .calendar-url{display:grid;gap:8px;margin-top:18px}.calendar-url input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#071b23;color:#9fded6;font:600 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.calendar-help{margin:12px 0 0;padding:12px 14px;border:1px solid #294b56;border-radius:9px;background:#0b2029;color:var(--muted);font-size:12px;line-height:1.5}.calendar-help strong{color:#d8e8ea}.calendar-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.calendar-actions[hidden],.calendar-url[hidden]{display:none!important}.calendar-login{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:16px;padding:14px;border:1px solid #31535e;border-radius:10px;background:#0b2029}.calendar-login[hidden]{display:none!important}
-    @media(max-width:800px){.grid,.future,.calendar-login{grid-template-columns:1fr}.week-row{grid-template-columns:1fr}.week-state{display:grid;grid-template-columns:repeat(3,1fr)}.week-state button{padding:8px 4px}}
+    @media(max-width:800px){.grid,.future,.calendar-login{grid-template-columns:1fr}.week-row{grid-template-columns:1fr}.week-state{display:grid;grid-template-columns:repeat(3,1fr)}.week-state button{padding:8px 4px}body.impostazioni-page .mobile-liquid-nav .nav-item{width:64px}body.impostazioni-page .mobile-liquid-nav .nav-item span:last-child{width:auto;font-size:9px;white-space:nowrap}}
   </style>
 </head>
 <body class="impostazioni-page turni-page">
@@ -73,19 +73,25 @@
       <div class="future" style="margin-top:20px"><div><strong>Aspetto</strong>Tema e leggibilità</div><div><strong>NaviTurni</strong>Vista e filtri predefiniti</div><div><strong>Altri canali</strong>WhatsApp e nuove notifiche</div></div>
     </section>
     <section class="section admin-section" id="gestione-utenti" hidden>
-      <div class="section-head"><div><h2>Gestione utenti</h2><p>Agenti registrati e ultimo accesso rilevati direttamente da Firebase.</p></div><span class="badge">Firebase · Admin</span></div>
+      <div class="section-head"><div><h2>Gestione utenti</h2><p>Agenti registrati, ultimo accesso e ultima pagina aperta rilevati direttamente da Firebase.</p></div><span class="badge">Firebase · Admin</span></div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Utente</th><th>Registrato il</th><th>Ultimo accesso</th><th>PIN</th></tr></thead>
-          <tbody id="users-list"><tr><td class="empty-row" colspan="4">Caricamento utenti…</td></tr></tbody>
+          <thead><tr><th>Utente</th><th>Registrato il</th><th>Ultimo accesso</th><th>Ultima pagina</th><th>PIN</th></tr></thead>
+          <tbody id="users-list"><tr><td class="empty-row" colspan="5">Caricamento utenti…</td></tr></tbody>
         </table>
       </div>
       <div class="status" id="users-status" aria-live="polite"></div>
     </section>
   </main>
-  <script src="assets/js/admin-firebase-rest.js?v=35"></script>
+  <nav class="mobile-liquid-nav" aria-label="Navigazione principale mobile">
+    <a href="naviturni.html" class="nav-item"><span class="nav-icon">▦</span><span>Turni</span></a>
+    <a href="cambi_turno.html" class="nav-item"><span class="nav-icon">⇄</span><span>Cambio</span></a>
+    <a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>
+    <a href="impostazioni.html" class="nav-item active" aria-current="page"><span class="nav-icon">⚙</span><span>Impost.</span></a>
+  </nav>
+  <script src="assets/js/admin-firebase-rest.js?v=40"></script>
   <script src="assets/js/draft-period.js?v=1"></script>
-  <script src="assets/js/shared-menu.js?v=1.44"></script>
+  <script src="assets/js/shared-menu.js?v=1.46"></script>
   <script src="assets/js/mobile-menu-solid.js?v=1"></script>
   <script>
     const LOGIN_KEY="naviturni_logged_agent";
@@ -131,10 +137,10 @@
       return Number.isFinite(parsed)?parsed:0;
     }
     function renderUsers(users){
-      if(!users.length){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Nessun utente registrato.</td></tr>';return;}
+      if(!users.length){usersList.innerHTML='<tr><td class="empty-row" colspan="5">Nessun utente registrato.</td></tr>';return;}
       const ordered=[...users].sort((a,b)=>accessTimestamp(b.lastAccess)-accessTimestamp(a.lastAccess)||String(a.name||'').localeCompare(String(b.name||''),'it'));
       const date=value=>{const time=accessTimestamp(value);return time?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(time)):'—';};
-      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}${user.residence?` · ${safeText(user.residence)}`:''}</span></td><td>${safeText(date(user.registeredAt))}</td><td>${safeText(date(user.lastAccess))}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
+      usersList.innerHTML=ordered.map(user=>`<tr><td><span class="user-name">${safeText(user.name)}</span><span class="user-meta">ID ${safeText(user.id)}${user.residence?` · ${safeText(user.residence)}`:''}</span></td><td>${safeText(date(user.registeredAt))}</td><td>${safeText(date(user.lastAccess))}</td><td>${safeText(user.lastPage||'—')}</td><td><button class="reset-btn" type="button" data-reset-pin="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Reset PIN</button><button class="delete-user-btn" type="button" data-delete-user="${safeText(user.id)}" data-user-name="${safeText(user.name)}">Elimina</button></td></tr>`).join('');
     }
     function formatWeekDate(iso){
       const [year,month,day]=String(iso||'').split('-').map(Number);
@@ -216,11 +222,11 @@
     async function loadRegisteredUsers(){
       if(!isAdmin)return;
       adminSection.hidden=false;
-      if(!window.NaviAdminFirebase){usersList.innerHTML='<tr><td class="empty-row" colspan="4">Firebase non disponibile. Ricarica la pagina.</td></tr>';return;}
+      if(!window.NaviAdminFirebase){usersList.innerHTML='<tr><td class="empty-row" colspan="5">Firebase non disponibile. Ricarica la pagina.</td></tr>';return;}
       try{
         await NaviAdminFirebase.recordUserAccess(profile);
         renderUsers(await NaviAdminFirebase.listRegisteredUsers());
-      }catch(error){usersList.innerHTML=`<tr><td class="empty-row" colspan="4">${safeText(error.message||'Impossibile caricare gli utenti.')}</td></tr>`;}
+      }catch(error){usersList.innerHTML=`<tr><td class="empty-row" colspan="5">${safeText(error.message||'Impossibile caricare gli utenti.')}</td></tr>`;}
     }
     usersList.addEventListener('click',async event=>{
       const button=event.target.closest('[data-reset-pin],[data-delete-user]');if(!button)return;
@@ -254,6 +260,6 @@
     loadWeeks();
     loadDraftPeriod();
   </script>
-  <script src="assets/js/announcements.js?v=2"></script>
+  <script src="assets/js/announcements-recovered.js?v=1"></script>
 </body>
 </html>

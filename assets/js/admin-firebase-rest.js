@@ -2,14 +2,17 @@
   const API_KEY = "AIzaSyBfJZWHjr3AIANDBj2p8uQ0_hbcHdmnSiE";
   const DATABASE_URL = "https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app";
   const AUTH_KEY = "navisuite.adminFirebaseAuth.v1";
+  let volatileAuth = null;
 
   function readAuth() {
-    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null"); }
-    catch (_) { return null; }
+    try { return JSON.parse(localStorage.getItem(AUTH_KEY) || "null") || volatileAuth; }
+    catch (_) { return volatileAuth; }
   }
 
   function saveAuth(value) {
-    localStorage.setItem(AUTH_KEY, JSON.stringify(value));
+    volatileAuth = value;
+    try { localStorage.setItem(AUTH_KEY, JSON.stringify(value)); }
+    catch (error) { console.warn("Token Firebase mantenuto solo per questa sessione", error); }
     return value;
   }
 
@@ -73,11 +76,21 @@
     }
   }
 
+  // Più componenti della stessa pagina possono richiedere Firebase insieme.
+  // Condividiamo una sola autenticazione in corso, evitando di creare account
+  // anonimi multipli sullo stesso dispositivo.
+  let pendingAuth = null;
   async function ensureAuth() {
     const auth = readAuth();
     if (auth?.idToken && auth?.uid && Number(auth.expiresAt || 0) > Date.now() + 60000) return auth;
-    if (auth?.refreshToken) return refreshAuth(auth);
-    return signUp();
+    if (pendingAuth) return pendingAuth;
+    pendingAuth = (async()=>{
+      const latest = readAuth();
+      if (latest?.idToken && latest?.uid && Number(latest.expiresAt || 0) > Date.now() + 60000) return latest;
+      return latest?.refreshToken ? refreshAuth(latest) : signUp();
+    })();
+    try { return await pendingAuth; }
+    finally { pendingAuth = null; }
   }
 
   async function databaseRequest(path, options = {}) {
@@ -232,9 +245,7 @@
     }
     const result = await databaseRequest("private/adminUpdates");
     const value = result.data && typeof result.data === "object" ? result.data : {};
-    const rows = Array.isArray(value.turniNavi) ? value.turniNavi.filter(Boolean) : Object.values(value.turniNavi || {});
-    const embedded = rows.find(row => row?.tipo === "GESTIONE_NAVI_CONFIG")?.configurazione;
-    return { configurations:value.gestioneNaviConfig || embedded || {}, updatedAt:String(value.updatedAt || "") };
+    return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
   }
 
   async function saveShipConfigurations(configurations = {}) {
@@ -250,39 +261,14 @@
         body:JSON.stringify(item)
       });
     } catch (error) {
-      // Le regole Firebase esistenti consentono già turniNavi. Se i nuovi nodi
-      // configurazione non sono ancora autorizzati, conserva la configurazione
-      // come riga tecnica nello stesso archivio, senza alterare i turni reali.
-      const current = await databaseRequest("private/adminUpdates/turniNavi");
-      const rows = Array.isArray(current.data) ? current.data.filter(Boolean) : Object.values(current.data || {});
-      const nextRows = rows.filter(row => row?.tipo !== "GESTIONE_NAVI_CONFIG");
-      nextRows.push({
-        tipo:"GESTIONE_NAVI_CONFIG",
-        attiva:false,
-        configurazione:item.configurations,
-        updatedAt:item.updatedAt,
-        updatedBy:item.updatedBy
-      });
-      await databaseRequest("private/adminUpdates/turniNavi", {
-        method:"PUT",
-        body:JSON.stringify(nextRows)
+      // Compatibilità con le regole Firebase già in uso da NaviBeta: il nodo
+      // principale adminUpdates è autorizzato per gli amministratori, mentre
+      // un nuovo sotto-percorso può non esserlo ancora.
+      await databaseRequest("private/adminUpdates", {
+        method:"PATCH",
+        body:JSON.stringify({ ownerUid:auth.uid, updatedAt:item.updatedAt, gestioneNaviConfig:item.configurations })
       });
     }
-    return item;
-  }
-
-  async function getServiceConfigurations() {
-    const result = await databaseRequest("private/adminUpdates/serviceConfigurations");
-    return result.data?.configurations || {};
-  }
-
-  async function saveServiceConfigurations(configurations = {}) {
-    const auth = await ensureAuth();
-    const item = { configurations, updatedAt:new Date().toISOString(), updatedBy:auth.uid };
-    await databaseRequest("private/adminUpdates/serviceConfigurations", {
-      method:"PUT",
-      body:JSON.stringify(item)
-    });
     return item;
   }
 
@@ -369,7 +355,28 @@
     return String(agentId || "").trim().replace(/[.#$\[\]\/]/g, "_");
   }
 
-  async function recordUserAccess(profile = {}) {
+  function currentPageLabel() {
+    const filename = String(location?.pathname || "").split("/").pop().toLowerCase();
+    const labels = {
+      "": "Home",
+      "index.html": "Home",
+      "naviturni.html": "Turni",
+      "cambi_turno.html": "Cambio turno",
+      "navidiaria.html": "Diaria",
+      "documenti.html": "Documenti",
+      "segnalazioni.html": "Segnalazioni",
+      "impostazioni.html": "Impostazioni",
+      "aggiornamenti.html": "Aggiornamenti",
+      "agenti.html": "Agenti",
+      "gestione_navi.html": "Gestione navi",
+      "orario.html": "Orario",
+      "orari-tabella.html": "Tabelle orari",
+      "quiz.html": "Quiz"
+    };
+    return labels[filename] || (filename ? filename.replace(/\.html$/i, "") : "Home");
+  }
+
+  async function recordUserAccess(profile = {}, activity = {}) {
     const id = String(profile.id || profile.agentId || "").trim();
     if (!id) return null;
     const key = safeUserKey(id);
@@ -384,7 +391,9 @@
       qualifica:String(profile.qualifica || previous?.qualifica || "").trim(),
       role:String(profile.role || previous?.role || "").trim(),
       registeredAt:String(previous?.registeredAt || now),
-      lastAccess:now
+      lastAccess:now,
+      // Conserviamo esclusivamente l'ultima pagina aperta, non lo storico di navigazione.
+      lastPage:String(activity.page || currentPageLabel() || previous?.lastPage || "").trim()
     };
     await databaseRequest(`private/adminUpdates/userRegistry/${key}`, {
       method:"PUT",
@@ -449,6 +458,7 @@
     return {
       users:Object.values(value.userRegistry || {}).filter(Boolean),
       profiles:value.agentProfiles || {},
+      auth:value.userAuth || {},
       legacyUsersImportedAt:String(value.legacyUsersImportedAt || "")
     };
   }
@@ -468,6 +478,7 @@
         name:String(user.name || previous.name || id),
         registeredAt:String(previous.registeredAt || user.registeredAt || new Date().toISOString()),
         lastAccess:String(latest || previous.lastAccess || user.lastAccess || ""),
+        lastPage:String(previous.lastPage || user.lastPage || ""),
         importedFromApps:true
       };
     });
@@ -708,8 +719,6 @@
     saveAdminUpdates,
     getShipConfigurations,
     saveShipConfigurations,
-    getServiceConfigurations,
-    saveServiceConfigurations,
     getBaristaUpdates,
     saveBaristaUpdates,
     getAnnouncements,
