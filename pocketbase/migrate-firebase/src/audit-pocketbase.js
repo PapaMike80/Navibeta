@@ -33,6 +33,10 @@ class PocketBaseAdmin {
     this.token = auth.token;
   }
 
+  async collection(name) {
+    return this.request(`/api/collections/${encodeURIComponent(name)}`);
+  }
+
   async count(collection, filter = "") {
     const params = new URLSearchParams({ page:"1", perPage:"1", fields:"id" });
     if (filter) params.set("filter", filter);
@@ -80,8 +84,16 @@ const collectionNames = [
 const counts = {};
 for (const name of collectionNames) counts[name] = await pb.count(name);
 
+const usersSchema = await pb.collection("users");
+const userFieldNames = new Set((usersSchema.fields || []).map(field => field.name));
+const authHasLoginId = userFieldNames.has("login_id");
+const authHasMustChangePin = userFieldNames.has("must_change_pin");
+const userFields = ["id", "role", "attivo", authHasLoginId ? "login_id" : null, authHasMustChangePin ? "must_change_pin" : null]
+  .filter(Boolean)
+  .join(",");
+
 const [users, agenti, turni, diaria, cambi, variazioni, turniNavi] = await Promise.all([
-  pb.listAll("users", "id,login_id,role,attivo,must_change_pin"),
+  pb.listAll("users", userFields),
   pb.listAll("agenti", "id,user,legacy_id,nome_completo,attivo,residenza,ruolo"),
   pb.listAll("turni", "id,data,agente,stato,legacy_payload"),
   pb.listAll("diaria", "id,data,agente,turno,legacy_payload"),
@@ -115,13 +127,16 @@ const result = {
   cutoff,
   counts,
   auth:{
+    schemaPreparedForPinLogin:authHasLoginId && authHasMustChangePin,
+    hasLoginIdField:authHasLoginId,
+    hasMustChangePinField:authHasMustChangePin,
     users:users.length,
     agents:agenti.length,
     agentsLinkedToUser:linkedAgents.length,
     agentsWithoutUser:agenti.filter(item => !item.user).length,
     brokenAgentUserLinks:brokenAgentLinks.length,
-    usersWithoutLoginId:users.filter(item => !item.login_id).length,
-    usersMustChangePin:users.filter(item => item.must_change_pin).length,
+    usersWithoutLoginId:authHasLoginId ? users.filter(item => !item.login_id).length : null,
+    usersMustChangePin:authHasMustChangePin ? users.filter(item => item.must_change_pin).length : null,
   },
   integrity:{
     orphanTurns:orphanTurns.length,
