@@ -9,6 +9,10 @@ const source = JSON.parse(await readFile(exportPath, "utf8"));
 const userAuth = source?.private?.adminUpdates?.userAuth || {};
 const validPinHash = value => /^[a-f0-9]{64}$/i.test(String(value || ""));
 const clean = value => String(value ?? "").trim();
+const syntheticEmail = legacyId => {
+  const hex = Buffer.from(clean(legacyId), "utf8").toString("hex").slice(0, 80) || "unknown";
+  return `agent-${hex}@navisuite.invalid`;
+};
 
 class PocketBaseAdmin {
   constructor(baseUrl) {
@@ -48,13 +52,15 @@ class PocketBaseAdmin {
 
   async createUser(agent, auth) {
     const pinHash = clean(auth.pinHash).toLowerCase();
+    const legacyId = clean(agent.legacy_id);
     return this.request("/api/collections/users/records", {
       method:"POST",
       body:JSON.stringify({
-        login_id:clean(agent.legacy_id),
+        login_id:legacyId,
+        email:syntheticEmail(legacyId),
         password:pinHash,
         passwordConfirm:pinHash,
-        nome_visualizzato:clean(agent.nome_completo || agent.legacy_id),
+        nome_visualizzato:clean(agent.nome_completo || legacyId),
         role:["admin", "super_user"].includes(agent.ruolo) ? agent.ruolo : "agente",
         attivo:agent.attivo !== false,
         must_change_pin:Boolean(auth.mustChangePin),
@@ -64,14 +70,18 @@ class PocketBaseAdmin {
     });
   }
 
-  async updateUserMetadata(user, agent) {
+  async updateUserMetadata(user, agent, auth) {
+    const payload = {
+      nome_visualizzato:clean(agent.nome_completo || agent.legacy_id),
+      role:["admin", "super_user"].includes(agent.ruolo) ? agent.ruolo : "agente",
+      attivo:agent.attivo !== false,
+      must_change_pin:Boolean(auth.mustChangePin),
+      emailVisibility:false,
+    };
+    if (!user.email) payload.email = syntheticEmail(agent.legacy_id);
     return this.request(`/api/collections/users/records/${user.id}`, {
       method:"PATCH",
-      body:JSON.stringify({
-        nome_visualizzato:clean(agent.nome_completo || agent.legacy_id),
-        role:["admin", "super_user"].includes(agent.ruolo) ? agent.ruolo : "agente",
-        attivo:agent.attivo !== false,
-      }),
+      body:JSON.stringify(payload),
     });
   }
 
@@ -100,6 +110,8 @@ const summary = {
 };
 
 for (const [key, authValue] of Object.entries(userAuth)) {
+  // Intentionally read only id/pinHash/mustChangePin. Legacy plaintext initialPin,
+  // when present in the Firebase export, is never copied to PocketBase.
   const auth = authValue && typeof authValue === "object" ? authValue : {};
   const legacyId = clean(auth.id || key);
   if (!legacyId) continue;
@@ -122,7 +134,7 @@ for (const [key, authValue] of Object.entries(userAuth)) {
       summary.conflicts.push({ legacyId, agentUser:agent.user, loginUser:user.id });
       continue;
     }
-    if (execute) user = await pb.updateUserMetadata(user, agent);
+    if (execute) user = await pb.updateUserMetadata(user, agent, auth);
   } else if (execute) {
     user = await pb.createUser(agent, auth);
     summary.created += 1;
