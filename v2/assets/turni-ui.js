@@ -53,7 +53,7 @@
   }
 
   function renderResidenceBubbles() {
-    const cell = document.querySelector('.turni-table .name-head');
+    const cell = document.querySelector('.turni-table .date-header .name-head');
     if (!cell) return;
     const active = currentResidenceKey();
     const available = OPERATIVE.filter(item => optionFor(item.key));
@@ -91,9 +91,27 @@
     document.querySelectorAll('.date-head-markers,.week-draft-label').forEach(node => node.remove());
   }
 
+  function compactMonthLabels() {
+    document.querySelectorAll('.month-group').forEach(cell => {
+      if (cell.dataset.monthUi === '1') return;
+      const full = String(cell.textContent || '').trim().toLocaleUpperCase('it');
+      if (!full) return;
+      const parts = full.split(/\s+/);
+      const month = parts[0] || '';
+      const year = parts[1] || '';
+      let label = full;
+      if (cell.colSpan <= 2) label = month.slice(0, 3);
+      else if (cell.colSpan <= 4) label = `${month.slice(0, 3)} ${year.slice(-2)}`.trim();
+      cell.title = full;
+      cell.textContent = label;
+      cell.dataset.monthUi = '1';
+    });
+  }
+
   function enhance() {
     if (ensureOperativeResidence()) return;
     compactHeader();
+    compactMonthLabels();
     renderResidenceBubbles();
     colorShiftPills();
   }
