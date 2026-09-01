@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07131b">
+  <title>NaviTurni V2</title>
+  <link rel="stylesheet" href="assets/app.css?v=1">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">Navi<b>Turni</b> V2</div>
+        <div id="who" class="status"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn ghost" href="index.html">Menu</a>
+        <button id="logout" class="btn ghost" type="button">Esci</button>
+      </div>
+    </header>
+
+    <section class="toolbar">
+      <div class="field">
+        <label for="residence">Residenza</label>
+        <select id="residence"></select>
+      </div>
+      <div class="field">
+        <label>Periodo</label>
+        <div style="display:flex;gap:6px">
+          <button id="prev" class="btn" type="button">← 4 sett.</button>
+          <button id="today" class="btn" type="button">Oggi</button>
+          <button id="next" class="btn" type="button">4 sett. →</button>
+        </div>
+      </div>
+      <div class="toolbar-spacer"></div>
+      <div>
+        <strong id="rangeLabel"></strong>
+        <div id="status" class="status">Preparazione…</div>
+      </div>
+    </section>
+
+    <section id="tableWrap" class="table-card"><div class="empty">Caricamento…</div></section>
+    <p class="status" style="margin-top:10px">Le celle bordate indicano un turno effettivo modificato da ODS, cambio o modifica manuale. Il valore visualizzato è già quello finale.</p>
+  </main>
+  <script src="assets/pb.js?v=1"></script>
+  <script src="assets/turni.js?v=1"></script>
+</body>
+</html>
