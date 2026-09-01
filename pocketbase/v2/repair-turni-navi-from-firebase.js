@@ -66,7 +66,6 @@ function same(a,b,fields) {
     const av = a?.[field];
     const bv = b?.[field];
     if (typeof bv === 'boolean') return Boolean(av) === bv;
-    if (field === 'legacy_payload') return JSON.stringify(av || {}) === JSON.stringify(bv || {});
     return String(av ?? '') === String(bv ?? '');
   });
 }
@@ -81,7 +80,7 @@ const pb = new PocketBaseAdmin();
 await pb.login();
 const [existingShips,existingTurns] = await Promise.all([
   pb.listAll('navi','id,legacy_id,nome,residenza,attiva'),
-  pb.listAll('turni_navi','id,legacy_id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,legacy_payload')
+  pb.listAll('turni_navi','id,legacy_id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,note,legacy_payload')
 ]);
 
 // Fonte di verità per i nomi nave:
@@ -111,18 +110,20 @@ const turnByLegacy = new Map(existingTurns.map(row => [String(row.legacy_id),row
 const shipPlan = [];
 const turnPlan = [];
 
+// Sicurezza: questo repair serve a completare i TURNI NAVE, non a riscrivere
+// l'anagrafica navi. Se una nave trusted esiste già, viene lasciata intatta.
+// Viene creata soltanto una nave trusted realmente mancante.
 for (const item of sourceShips) {
   const legacy_id = stableId('nave',item.nave);
   const desired = {legacy_id,nome:clean(item.nave),residenza:clean(item.residenza),attiva:true,note:''};
   const existing = shipByLegacy.get(legacy_id);
-  const action = !existing ? 'create' : same(existing,desired,['legacy_id','nome','residenza','attiva']) ? 'unchanged' : 'update';
+  const action = existing ? 'unchanged' : 'create';
   shipPlan.push({action,existing,desired});
 }
 
 if (execute) {
   for (const item of shipPlan) {
     if (item.action === 'create') item.existing = await pb.create('navi',item.desired);
-    else if (item.action === 'update') item.existing = await pb.update('navi',item.existing.id,item.desired);
     if (item.existing) shipByLegacy.set(item.desired.legacy_id,item.existing);
   }
 }
@@ -142,7 +143,11 @@ for (const item of merged) {
     legacy_payload:item
   };
   const existing = turnByLegacy.get(legacy_id);
-  const action = !existing ? 'create' : same(existing,desired,['legacy_id','nave','data','servizio','ormeggio_serale','rifornimento_mattina','legacy_payload']) ? 'unchanged' : 'update';
+
+  // Confronta solo i campi operativi usati da NaviSuite V2. Una differenza nel
+  // solo legacy_payload/note non deve causare centinaia di PATCH inutili.
+  const operationalFields = ['legacy_id','nave','data','servizio','ormeggio_serale','rifornimento_mattina'];
+  const action = !existing ? 'create' : same(existing,desired,operationalFields) ? 'unchanged' : 'update';
   turnPlan.push({action,existing,desired,source:item});
 }
 
@@ -187,7 +192,7 @@ for (const item of turnPlan) {
 console.log(JSON.stringify({
   ok:true,
   written:{
-    navi:shipPlan.filter(x => x.action !== 'unchanged').length,
+    navi:shipPlan.filter(x => x.action === 'create').length,
     turni_navi:turnPlan.filter(x => x.action !== 'unchanged').length
   }
 },null,2));
