@@ -1,11 +1,14 @@
 {
   "name": "navisuite-firebase-pocketbase-migrator",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "dry-run": "node src/cli.js --dry-run"
+    "dry-run": "node src/cli.js --dry-run",
+    "audit-pocketbase": "node src/audit-pocketbase.js",
+    "provision-auth": "node src/provision-auth.js",
+    "provision-auth:execute": "node src/provision-auth.js --execute"
   },
   "engines": { "node": ">=20" }
 }
