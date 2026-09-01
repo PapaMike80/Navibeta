@@ -4,8 +4,8 @@
   const allowed = new Set([
     "D1","D2","D3","D4","BIS","POND","DT",
     "T1","T2","M1","R1","R2","R3","R4","CAR",
-    "P1","P2","P3","CAP","SR1","AGB","AGM","AGT",
-    "RIP","TERRA","LAV","CON","F.P.","S.S.","MAL","CORSO"
+    "P1","P2","P3","CAP","SR1","AGB","AGM","AGT","PONM","LD","PT",
+    "RIP","LAV","CON","F.P.","S.S.","MAL","CORSO"
   ]);
 
   function canonicalService(value) {
@@ -13,7 +13,12 @@
     if (raw === "FP") raw = "F.P.";
     if (raw === "SS") raw = "S.S.";
     if (!allowed.has(raw)) throw new BadRequestError("Servizio non valido.");
-    return raw === "POND" ? "PonD" : raw;
+    if (raw === "POND") return "PonD";
+    if (raw === "PONM") return "PonM";
+    if (raw === "AGB") return "AgB";
+    if (raw === "AGM") return "AgM";
+    if (raw === "AGT") return "AgT";
+    return raw;
   }
 
   routerAdd("POST", "/api/navisuite-v2/turni/{id}/servizio", (e) => {
