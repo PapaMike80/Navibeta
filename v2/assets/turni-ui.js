@@ -7,12 +7,21 @@
   ];
 
   const SHIFT_COLORS = {
+    // Desenzano: palette storica NaviSuite.
     D1:['#3b6bcc','#1a2a4a'], D2:['#2d9e6b','#142a22'], D3:['#e07b3a','#2a1a0e'], D4:['#c45cba','#2a122a'],
     BIS:['#5ec4d4','#102a2e'], POND:['#f08080','#2a1212'], DT:['#e6d44a','#282200'],
-    P1:['#86efac','#153524'], P2:['#4ade80','#123322'], P3:['#22c55e','#10301d'],
-    R1:['#d8b4fe','#2d1b3e'], R2:['#c084fc','#29163a'], R3:['#a78bfa','#241635'], R4:['#8b5cf6','#211432'],
-    T1:['#fdba74','#3a2414'], T2:['#fb923c','#352013'], M1:['#f59e0b','#332407'],
-    CAR:['#f87171','#351717'], CAP:['#38bdf8','#102b38'], SR1:['#22d3ee','#103039'],
+
+    // Peschiera: tinte volutamente lontane tra loro per lettura immediata.
+    P1:['#60a5fa','#10233d'], P2:['#34d399','#102d25'], P3:['#fbbf24','#322607'],
+    CAP:['#f472b6','#351629'], SR1:['#22d3ee','#103038'],
+
+    // Riva: niente più quattro tonalità viola/rosa quasi identiche.
+    R1:['#38bdf8','#102a38'], R2:['#f59e0b','#332307'], R3:['#22c55e','#10301d'],
+    R4:['#f472b6','#351629'], CAR:['#fb7185','#35151e'],
+
+    // Maderno: tre famiglie cromatiche nettamente separate.
+    T1:['#38bdf8','#102a38'], T2:['#fb923c','#352013'], M1:['#a78bfa','#241635'],
+
     AGB:['#60a5fa','#102040'], AGM:['#2dd4bf','#103530'], AGT:['#34d399','#103227'],
     RIP:['#6b7280','#1a1c22'], CON:['#a78bfa','#1e1530'], TERRA:['#fbbf24','#302407'], LAV:['#fbbf24','#302407'],
     'F.P.':['#94a3b8','#1a1e28'], FP:['#94a3b8','#1a1e28'], 'S.S.':['#cbd5e1','#252a34'], MAL:['#fb7185','#35141d'], CORSO:['#67e8f9','#10313a']
