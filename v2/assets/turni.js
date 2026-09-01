@@ -193,7 +193,7 @@
   $('prev').addEventListener('click', () => { rangeStart = addDays(rangeStart, -28); load(); });
   $('next').addEventListener('click', () => { rangeStart = addDays(rangeStart, 28); load(); });
   $('today').addEventListener('click', () => { rangeStart = mondayOf(new Date()); load(); });
-  $('logout').addEventListener('click', () => { NaviV2PB.logout(); location.replace('index.html'); });
+  $('logout')?.addEventListener('click', () => { NaviV2PB.logout(); location.replace('index.html'); });
 
   (async () => {
     if (!(await NaviV2PB.requireSession())) return;
