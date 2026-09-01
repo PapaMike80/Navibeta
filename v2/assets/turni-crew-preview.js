@@ -45,10 +45,12 @@
     return GRADE[norm(agent?.grado || agent?.ruolo)] || {label:agent?.grado || 'Equipaggio',color:'#94a3b8',rank:99};
   };
   const dateLabel = iso => new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(`${iso}T12:00:00`)).toUpperCase();
+  const dateToIso = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  const todayIso = () => dateToIso(new Date());
   const addDay = (iso,delta) => {
     const d = new Date(`${iso}T12:00:00`);
     d.setDate(d.getDate()+delta);
-    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    return dateToIso(d);
   };
   const selectedTableResidence = () => String(document.getElementById('residence')?.value || '').trim().toUpperCase();
   const serviceResidence = service => SHIFT_RESIDENCE[crewServiceKey(service)] || '';
@@ -246,7 +248,7 @@
       </div>
       <div class="crew-popup-day">
         <div class="crew-popup-date">${esc(dateLabel(pinned.date))}</div>
-        <div class="crew-popup-day-nav"><button type="button" class="crew-day-arrow" data-day-step="-1" aria-label="Giorno precedente">‹</button><button type="button" class="crew-day-arrow" data-day-step="1" aria-label="Giorno successivo">›</button></div>
+        <div class="crew-popup-day-nav"><button type="button" class="crew-day-arrow" data-day-step="-1" aria-label="Giorno precedente">‹</button><button type="button" class="crew-day-today" data-day-today aria-label="Torna a oggi">Oggi</button><button type="button" class="crew-day-arrow" data-day-step="1" aria-label="Giorno successivo">›</button></div>
       </div>
       <button type="button" class="crew-popup-close" aria-label="Chiudi">×</button>
     </div>
@@ -364,6 +366,11 @@
     if (pinned) {
       const el = tooltip();
       if (event.target.closest('.crew-popup-close')) { closePinned(); return; }
+      if (event.target.closest('[data-day-today]')) {
+        pinned.date = todayIso();
+        renderPinned();
+        return;
+      }
       const day = event.target.closest('[data-day-step]');
       if (day) {
         pinned.date = addDay(pinned.date,Number(day.dataset.dayStep));
