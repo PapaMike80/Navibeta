@@ -3,7 +3,7 @@
   if (!wrap) return;
 
   let metaTable = null;
-  let daysTable = null;
+  let daysLayer = null;
   let refs = null;
   let buildQueued = false;
   let positionQueued = false;
@@ -23,18 +23,18 @@
     return document.body.classList.contains('smart-topbar-visible') ? pxVar('--smartbar-h',58) : 0;
   }
 
-  function ensureTables() {
+  function ensureLayers() {
     if (!metaTable?.isConnected) {
       metaTable = document.createElement('table');
       metaTable.className = 'turni-self-fixed-meta';
       metaTable.setAttribute('aria-label','Il mio turno');
       document.body.appendChild(metaTable);
     }
-    if (!daysTable?.isConnected) {
-      daysTable = document.createElement('table');
-      daysTable.className = 'turni-self-fixed-days';
-      daysTable.setAttribute('aria-label','I miei turni');
-      document.body.appendChild(daysTable);
+    if (!daysLayer?.isConnected) {
+      daysLayer = document.createElement('div');
+      daysLayer.className = 'turni-self-fixed-days';
+      daysLayer.setAttribute('aria-label','I miei turni');
+      document.body.appendChild(daysLayer);
     }
   }
 
@@ -72,7 +72,7 @@
   function build(force = false) {
     buildQueued = false;
     if (rebuilding) return;
-    ensureTables();
+    ensureLayers();
 
     const ctx = collect();
     if (!ctx) {
@@ -82,9 +82,9 @@
       return;
     }
 
-    const signature = signatureOf(ctx);
     refs = ctx;
-    if (!force && signature === lastSignature && metaTable?.rows.length && daysTable?.rows.length) {
+    const signature = signatureOf(ctx);
+    if (!force && signature === lastSignature && metaTable?.rows.length && daysLayer?.children.length === ctx.sourceDays.length) {
       schedulePosition();
       return;
     }
@@ -96,11 +96,6 @@
       const nameHead = ctx.dateRow.querySelector('.name-head');
       const numW = numHead?.getBoundingClientRect().width || ctx.num.getBoundingClientRect().width || pxVar('--num-w',42);
       const nameW = nameHead?.getBoundingClientRect().width || ctx.name.getBoundingClientRect().width || pxVar('--name-w',165);
-      const headRects = ctx.dayHeads.map(head => head.getBoundingClientRect());
-      const dayWidths = headRects.map(rect => Math.max(1,rect.width));
-      const totalDaysWidth = headRects.length
-        ? Math.max(1,headRects[headRects.length - 1].right - headRects[0].left)
-        : dayWidths.reduce((sum,width) => sum + width,0);
 
       const metaRow = document.createElement('tr');
       metaRow.dataset.agentId = ctx.source.dataset.agentId || '';
@@ -109,35 +104,27 @@
       const metaBody = document.createElement('tbody');
       metaBody.appendChild(metaRow);
       metaTable.replaceChildren(metaBody);
-
-      // Colgroup esplicito: impedisce al layout automatico della tabella clonata
-      // di redistribuire anche pochi decimi di pixel tra le colonne.
-      const colgroup = document.createElement('colgroup');
-      dayWidths.forEach(width => {
-        const col = document.createElement('col');
-        col.style.width = cssPx(width);
-        colgroup.appendChild(col);
-      });
-
-      const daysRow = document.createElement('tr');
-      daysRow.dataset.agentId = ctx.source.dataset.agentId || '';
-      daysRow.className = 'logged-agent-row self-overlay-row';
-      ctx.sourceDays.forEach((cell,index) => {
-        const copy = cloneCell(cell);
-        const width = dayWidths[index] || cell.getBoundingClientRect().width || 47;
-        copy.style.width = cssPx(width);
-        copy.style.minWidth = cssPx(width);
-        copy.style.maxWidth = cssPx(width);
-        daysRow.appendChild(copy);
-      });
-      const daysBody = document.createElement('tbody');
-      daysBody.appendChild(daysRow);
-      daysTable.replaceChildren(colgroup,daysBody);
-
       metaTable.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
-      daysTable.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
       metaTable.style.width = cssPx(numW + nameW);
-      daysTable.style.width = cssPx(totalDaysWidth);
+
+      const fragment = document.createDocumentFragment();
+      ctx.sourceDays.forEach((cell,index) => {
+        const mini = document.createElement('table');
+        mini.className = 'turni-self-day-table';
+        mini.dataset.dayIndex = String(index);
+        mini.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
+
+        const row = document.createElement('tr');
+        row.dataset.agentId = ctx.source.dataset.agentId || '';
+        row.className = 'logged-agent-row self-overlay-row';
+        row.appendChild(cloneCell(cell));
+        const body = document.createElement('tbody');
+        body.appendChild(row);
+        mini.appendChild(body);
+        fragment.appendChild(mini);
+      });
+      daysLayer.replaceChildren(fragment);
+      daysLayer.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
       lastSignature = signature;
     } finally {
       rebuilding = false;
@@ -153,7 +140,7 @@
 
   function position() {
     positionQueued = false;
-    if (!refs?.table?.isConnected || !refs?.dateRow?.isConnected || !refs?.dayHeads?.[0]?.isConnected) {
+    if (!refs?.table?.isConnected || !refs?.dayHeads?.length) {
       scheduleBuild(true);
       return;
     }
@@ -170,15 +157,27 @@
       return;
     }
 
-    const metaLeft = Math.max(0,tableRect.left);
-    // Il bordo sinistro viene letto direttamente dalla stessa TH che governa
-    // la colonna: nessun offset derivato da larghezze sommate.
-    const daysLeft = refs.dayHeads[0].getBoundingClientRect().left;
-
     setPx(metaTable,'top',rowTop);
-    setPx(daysTable,'top',rowTop);
-    setPx(metaTable,'left',metaLeft);
-    setPx(daysTable,'left',daysLeft);
+    setPx(metaTable,'left',Math.max(0,tableRect.left));
+    setPx(daysLayer,'top',rowTop);
+    daysLayer.style.left = '0px';
+    daysLayer.style.width = `${window.innerWidth}px`;
+
+    const minis = [...daysLayer.querySelectorAll('.turni-self-day-table')];
+    refs.dayHeads.forEach((head,index) => {
+      const mini = minis[index];
+      if (!mini) return;
+      const rect = head.getBoundingClientRect();
+      setPx(mini,'left',rect.left);
+      setPx(mini,'width',rect.width);
+      const td = mini.querySelector('td[data-date]');
+      if (td) {
+        td.style.width = cssPx(rect.width);
+        td.style.minWidth = cssPx(rect.width);
+        td.style.maxWidth = cssPx(rect.width);
+      }
+    });
+
     document.body.classList.add('turni-self-overlay-visible');
   }
 
@@ -196,10 +195,7 @@
 
   const wrapObserver = new MutationObserver(mutations => {
     if (rebuilding) return;
-    const meaningful = mutations.some(mutation => {
-      if (mutation.type === 'childList') return true;
-      return mutation.type === 'attributes' && mutation.attributeName === 'data-service';
-    });
+    const meaningful = mutations.some(mutation => mutation.type === 'childList' || (mutation.type === 'attributes' && mutation.attributeName === 'data-service'));
     if (meaningful) scheduleBuild();
   });
   wrapObserver.observe(wrap,{childList:true,subtree:true,attributes:true,attributeFilter:['data-service']});
@@ -212,6 +208,7 @@
 
   window.addEventListener('scroll',schedulePosition,{passive:true});
   window.addEventListener('resize',() => scheduleBuild(true),{passive:true});
+  document.querySelector('.topbar')?.addEventListener('transitionend',schedulePosition);
   document.getElementById('residence')?.addEventListener('change',() => setTimeout(() => scheduleBuild(true),30));
   window.addEventListener('load',() => setTimeout(() => scheduleBuild(true),100));
   scheduleBuild(true);
