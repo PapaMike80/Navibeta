@@ -11,7 +11,7 @@
   }
 
   function fixedTop() {
-    return document.body.classList.contains('smart-topbar-visible') ? pxVar('--smartbar-h', 58) : 0;
+    return document.body.classList.contains('smart-topbar-visible') ? pxVar('--smartbar-h',58) : 0;
   }
 
   function ensureLabel() {
@@ -45,13 +45,14 @@
     }
 
     const tableRect = table.getBoundingClientRect();
-    const top = fixedTop();
+    const viewportTop = fixedTop();
     const monthH = pxVar('--month-h',30);
     const dateH = pxVar('--date-h',42);
+    const headerTop = Math.max(viewportTop,Math.round(tableRect.top));
 
-    // Il mese non dipende più dalla posizione della riga sticky originale.
-    // Resta visibile finché la tabella continua sotto la testata fissa.
-    if (tableRect.bottom <= top + monthH + dateH || tableRect.top >= window.innerHeight) {
+    // Non guardare mai la posizione della month-header sticky originale.
+    // Il mese resta presente finché la tabella continua sotto la testata.
+    if (tableRect.bottom <= headerTop + monthH + dateH || tableRect.top >= window.innerHeight) {
       el.style.display = 'none';
       return;
     }
@@ -66,7 +67,7 @@
 
     el.textContent = monthText(firstVisible?.dataset.date);
     el.style.display = 'flex';
-    el.style.top = `${Math.round(top)}px`;
+    el.style.top = `${Math.round(headerTop)}px`;
     el.style.left = `${Math.round(anchorX)}px`;
     el.style.height = `${Math.round(monthH)}px`;
     el.style.width = `${Math.max(64,Math.round(window.innerWidth - anchorX))}px`;
