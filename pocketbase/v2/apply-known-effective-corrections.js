@@ -42,32 +42,41 @@ class PB {
 const pb = new PB(process.env.POCKETBASE_URL || "http://127.0.0.1:8090");
 await pb.login();
 
-const filter = `data >= "${cutoff} 00:00:00.000Z" && (servizio = "TERRA" || servizio = "LAV;" || servizio = "LAV." || servizio_base = "TERRA" || servizio_base = "LAV;" || servizio_base = "LAV.") && stato != "annullato"`;
-const rows = await pb.listAll("turni_effective", {
-  filter,
-  fields:"id,data,agente,servizio,servizio_base,origine_effective,stato,versione,note",
+const allRows = await pb.listAll("turni_effective", {
+  filter:`data >= "${cutoff} 00:00:00.000Z" && stato != "annullato"`,
+  fields:"id,data,agente,servizio,codice_turno,servizio_base,origine_effective,stato,versione,note",
   sort:"data",
 });
 
-const normalizeLav = value => /^(?:TERRA|LAV[.;]?)$/i.test(String(value || "").trim()) ? "LAV" : String(value || "");
+const isLavVariant = value => /^(?:TERRA|LAV[.;]?)$/i.test(String(value || "").trim());
+const normalizeLav = value => isLavVariant(value) ? "LAV" : String(value || "");
+const rows = allRows.filter(row =>
+  isLavVariant(row.servizio) ||
+  isLavVariant(row.codice_turno) ||
+  isLavVariant(row.servizio_base)
+);
+
 const changes = rows.map(row => ({
   id:row.id,
   data:String(row.data || "").slice(0,10),
   servizio_da:row.servizio,
   servizio_a:normalizeLav(row.servizio),
+  codice_turno_da:row.codice_turno || "",
+  codice_turno_a:normalizeLav(row.codice_turno || ""),
   servizio_base_da:row.servizio_base || "",
   servizio_base_a:normalizeLav(row.servizio_base || ""),
 }));
 
 if (execute) {
   for (const row of rows) {
-    const correctionNote = "Normalizzazione NaviSuite V2: TERRA/lav varianti -> LAV.";
+    const correctionNote = "Normalizzazione NaviSuite V2: terra/lav varianti -> LAV.";
     const previousNote = String(row.note || "").trim();
     const payload = {
-      servizio: normalizeLav(row.servizio),
-      servizio_base: normalizeLav(row.servizio_base || ""),
-      versione: Math.max(1, Number(row.versione || 1) + 1),
-      note: previousNote.includes(correctionNote) ? previousNote : [previousNote, correctionNote].filter(Boolean).join("\n"),
+      servizio:normalizeLav(row.servizio),
+      codice_turno:normalizeLav(row.codice_turno || ""),
+      servizio_base:normalizeLav(row.servizio_base || ""),
+      versione:Math.max(1, Number(row.versione || 1) + 1),
+      note:previousNote.includes(correctionNote) ? previousNote : [previousNote, correctionNote].filter(Boolean).join("\n"),
     };
     await pb.update("turni_effective", row.id, payload);
   }
@@ -75,8 +84,9 @@ if (execute) {
 
 console.log(JSON.stringify({
   mode:execute ? "execute" : "dry-run",
-  rule:"TERRA/lav/LAV./LAV; -> LAV",
+  rule:"terra / lav / lav. / lav; -> LAV",
   cutoff,
+  scanned:allRows.length,
   matches:rows.length,
   updated:execute ? rows.length : 0,
   sample:changes.slice(0,50),
