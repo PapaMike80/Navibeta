@@ -1,0 +1,1 @@
+.turni-table td.shared-with-me .cell-pill{position:relative;box-shadow:0 0 0 2px #facc15,0 0 10px rgba(250,204,21,.35)!important}.turni-table td.shared-with-me .cell-pill::after{content:"";position:absolute;inset:-4px;border:1px solid rgba(250,204,21,.4);border-radius:999px;pointer-events:none}
