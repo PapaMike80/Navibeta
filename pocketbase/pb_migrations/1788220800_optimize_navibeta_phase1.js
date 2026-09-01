@@ -22,7 +22,17 @@ migrate((app) => {
   if (emailField) emailField.required = false;
   users.addIndex("idx_users_login_id", true, "login_id", "login_id != ''");
   users.passwordAuth = { enabled:true, identityFields:["login_id", "email"] };
-  users.updateRule = `id = @request.auth.id && @request.body.role:changed = false && @request.body.attivo:changed = false && @request.body.login_id:changed = false || ${admin}`;
+
+  // Use the long-form compatibility syntax rather than :changed. It means:
+  // an agent may update their own auth record only if role, active state and
+  // login id are either omitted from the request or kept equal to the stored value.
+  // Admin/super_user can still manage these fields.
+  users.updateRule = `(
+    id = @request.auth.id &&
+    (@request.body.role:isset = false || @request.body.role = role) &&
+    (@request.body.attivo:isset = false || @request.body.attivo = attivo) &&
+    (@request.body.login_id:isset = false || @request.body.login_id = login_id)
+  ) || ${admin}`;
   app.save(users);
 
   const addIndex = (collectionName, name, unique, columns, where = "") => {
