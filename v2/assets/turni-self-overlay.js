@@ -15,6 +15,10 @@
     return Number.isFinite(value) && value > 0 ? value : fallback;
   }
 
+  function cssPx(value) {
+    return `${Math.round(Number(value || 0) * 1000) / 1000}px`;
+  }
+
   function fixedTop() {
     return document.body.classList.contains('smart-topbar-visible') ? pxVar('--smartbar-h',58) : 0;
   }
@@ -87,11 +91,16 @@
 
     rebuilding = true;
     try {
-      const sourceHeight = Math.max(38,Math.round(ctx.source.offsetHeight || ctx.source.getBoundingClientRect().height || 44));
+      const sourceHeight = Math.max(38,ctx.source.getBoundingClientRect().height || ctx.source.offsetHeight || 44);
       const numHead = ctx.dateRow.querySelector('.num-head');
       const nameHead = ctx.dateRow.querySelector('.name-head');
-      const numW = Math.round(numHead?.offsetWidth || ctx.num.offsetWidth || pxVar('--num-w',42));
-      const nameW = Math.round(nameHead?.offsetWidth || ctx.name.offsetWidth || pxVar('--name-w',165));
+      const numW = numHead?.getBoundingClientRect().width || ctx.num.getBoundingClientRect().width || pxVar('--num-w',42);
+      const nameW = nameHead?.getBoundingClientRect().width || ctx.name.getBoundingClientRect().width || pxVar('--name-w',165);
+      const headRects = ctx.dayHeads.map(head => head.getBoundingClientRect());
+      const dayWidths = headRects.map(rect => Math.max(1,rect.width));
+      const totalDaysWidth = headRects.length
+        ? Math.max(1,headRects[headRects.length - 1].right - headRects[0].left)
+        : dayWidths.reduce((sum,width) => sum + width,0);
 
       const metaRow = document.createElement('tr');
       metaRow.dataset.agentId = ctx.source.dataset.agentId || '';
@@ -101,27 +110,34 @@
       metaBody.appendChild(metaRow);
       metaTable.replaceChildren(metaBody);
 
+      // Colgroup esplicito: impedisce al layout automatico della tabella clonata
+      // di redistribuire anche pochi decimi di pixel tra le colonne.
+      const colgroup = document.createElement('colgroup');
+      dayWidths.forEach(width => {
+        const col = document.createElement('col');
+        col.style.width = cssPx(width);
+        colgroup.appendChild(col);
+      });
+
       const daysRow = document.createElement('tr');
       daysRow.dataset.agentId = ctx.source.dataset.agentId || '';
       daysRow.className = 'logged-agent-row self-overlay-row';
-      let totalDaysWidth = 0;
       ctx.sourceDays.forEach((cell,index) => {
         const copy = cloneCell(cell);
-        const width = Math.max(1,Math.round(ctx.dayHeads[index]?.offsetWidth || cell.offsetWidth || 47));
-        totalDaysWidth += width;
-        copy.style.width = `${width}px`;
-        copy.style.minWidth = `${width}px`;
-        copy.style.maxWidth = `${width}px`;
+        const width = dayWidths[index] || cell.getBoundingClientRect().width || 47;
+        copy.style.width = cssPx(width);
+        copy.style.minWidth = cssPx(width);
+        copy.style.maxWidth = cssPx(width);
         daysRow.appendChild(copy);
       });
       const daysBody = document.createElement('tbody');
       daysBody.appendChild(daysRow);
-      daysTable.replaceChildren(daysBody);
+      daysTable.replaceChildren(colgroup,daysBody);
 
-      metaTable.style.setProperty('--self-overlay-h',`${sourceHeight}px`);
-      daysTable.style.setProperty('--self-overlay-h',`${sourceHeight}px`);
-      metaTable.style.width = `${numW + nameW}px`;
-      daysTable.style.width = `${totalDaysWidth}px`;
+      metaTable.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
+      daysTable.style.setProperty('--self-overlay-h',cssPx(sourceHeight));
+      metaTable.style.width = cssPx(numW + nameW);
+      daysTable.style.width = cssPx(totalDaysWidth);
       lastSignature = signature;
     } finally {
       rebuilding = false;
@@ -131,7 +147,7 @@
   }
 
   function setPx(el, prop, value) {
-    const next = `${Math.round(value)}px`;
+    const next = cssPx(value);
     if (el.style[prop] !== next) el.style[prop] = next;
   }
 
@@ -146,7 +162,7 @@
     const viewportTop = fixedTop();
     const monthH = pxVar('--month-h',30);
     const dateH = pxVar('--date-h',42);
-    const headerTop = Math.max(viewportTop,Math.round(tableRect.top));
+    const headerTop = Math.max(viewportTop,tableRect.top);
     const rowTop = headerTop + monthH + dateH;
 
     if (tableRect.top >= window.innerHeight || tableRect.bottom <= rowTop + 2) {
@@ -154,8 +170,10 @@
       return;
     }
 
-    const metaLeft = Math.max(0,Math.round(tableRect.left));
-    const daysLeft = Math.round(refs.dayHeads[0].getBoundingClientRect().left);
+    const metaLeft = Math.max(0,tableRect.left);
+    // Il bordo sinistro viene letto direttamente dalla stessa TH che governa
+    // la colonna: nessun offset derivato da larghezze sommate.
+    const daysLeft = refs.dayHeads[0].getBoundingClientRect().left;
 
     setPx(metaTable,'top',rowTop);
     setPx(daysTable,'top',rowTop);
