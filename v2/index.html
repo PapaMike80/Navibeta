@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07131b">
+  <title>NaviSuite V2</title>
+  <link rel="stylesheet" href="assets/app.css?v=1">
+</head>
+<body>
+  <main class="login-wrap">
+    <section id="loginCard" class="card login-card">
+      <p class="eyebrow">NAVISUITE V2 · POCKETBASE</p>
+      <h1>Accesso</h1>
+      <p class="muted">Nuova architettura senza dipendenze Firebase nel browser.</p>
+      <form id="loginForm">
+        <label for="agentSearch">Agente</label>
+        <input id="agentSearch" list="agentList" autocomplete="off" placeholder="Inizia a digitare il cognome…" required>
+        <datalist id="agentList"></datalist>
+        <label for="agentPin">PIN personale</label>
+        <input id="agentPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" required>
+        <p id="loginMessage" class="message" aria-live="polite"></p>
+        <button id="loginSubmit" class="btn primary" type="submit">Accedi</button>
+      </form>
+      <p id="loginStatus" class="status">Caricamento directory…</p>
+    </section>
+
+    <section id="menuCard" class="card login-card" hidden>
+      <p class="eyebrow">NAVISUITE V2</p>
+      <h1 id="welcome">Benvenuto</h1>
+      <p id="sessionInfo" class="muted"></p>
+      <div class="menu-grid">
+        <a class="card menu-card" href="turni.html">
+          <span class="eyebrow">OPERATIVO</span>
+          <strong>Turni</strong>
+          <span class="muted">Lettura diretta da turni_effective.</span>
+        </a>
+        <div class="card menu-card disabled">
+          <span class="eyebrow">PROSSIMA PAGINA</span>
+          <strong>Cambi</strong>
+          <span class="muted">In costruzione.</span>
+        </div>
+        <div class="card menu-card disabled">
+          <span class="eyebrow">PROSSIMA PAGINA</span>
+          <strong>Diaria</strong>
+          <span class="muted">In costruzione.</span>
+        </div>
+      </div>
+      <button id="logoutButton" class="btn ghost" type="button" style="margin-top:18px;width:100%">Esci</button>
+    </section>
+  </main>
+  <script src="assets/pb.js?v=1"></script>
+  <script src="assets/login.js?v=1"></script>
+</body>
+</html>
