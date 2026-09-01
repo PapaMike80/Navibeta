@@ -27,19 +27,8 @@ const cleanService = value => {
 const isActive = item => item?.attiva !== false && !/^(?:no|false|0)$/i.test(clean(item?.attiva));
 const yes = value => value === true || value === 1 || /^(?:si|sì|true|1|yes)$/i.test(clean(value));
 const rowKey = item => `${clean(item?.data)}|${clean(item?.corsa)}|${clean(item?.nave).toLocaleUpperCase('it')}`;
-
-function mergeLegacyShipRows(root) {
-  const schedule = root?.public?.schedule || {};
-  const admin = root?.private?.adminUpdates || {};
-  const map = new Map();
-  values(schedule.turni_navi).forEach(item => map.set(rowKey(item),item));
-  values(admin.turniNavi).forEach(item => map.set(rowKey(item),item));
-  return {
-    publicRows: values(schedule.turni_navi),
-    adminRows: values(admin.turniNavi),
-    merged: [...map.values()].filter(item => clean(item.nave) && isoDate(item.data) && clean(item.corsa) && isActive(item))
-  };
-}
+const shipNameKey = value => clean(value).toLocaleUpperCase('it');
+const usableRow = item => clean(item?.nave) && isoDate(item?.data) && clean(item?.corsa) && isActive(item);
 
 class PocketBaseAdmin {
   constructor() { this.token = ''; }
@@ -83,8 +72,10 @@ function same(a,b,fields) {
 }
 
 const root = JSON.parse(await readFile(sourceFile,'utf8'));
-const {publicRows,adminRows,merged} = mergeLegacyShipRows(root);
-const sourceShips = [...new Map(merged.map(item => [clean(item.nave).toLocaleUpperCase('it'),item])).values()];
+const schedule = root?.public?.schedule || {};
+const admin = root?.private?.adminUpdates || {};
+const publicRows = values(schedule.turni_navi);
+const adminRows = values(admin.turniNavi);
 
 const pb = new PocketBaseAdmin();
 await pb.login();
@@ -93,6 +84,28 @@ const [existingShips,existingTurns] = await Promise.all([
   pb.listAll('turni_navi','id,legacy_id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,legacy_payload')
 ]);
 
+// Fonte di verità per i nomi nave:
+// - nomi già presenti nella collection navi;
+// - nomi presenti nel roster pubblico turni_navi, che nel runtime legacy era la
+//   base approvata. Gli adminUpdates possono contenere righe sporche/personale,
+//   quindi possono sovrascrivere o aggiungere turni SOLO per navi già note.
+const trustedShipNames = new Set([
+  ...existingShips.map(row => shipNameKey(row.nome)),
+  ...publicRows.filter(usableRow).map(row => shipNameKey(row.nave))
+].filter(Boolean));
+
+const trustedPublicRows = publicRows.filter(usableRow).filter(item => trustedShipNames.has(shipNameKey(item.nave)));
+const trustedAdminRows = adminRows.filter(usableRow).filter(item => trustedShipNames.has(shipNameKey(item.nave)));
+const rejectedAdminRows = adminRows.filter(usableRow).filter(item => !trustedShipNames.has(shipNameKey(item.nave)));
+
+// Replica replaceByKey() del runtime legacy: pubblico come base, admin dopo e
+// quindi prevalente sulla stessa data+corsa+nave.
+const mergedMap = new Map();
+trustedPublicRows.forEach(item => mergedMap.set(rowKey(item),item));
+trustedAdminRows.forEach(item => mergedMap.set(rowKey(item),item));
+const merged = [...mergedMap.values()];
+
+const sourceShips = [...new Map(merged.map(item => [shipNameKey(item.nave),item])).values()];
 const shipByLegacy = new Map(existingShips.map(row => [String(row.legacy_id),row]));
 const turnByLegacy = new Map(existingTurns.map(row => [String(row.legacy_id),row]));
 const shipPlan = [];
@@ -141,15 +154,25 @@ const sample = turnPlan.filter(item => clean(item.source.data).slice(0,10) === s
   nave:item.source.nave,
   ormeggio_serale:item.source.ormeggio_serale || '',
   rifornimento_mattina:yes(item.source.rifornimento_mattina),
-  relation_nave:item.desired.nave || '(da creare in execute)'
+  relation_nave:item.desired.nave || '(non risolta)'
 }));
 
 console.log(JSON.stringify({
   mode: execute ? 'execute' : 'dry-run',
   sourceFile,
-  source:{public:publicRows.length,admin:adminRows.length,mergedActive:merged.length,ships:sourceShips.length},
+  source:{
+    public:publicRows.length,
+    admin:adminRows.length,
+    publicTrusted:trustedPublicRows.length,
+    adminTrusted:trustedAdminRows.length,
+    adminRejected:rejectedAdminRows.length,
+    mergedActive:merged.length,
+    trustedShips:trustedShipNames.size,
+    mergedShips:sourceShips.length
+  },
   pocketbaseBefore:{navi:existingShips.length,turni_navi:existingTurns.length},
   plan:{navi:count(shipPlan),turni_navi:count(turnPlan)},
+  rejectedAdminSample:rejectedAdminRows.slice(0,10).map(item => ({data:item.data,corsa:item.corsa,nave:item.nave})),
   sample:{date:sampleDate,service:sampleService,rows:sample}
 },null,2));
 
@@ -161,4 +184,10 @@ for (const item of turnPlan) {
   else if (item.action === 'update') await pb.update('turni_navi',item.existing.id,item.desired);
 }
 
-console.log(JSON.stringify({ok:true,written:{navi:shipPlan.filter(x => x.action !== 'unchanged').length,turni_navi:turnPlan.filter(x => x.action !== 'unchanged').length}},null,2));
+console.log(JSON.stringify({
+  ok:true,
+  written:{
+    navi:shipPlan.filter(x => x.action !== 'unchanged').length,
+    turni_navi:turnPlan.filter(x => x.action !== 'unchanged').length
+  }
+},null,2));
