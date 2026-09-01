@@ -38,13 +38,37 @@
     }
   }
 
+  function copyPillVisual(src,dst) {
+    if (!src || !dst) return;
+    const style = getComputedStyle(src);
+    dst.style.color = style.color;
+    dst.style.backgroundColor = style.backgroundColor;
+    dst.style.borderTopColor = style.borderTopColor;
+    dst.style.borderRightColor = style.borderRightColor;
+    dst.style.borderBottomColor = style.borderBottomColor;
+    dst.style.borderLeftColor = style.borderLeftColor;
+    dst.style.borderTopWidth = style.borderTopWidth;
+    dst.style.borderRightWidth = style.borderRightWidth;
+    dst.style.borderBottomWidth = style.borderBottomWidth;
+    dst.style.borderLeftWidth = style.borderLeftWidth;
+    dst.style.borderTopStyle = style.borderTopStyle;
+    dst.style.borderRightStyle = style.borderRightStyle;
+    dst.style.borderBottomStyle = style.borderBottomStyle;
+    dst.style.borderLeftStyle = style.borderLeftStyle;
+    dst.style.boxShadow = style.boxShadow;
+    const serviceColor = style.getPropertyValue('--service-color').trim();
+    const serviceBg = style.getPropertyValue('--service-bg').trim();
+    if (serviceColor) dst.style.setProperty('--service-color',serviceColor);
+    if (serviceBg) dst.style.setProperty('--service-bg',serviceBg);
+  }
+
   function cloneCell(cell) {
     const copy = cell.cloneNode(true);
     copy.removeAttribute('style');
     for (const [name,value] of Object.entries(cell.dataset || {})) copy.dataset[name] = value;
     const srcPill = cell.querySelector('.cell-pill');
     const dstPill = copy.querySelector('.cell-pill');
-    if (srcPill && dstPill) dstPill.setAttribute('style',srcPill.getAttribute('style') || '');
+    if (srcPill && dstPill) copyPillVisual(srcPill,dstPill);
     return copy;
   }
 
@@ -195,10 +219,19 @@
 
   const wrapObserver = new MutationObserver(mutations => {
     if (rebuilding) return;
-    const meaningful = mutations.some(mutation => mutation.type === 'childList' || (mutation.type === 'attributes' && mutation.attributeName === 'data-service'));
-    if (meaningful) scheduleBuild();
+    const meaningful = mutations.some(mutation => {
+      if (mutation.type === 'childList') return true;
+      if (mutation.type !== 'attributes') return false;
+      return ['data-service','class','style'].includes(mutation.attributeName);
+    });
+    if (meaningful) scheduleBuild(true);
   });
-  wrapObserver.observe(wrap,{childList:true,subtree:true,attributes:true,attributeFilter:['data-service']});
+  wrapObserver.observe(wrap,{
+    childList:true,
+    subtree:true,
+    attributes:true,
+    attributeFilter:['data-service','class','style']
+  });
 
   new MutationObserver(() => {
     schedulePosition();
