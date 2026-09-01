@@ -5,6 +5,15 @@
   let label = null;
   let ticking = false;
 
+  function pxVar(name, fallback) {
+    const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
+    return Number.isFinite(value) && value > 0 ? value : fallback;
+  }
+
+  function fixedTop() {
+    return document.body.classList.contains('smart-topbar-visible') ? pxVar('--smartbar-h', 58) : 0;
+  }
+
   function ensureLabel() {
     if (label?.isConnected) return label;
     label = document.createElement('div');
@@ -27,34 +36,40 @@
     ticking = false;
     const table = wrap.querySelector('.turni-table');
     const dateRow = table?.querySelector('.date-header');
-    const nameHead = dateRow?.querySelector('.name-head');
     const days = dateRow ? [...dateRow.querySelectorAll('th.day[data-date]')] : [];
     const el = ensureLabel();
 
-    if (!table || !dateRow || !nameHead || !days.length) {
+    if (!table || !dateRow || !days.length) {
       el.style.display = 'none';
       return;
     }
 
     const tableRect = table.getBoundingClientRect();
-    const dateRect = dateRow.getBoundingClientRect();
-    const nameRect = nameHead.getBoundingClientRect();
-    if (tableRect.bottom <= dateRect.top || dateRect.bottom <= 0 || dateRect.top >= window.innerHeight) {
+    const top = fixedTop();
+    const monthH = pxVar('--month-h',30);
+    const dateH = pxVar('--date-h',42);
+
+    // Il mese non dipende più dalla posizione della riga sticky originale.
+    // Resta visibile finché la tabella continua sotto la testata fissa.
+    if (tableRect.bottom <= top + monthH + dateH || tableRect.top >= window.innerHeight) {
       el.style.display = 'none';
       return;
     }
 
-    const rootStyle = getComputedStyle(document.documentElement);
-    const monthHeight = Math.max(20,parseFloat(rootStyle.getPropertyValue('--month-h')) || 30);
-    const anchorX = Math.max(0,Math.min(window.innerWidth - 70,nameRect.right));
+    const numHead = dateRow.querySelector('.num-head');
+    const nameHead = dateRow.querySelector('.name-head');
+    const numW = Math.round(numHead?.offsetWidth || pxVar('--num-w',42));
+    const nameW = Math.round(nameHead?.offsetWidth || pxVar('--name-w',165));
+    const stickyLeft = Math.max(0,Math.round(tableRect.left));
+    const anchorX = Math.min(window.innerWidth - 64,stickyLeft + numW + nameW);
     const firstVisible = days.find(day => day.getBoundingClientRect().right > anchorX + 3) || days[days.length - 1];
 
     el.textContent = monthText(firstVisible?.dataset.date);
     el.style.display = 'flex';
-    el.style.top = `${Math.max(0,Math.round(dateRect.top - monthHeight))}px`;
+    el.style.top = `${Math.round(top)}px`;
     el.style.left = `${Math.round(anchorX)}px`;
-    el.style.height = `${Math.round(monthHeight)}px`;
-    el.style.width = `${Math.max(80,Math.round(window.innerWidth - anchorX))}px`;
+    el.style.height = `${Math.round(monthH)}px`;
+    el.style.width = `${Math.max(64,Math.round(window.innerWidth - anchorX))}px`;
     el.style.maxWidth = 'none';
   }
 
@@ -65,6 +80,7 @@
   }
 
   new MutationObserver(schedule).observe(wrap,{childList:true,subtree:true});
+  new MutationObserver(schedule).observe(document.body,{attributes:true,attributeFilter:['class']});
   window.addEventListener('scroll',schedule,{passive:true});
   window.addEventListener('resize',schedule,{passive:true});
   window.addEventListener('load',() => setTimeout(schedule,80));
