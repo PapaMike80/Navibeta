@@ -11,24 +11,29 @@
     D1:['#3b6bcc','#1a2a4a'], D2:['#2d9e6b','#142a22'], D3:['#e07b3a','#2a1a0e'], D4:['#c45cba','#2a122a'],
     BIS:['#5ec4d4','#102a2e'], POND:['#f08080','#2a1212'], DT:['#e6d44a','#282200'],
 
-    // Peschiera: tinte volutamente lontane tra loro per lettura immediata.
+    // Peschiera.
     P1:['#60a5fa','#10233d'], P2:['#34d399','#102d25'], P3:['#fbbf24','#322607'],
     CAP:['#f472b6','#351629'], SR1:['#22d3ee','#103038'],
 
-    // Riva: niente più quattro tonalità viola/rosa quasi identiche.
+    // Riva.
     R1:['#38bdf8','#102a38'], R2:['#f59e0b','#332307'], R3:['#22c55e','#10301d'],
     R4:['#f472b6','#351629'], CAR:['#fb7185','#35151e'],
 
-    // Maderno: tre famiglie cromatiche nettamente separate.
+    // Maderno.
     T1:['#38bdf8','#102a38'], T2:['#fb923c','#352013'], M1:['#a78bfa','#241635'],
 
     AGB:['#60a5fa','#102040'], AGM:['#2dd4bf','#103530'], AGT:['#34d399','#103227'],
-    RIP:['#6b7280','#1a1c22'], CON:['#a78bfa','#1e1530'], TERRA:['#fbbf24','#302407'], LAV:['#fbbf24','#302407'],
+    RIP:['#6b7280','#1a1c22'], CON:['#a78bfa','#1e1530'], LAV:['#fbbf24','#302407'],
     'F.P.':['#94a3b8','#1a1e28'], FP:['#94a3b8','#1a1e28'], 'S.S.':['#cbd5e1','#252a34'], MAL:['#fb7185','#35141d'], CORSO:['#67e8f9','#10313a']
   };
 
   const normalize = value => String(value || '').trim().toLowerCase();
-  const normalizeShift = value => String(value || '').trim().toUpperCase().replace(/\s+/g,'');
+  const normalizeShift = value => String(value || '').trim().toUpperCase().replace(/\s+/g,'').replace(/\*/g,'').replace(/--/g,'');
+  const underlyingShift = value => {
+    const raw = normalizeShift(value);
+    const match = raw.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
+    return match?.[1] ? match[1].toUpperCase() : raw;
+  };
 
   function optionFor(key) {
     const select = document.getElementById('residence');
@@ -85,12 +90,17 @@
 
   function colorShiftPills() {
     document.querySelectorAll('.turni-table .cell-pill').forEach(pill => {
-      const key = normalizeShift(pill.textContent);
+      const raw = normalizeShift(pill.textContent);
+      const key = underlyingShift(raw);
       const palette = SHIFT_COLORS[key];
       if (!palette) return;
       pill.style.setProperty('--service-color', palette[0]);
       pill.style.setProperty('--service-bg', palette[1]);
       pill.classList.add('service-colored');
+      if (raw !== key) {
+        pill.classList.add('cross-residence-shift');
+        pill.title = `${raw} · equipaggio ${key}`;
+      }
     });
   }
 
