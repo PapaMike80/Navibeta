@@ -24,11 +24,15 @@
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   };
   const dateLabel = iso => new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(`${iso}T12:00:00`)).toUpperCase();
+  const legacyWhen = row => {
+    const p = row?.legacy_payload || {};
+    const value = p.inserita_il || p.updatedAt || p.updated_at || p.createdAt || p.created_at || '';
+    const time = Date.parse(value);
+    return Number.isFinite(time) ? time : 0;
+  };
 
   async function ships() {
-    // Non filtrare per attiva: un turno nave storico può riferirsi a una nave
-    // oggi non attiva ma deve comunque mostrare il nome corretto.
-    if (!shipsPromise) shipsPromise = NaviV2PB.listAll('navi',{fields:'id,nome,residenza,attiva'});
+    if (!shipsPromise) shipsPromise = NaviV2PB.listAll('navi',{fields:'id,nome,residenza,attiva,legacy_id'});
     return shipsPromise;
   }
 
@@ -36,8 +40,7 @@
     if (!dayRowsCache.has(date)) {
       dayRowsCache.set(date,NaviV2PB.listAll('turni_navi',{
         filter:`data >= "${date} 00:00:00.000Z" && data <= "${date} 23:59:59.999Z"`,
-        sort:'-updated',
-        fields:'id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,updated'
+        fields:'id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,legacy_payload,updated'
       }));
     }
     return dayRowsCache.get(date);
@@ -50,21 +53,18 @@
 
     const promise = Promise.all([ships(),shipRowsForDate(date)]).then(([shipList,dayRows]) => {
       const byId = new Map(shipList.map(ship => [String(ship.id),ship]));
-
-      // La migrazione ha conservato il valore originale di `corsa` in
-      // turni_navi.servizio. Normalizzalo qui (D1*, CD1C, ecc.) invece di
-      // pretendere una corrispondenza testuale esatta lato PocketBase.
-      const rows = dayRows.filter(row => cleanService(row.servizio) === normalizedService);
+      const rows = dayRows
+        .filter(row => cleanService(row.servizio) === normalizedService)
+        .sort((a,b) => legacyWhen(b)-legacyWhen(a) || String(b.updated || '').localeCompare(String(a.updated || '')));
       if (!rows.length) return null;
 
-      const picked = rows
-        .map(row => ({row,ship:byId.get(String(row.nave)) || null}))
-        .find(item => item.ship) || {row:rows[0],ship:null};
-
+      const row = rows[0];
+      const ship = byId.get(String(row.nave)) || null;
+      const legacy = row.legacy_payload || {};
       return {
-        nave:String(picked.ship?.nome || '').trim() || '—',
-        ormeggio:String(picked.row.ormeggio_serale || '').trim() || '—',
-        rifornimento:Boolean(picked.row.rifornimento_mattina)
+        nave:String(ship?.nome || legacy.nave || '').trim() || '—',
+        ormeggio:String(row.ormeggio_serale || legacy.ormeggio_serale || '').trim() || '—',
+        rifornimento:Boolean(row.rifornimento_mattina || legacy.rifornimento_mattina)
       };
     }).catch(error => {
       console.warn('[NaviTurni V2] dati nave non disponibili',date,normalizedService,error);
@@ -76,11 +76,16 @@
   }
 
   function inferDate(root) {
-    if (currentDate) return currentDate;
+    // La data visualizzata nel popup è la fonte autorevole. Questo evita che
+    // l'overlay della riga personale lasci currentDate fermo al popup precedente.
     const label = String(root.querySelector('.crew-popup-date')?.textContent || '').trim().toUpperCase();
-    if (!label) return '';
-    const match = [...document.querySelectorAll('.turni-table th.day[data-date]')].find(th => dateLabel(th.dataset.date) === label);
-    currentDate = match?.dataset.date || '';
+    if (label) {
+      const match = [...document.querySelectorAll('.turni-table th.day[data-date]')].find(th => dateLabel(th.dataset.date) === label);
+      if (match?.dataset.date) {
+        currentDate = match.dataset.date;
+        return currentDate;
+      }
+    }
     return currentDate;
   }
 
