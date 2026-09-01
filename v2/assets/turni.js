@@ -99,8 +99,17 @@
     const startIso = toIso(rangeStart);
     const endIso = toIso(addDays(rangeStart, 27));
     const escapedResidence = NaviV2PB.escapeFilter(residence);
-    const agents = allAgents.filter(a => String(a.residenza || '') === residence);
-    const filter = `data >= "${pbDate(startIso)}" && data <= "${pbDate(endIso)}" && residenza = "${escapedResidence}" && stato != "annullato"`;
+    const me = NaviV2PB.agent();
+    const meAgent = allAgents.find(agent => String(agent.id) === String(me?.id));
+    const residenceAgents = allAgents.filter(agent => String(agent.residenza || '') === residence);
+    const agents = meAgent && !residenceAgents.some(agent => String(agent.id) === String(meAgent.id))
+      ? [meAgent, ...residenceAgents]
+      : residenceAgents;
+    const meId = NaviV2PB.escapeFilter(me?.id || '');
+    const scope = meId
+      ? `(residenza = "${escapedResidence}" || agente = "${meId}")`
+      : `residenza = "${escapedResidence}"`;
+    const filter = `data >= "${pbDate(startIso)}" && data <= "${pbDate(endIso)}" && ${scope} && stato != "annullato"`;
     try {
       const rows = await NaviV2PB.listAll('turni_effective', {
         filter,
@@ -124,6 +133,7 @@
     const rest = agents.filter(agent => String(agent.id) !== String(me?.id)).sort(compareAgents);
     const sorted = mine ? [mine, ...rest] : rest;
     const fmtDow = new Intl.DateTimeFormat('it-IT', { weekday:'short' });
+    const fmtMonth = new Intl.DateTimeFormat('it-IT', { month:'long', year:'numeric' });
 
     const dateMeta = new Map(days.map(day => {
       const iso = toIso(day);
@@ -134,6 +144,15 @@
         sunday:day.getDay() === 0,
       }];
     }));
+
+    const monthGroups = [];
+    days.forEach(day => {
+      const key = `${day.getFullYear()}-${day.getMonth()}`;
+      const last = monthGroups[monthGroups.length - 1];
+      if (last?.key === key) last.count += 1;
+      else monthGroups.push({ key, count:1, label:fmtMonth.format(day).toLocaleUpperCase('it') });
+    });
+    const monthHeader = monthGroups.map(group => `<th class="month-group" colspan="${group.count}">${escapeHtml(group.label)}</th>`).join('');
 
     const header = days.map(day => {
       const iso = toIso(day), meta = dateMeta.get(iso);
@@ -153,11 +172,11 @@
         const changed = row && row.origine_effective !== 'turno_importato';
         const meta = dateMeta.get(iso);
         const tdClass = [meta?.sunday ? 'dom' : '', meta?.bozza ? 'bozza-col' : ''].filter(Boolean).join(' ');
-        const title = row ? `${service}${changed ? ` · ${row.origine_effective}` : ''}${row.servizio_base && String(row.servizio_base).toUpperCase() !== service ? ` · base ${row.servizio_base}` : ''}` : 'Nessun turno';
-        return `<td class="${tdClass}" title="${escapeHtml(title)}"><span class="cell-pill ${shiftClass(service)} ${changed ? `changed origin-${escapeHtml(row.origine_effective)}` : ''}">${escapeHtml(service)}</span></td>`;
+        return `<td class="${tdClass}" data-date="${iso}" data-service="${escapeHtml(service)}"><span class="cell-pill ${shiftClass(service)} ${changed ? `changed origin-${escapeHtml(row.origine_effective)}` : ''}">${escapeHtml(service)}</span></td>`;
       }).join('');
       const isMine = String(agent.id) === String(me?.id);
-      const rowClasses = [gClass, isMine ? 'logged-agent-row' : '', startsGrade && !isMine ? 'grade-separator' : ''].filter(Boolean).join(' ');
+      const crossResidence = isMine && String(agent.residenza || '') !== String(residence || '');
+      const rowClasses = [gClass, isMine ? 'logged-agent-row' : '', crossResidence ? 'cross-residence-self' : '', startsGrade && !isMine ? 'grade-separator' : ''].filter(Boolean).join(' ');
       return `<tr class="${rowClasses}" data-agent-id="${escapeHtml(agent.legacy_id)}">
         <td class="td-num" title="${escapeHtml(GRADE_LABEL[gClass] || agent.grado || '')}">${escapeHtml(agent.legacy_id || '')}</td>
         <td class="td-name" title="${escapeHtml(GRADE_LABEL[gClass] || agent.grado || '')}"><span class="agent-name">${escapeHtml(agent.nome_completo)}</span><span class="grade-dot" title="${escapeHtml(GRADE_LABEL[gClass] || agent.grado || '')}"></span></td>
@@ -166,7 +185,7 @@
     }).join('');
 
     $('tableWrap').innerHTML = sorted.length
-      ? `<table class="turni-table"><thead><tr class="date-header"><th class="num-head">N.</th><th class="name-head">${escapeHtml(residence)}</th>${header}</tr></thead><tbody>${body}</tbody></table>`
+      ? `<table class="turni-table"><thead><tr class="month-header"><th class="num-head month-corner"></th><th class="name-head month-corner"></th>${monthHeader}</tr><tr class="date-header"><th class="num-head">N.</th><th class="name-head">${escapeHtml(residence)}</th>${header}</tr></thead><tbody>${body}</tbody></table>`
       : '<div class="empty">Nessun agente in questa residenza.</div>';
   }
 
