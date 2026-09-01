@@ -76,6 +76,13 @@
     });
   }
 
+  function renderMonthMenu() {
+    const cell = document.querySelector('.turni-table .month-header .name-head.month-corner');
+    if (!cell || cell.querySelector('.month-menu-bubble')) return;
+    cell.classList.add('month-menu-cell');
+    cell.innerHTML = '<a class="month-menu-bubble" href="index.html" aria-label="Apri menu NaviSuite">Menu</a>';
+  }
+
   function colorShiftPills() {
     document.querySelectorAll('.turni-table .cell-pill').forEach(pill => {
       const key = normalizeShift(pill.textContent);
@@ -112,6 +119,7 @@
     if (ensureOperativeResidence()) return;
     compactHeader();
     compactMonthLabels();
+    renderMonthMenu();
     renderResidenceBubbles();
     colorShiftPills();
   }
