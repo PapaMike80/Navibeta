@@ -57,6 +57,24 @@
     return true;
   }
 
+  function renderPastBubble() {
+    const cell = document.querySelector('.turni-table .date-header .num-head');
+    if (!cell) return;
+    if (cell.querySelector('.header-past-btn')) return;
+    cell.textContent = '';
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'header-past-btn';
+    button.setAttribute('aria-label','Mostra il passato');
+    button.title = 'Passato';
+    button.textContent = '↺';
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    cell.appendChild(button);
+  }
+
   function renderResidenceBubbles() {
     const cell = document.querySelector('.turni-table .date-header .name-head');
     if (!cell) return;
@@ -130,6 +148,7 @@
     compactHeader();
     compactMonthLabels();
     renderMonthMenu();
+    renderPastBubble();
     renderResidenceBubbles();
     colorShiftPills();
   }
