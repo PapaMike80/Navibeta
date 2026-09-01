@@ -1,3 +1,6 @@
 .month-group{color:transparent!important;text-shadow:none!important}
-.turni-month-sticky-label{position:fixed;display:none;align-items:center;justify-content:flex-start;z-index:114;box-sizing:border-box;padding:0 9px;background:#102833;color:#a9c0c9;border-bottom:1px solid rgba(35,68,82,.72);font:900 9px/1 Manrope,Inter,system-ui,sans-serif;letter-spacing:.10em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}
-@media(max-width:800px){.turni-month-sticky-label{padding:0 7px;font-size:8px;letter-spacing:.08em}}
+.turni-month-sticky-label{position:fixed;display:none;z-index:114;box-sizing:border-box;background:#102833;border-bottom:1px solid rgba(35,68,82,.72);overflow:hidden;pointer-events:none}
+.turni-month-segment{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:flex-start;box-sizing:border-box;padding:0 9px;color:#a9c0c9;font:900 9px/1 Manrope,Inter,system-ui,sans-serif;letter-spacing:.10em;white-space:nowrap;overflow:hidden;text-overflow:clip;background:#102833}
+.turni-month-segment.has-divider{border-left:2px solid rgba(56,189,248,.72)}
+.turni-table th.day.month-boundary,.turni-table td.month-boundary{border-left:2px solid rgba(56,189,248,.72)!important}
+@media(max-width:800px){.turni-month-segment{padding:0 7px;font-size:8px;letter-spacing:.08em}.turni-month-segment.has-divider,.turni-table th.day.month-boundary,.turni-table td.month-boundary{border-left-width:2px!important}}
