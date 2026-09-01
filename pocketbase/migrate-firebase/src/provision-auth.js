@@ -50,6 +50,24 @@ class PocketBaseAdmin {
     return page.items?.[0] || null;
   }
 
+  async listAll(collection, fields = "id") {
+    const out = [];
+    const perPage = 500;
+    for (let page = 1; ; page += 1) {
+      const params = new URLSearchParams({
+        page:String(page),
+        perPage:String(perPage),
+        skipTotal:"1",
+        fields,
+      });
+      const result = await this.request(`/api/collections/${collection}/records?${params}`);
+      const items = Array.isArray(result.items) ? result.items : [];
+      out.push(...items);
+      if (items.length < perPage) break;
+    }
+    return out;
+  }
+
   async createUser(agent, auth) {
     const pinHash = clean(auth.pinHash).toLowerCase();
     const legacyId = clean(agent.legacy_id);
@@ -96,9 +114,17 @@ class PocketBaseAdmin {
 const pb = new PocketBaseAdmin(process.env.POCKETBASE_URL || "http://127.0.0.1:8090");
 await pb.login();
 
+const allAgents = await pb.listAll("agenti", "id,legacy_id,nome_completo,attivo,residenza,ruolo,user");
+const authLegacyIds = new Set(
+  Object.entries(userAuth)
+    .map(([key, value]) => clean((value && typeof value === "object" ? value.id : "") || key))
+    .filter(Boolean)
+);
+
 const summary = {
   mode:execute ? "execute" : "dry-run",
   firebaseAuthEntries:Object.keys(userAuth).length,
+  pocketBaseAgents:allAgents.length,
   candidates:0,
   created:0,
   existing:0,
@@ -107,6 +133,15 @@ const summary = {
   skippedMissingAgent:[],
   skippedInvalidPinHash:[],
   conflicts:[],
+  agentsWithoutFirebaseAuth:allAgents
+    .filter(agent => !authLegacyIds.has(clean(agent.legacy_id)))
+    .map(agent => ({
+      legacyId:clean(agent.legacy_id),
+      nome:clean(agent.nome_completo),
+      attivo:agent.attivo !== false,
+      residenza:clean(agent.residenza),
+      ruolo:clean(agent.ruolo),
+    })),
 };
 
 for (const [key, authValue] of Object.entries(userAuth)) {
@@ -139,7 +174,6 @@ for (const [key, authValue] of Object.entries(userAuth)) {
     user = await pb.createUser(agent, auth);
     summary.created += 1;
   } else {
-    // Deterministic placeholder used only to describe the dry-run linking action.
     user = { id:"<new-user>" };
     summary.created += 1;
   }
