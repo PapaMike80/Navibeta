@@ -4,8 +4,11 @@
 
   let metaTable = null;
   let daysTable = null;
-  let queued = false;
+  let refs = null;
+  let buildQueued = false;
+  let positionQueued = false;
   let rebuilding = false;
+  let lastSignature = '';
 
   function pxVar(name, fallback) {
     const value = parseFloat(getComputedStyle(document.documentElement).getPropertyValue(name));
@@ -45,11 +48,7 @@
     document.body.classList.remove('turni-self-overlay-visible');
   }
 
-  function sync() {
-    queued = false;
-    if (rebuilding) return;
-    ensureTables();
-
+  function collect() {
     const table = wrap.querySelector('.turni-table');
     const dateRow = table?.querySelector('.date-header');
     const source = table?.querySelector('tr.logged-agent-row');
@@ -57,51 +56,58 @@
     const sourceDays = source ? [...source.querySelectorAll('td[data-date]')] : [];
     const num = source?.querySelector('.td-num');
     const name = source?.querySelector('.td-name');
+    if (!table || !dateRow || !source || !dayHeads.length || !sourceDays.length || !num || !name) return null;
+    return {table,dateRow,source,dayHeads,sourceDays,num,name};
+  }
 
-    if (!table || !dateRow || !source || !dayHeads.length || !sourceDays.length || !num || !name) {
+  function signatureOf(ctx) {
+    const services = ctx.sourceDays.map(cell => `${cell.dataset.date || ''}:${cell.dataset.service || cell.querySelector('.cell-pill')?.textContent || ''}`).join('|');
+    return `${ctx.source.dataset.agentId || ''}|${ctx.sourceDays.length}|${services}`;
+  }
+
+  function build(force = false) {
+    buildQueued = false;
+    if (rebuilding) return;
+    ensureTables();
+
+    const ctx = collect();
+    if (!ctx) {
+      refs = null;
+      lastSignature = '';
       hide();
       return;
     }
 
-    const tableRect = table.getBoundingClientRect();
-    const viewportTop = fixedTop();
-    const monthH = pxVar('--month-h',30);
-    const dateH = pxVar('--date-h',42);
-    const headerTop = Math.max(viewportTop,Math.round(tableRect.top));
-    const sourceHeight = Math.max(38,Math.round(source.offsetHeight || source.getBoundingClientRect().height || 44));
-    const top = headerTop + monthH + dateH;
-
-    // La visibilità dipende solo dall'intera tabella, mai dalla posizione sticky
-    // della riga originale. Questo evita la sparizione dopo scroll lunghi.
-    if (tableRect.top >= window.innerHeight || tableRect.bottom <= top + 2) {
-      hide();
+    const signature = signatureOf(ctx);
+    refs = ctx;
+    if (!force && signature === lastSignature && metaTable?.rows.length && daysTable?.rows.length) {
+      schedulePosition();
       return;
     }
-
-    const numHead = dateRow.querySelector('.num-head');
-    const nameHead = dateRow.querySelector('.name-head');
-    const numW = Math.round(numHead?.offsetWidth || num.offsetWidth || pxVar('--num-w',42));
-    const nameW = Math.round(nameHead?.offsetWidth || name.offsetWidth || pxVar('--name-w',165));
-    const stickyLeft = Math.max(0,Math.round(tableRect.left));
-    const firstDayRect = dayHeads[0].getBoundingClientRect();
 
     rebuilding = true;
     try {
+      const sourceHeight = Math.max(38,Math.round(ctx.source.offsetHeight || ctx.source.getBoundingClientRect().height || 44));
+      const numHead = ctx.dateRow.querySelector('.num-head');
+      const nameHead = ctx.dateRow.querySelector('.name-head');
+      const numW = Math.round(numHead?.offsetWidth || ctx.num.offsetWidth || pxVar('--num-w',42));
+      const nameW = Math.round(nameHead?.offsetWidth || ctx.name.offsetWidth || pxVar('--name-w',165));
+
       const metaRow = document.createElement('tr');
-      metaRow.dataset.agentId = source.dataset.agentId || '';
+      metaRow.dataset.agentId = ctx.source.dataset.agentId || '';
       metaRow.className = 'logged-agent-row self-overlay-row';
-      metaRow.append(cloneCell(num),cloneCell(name));
+      metaRow.append(cloneCell(ctx.num),cloneCell(ctx.name));
       const metaBody = document.createElement('tbody');
       metaBody.appendChild(metaRow);
       metaTable.replaceChildren(metaBody);
 
       const daysRow = document.createElement('tr');
-      daysRow.dataset.agentId = source.dataset.agentId || '';
+      daysRow.dataset.agentId = ctx.source.dataset.agentId || '';
       daysRow.className = 'logged-agent-row self-overlay-row';
       let totalDaysWidth = 0;
-      sourceDays.forEach((cell,index) => {
+      ctx.sourceDays.forEach((cell,index) => {
         const copy = cloneCell(cell);
-        const width = Math.max(1,Math.round(dayHeads[index]?.offsetWidth || cell.offsetWidth || 47));
+        const width = Math.max(1,Math.round(ctx.dayHeads[index]?.offsetWidth || cell.offsetWidth || 47));
         totalDaysWidth += width;
         copy.style.width = `${width}px`;
         copy.style.minWidth = `${width}px`;
@@ -114,32 +120,81 @@
 
       metaTable.style.setProperty('--self-overlay-h',`${sourceHeight}px`);
       daysTable.style.setProperty('--self-overlay-h',`${sourceHeight}px`);
-      metaTable.style.top = `${Math.round(top)}px`;
-      metaTable.style.left = `${stickyLeft}px`;
       metaTable.style.width = `${numW + nameW}px`;
-      daysTable.style.top = `${Math.round(top)}px`;
-      daysTable.style.left = `${Math.round(firstDayRect.left)}px`;
       daysTable.style.width = `${totalDaysWidth}px`;
-      document.body.classList.add('turni-self-overlay-visible');
+      lastSignature = signature;
     } finally {
       rebuilding = false;
     }
+
+    position();
   }
 
-  function schedule() {
-    if (queued) return;
-    queued = true;
-    requestAnimationFrame(sync);
+  function setPx(el, prop, value) {
+    const next = `${Math.round(value)}px`;
+    if (el.style[prop] !== next) el.style[prop] = next;
   }
 
-  const observer = new MutationObserver(() => {
-    if (!rebuilding) schedule();
+  function position() {
+    positionQueued = false;
+    if (!refs?.table?.isConnected || !refs?.dateRow?.isConnected || !refs?.dayHeads?.[0]?.isConnected) {
+      scheduleBuild(true);
+      return;
+    }
+
+    const tableRect = refs.table.getBoundingClientRect();
+    const viewportTop = fixedTop();
+    const monthH = pxVar('--month-h',30);
+    const dateH = pxVar('--date-h',42);
+    const headerTop = Math.max(viewportTop,Math.round(tableRect.top));
+    const rowTop = headerTop + monthH + dateH;
+
+    if (tableRect.top >= window.innerHeight || tableRect.bottom <= rowTop + 2) {
+      hide();
+      return;
+    }
+
+    const metaLeft = Math.max(0,Math.round(tableRect.left));
+    const daysLeft = Math.round(refs.dayHeads[0].getBoundingClientRect().left);
+
+    setPx(metaTable,'top',rowTop);
+    setPx(daysTable,'top',rowTop);
+    setPx(metaTable,'left',metaLeft);
+    setPx(daysTable,'left',daysLeft);
+    document.body.classList.add('turni-self-overlay-visible');
+  }
+
+  function scheduleBuild(force = false) {
+    if (buildQueued) return;
+    buildQueued = true;
+    requestAnimationFrame(() => build(force));
+  }
+
+  function schedulePosition() {
+    if (positionQueued) return;
+    positionQueued = true;
+    requestAnimationFrame(position);
+  }
+
+  const wrapObserver = new MutationObserver(mutations => {
+    if (rebuilding) return;
+    const meaningful = mutations.some(mutation => {
+      if (mutation.type === 'childList') return true;
+      return mutation.type === 'attributes' && mutation.attributeName === 'data-service';
+    });
+    if (meaningful) scheduleBuild();
   });
-  observer.observe(wrap,{childList:true,subtree:true,attributes:true,attributeFilter:['class','style','data-service']});
-  new MutationObserver(schedule).observe(document.body,{attributes:true,attributeFilter:['class']});
-  window.addEventListener('scroll',schedule,{passive:true});
-  window.addEventListener('resize',schedule,{passive:true});
-  document.getElementById('residence')?.addEventListener('change',() => setTimeout(schedule,30));
-  window.addEventListener('load',() => setTimeout(schedule,100));
-  schedule();
+  wrapObserver.observe(wrap,{childList:true,subtree:true,attributes:true,attributeFilter:['data-service']});
+
+  new MutationObserver(() => {
+    schedulePosition();
+    requestAnimationFrame(schedulePosition);
+    setTimeout(schedulePosition,230);
+  }).observe(document.body,{attributes:true,attributeFilter:['class']});
+
+  window.addEventListener('scroll',schedulePosition,{passive:true});
+  window.addEventListener('resize',() => scheduleBuild(true),{passive:true});
+  document.getElementById('residence')?.addEventListener('change',() => setTimeout(() => scheduleBuild(true),30));
+  window.addEventListener('load',() => setTimeout(() => scheduleBuild(true),100));
+  scheduleBuild(true);
 })();
