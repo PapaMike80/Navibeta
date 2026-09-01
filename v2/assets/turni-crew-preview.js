@@ -8,19 +8,29 @@
     marinaio:{label:'Marinaio',color:'#9ca3af',rank:5},operaio:{label:'Operaio',color:'#14b8a6',rank:6},
     barista:{label:'Barista',color:'#f472b6',rank:7}
   };
+
   const SERVICE_COLORS = {
     D1:'#3b6bcc',D2:'#2d9e6b',D3:'#e07b3a',D4:'#c45cba',BIS:'#5ec4d4',POND:'#f08080',DT:'#e6d44a',
     P1:'#60a5fa',P2:'#34d399',P3:'#fbbf24',CAP:'#f472b6',SR1:'#22d3ee',
     R1:'#38bdf8',R2:'#f59e0b',R3:'#22c55e',R4:'#f472b6',CAR:'#fb7185',
-    T1:'#38bdf8',T2:'#fb923c',M1:'#a78bfa',LAV:'#fbbf24',RIP:'#6b7280'
+    T1:'#38bdf8',T2:'#fb923c',M1:'#a78bfa',
+    AGB:'#60a5fa',AGM:'#2dd4bf',AGT:'#34d399',PONM:'#5ec4d4',LD:'#94a3b8',PT:'#fb923c',LAV:'#fbbf24',
+    TERRA:'#fbbf24',RIP:'#6b7280'
   };
-  const RESIDENCE_SHIFTS = {
-    DESENZANO:['D1','D2','D3','D4','BIS','LAV'],
-    MADERNO:['T1','T2','M1','LAV'],
-    RIVA:['R1','R2','R3','R4','CAR','LAV'],
-    PESCHIERA:['P1','P2','P3','CAP','SR1','LAV']
+
+  const RESIDENCE_COURSES = {
+    DESENZANO:['D1','D2','D3','D4','BIS'],
+    MADERNO:['T1','T2','M1'],
+    RIVA:['R1','R2','R3','R4','CAR'],
+    PESCHIERA:['P1','P2','P3','CAP','SR1']
   };
-  const SHIFT_RESIDENCE = Object.fromEntries(Object.entries(RESIDENCE_SHIFTS).flatMap(([res,shifts]) => shifts.filter(s => s !== 'LAV').map(s => [s,res])));
+  const ALL_COURSES = Object.values(RESIDENCE_COURSES).flat();
+  const GROUND_SERVICES = ['AGB','DT','POND','PT','AGM','AGT','PONM','LD','LAV'];
+  const GROUND_SET = new Set(GROUND_SERVICES);
+  const SHIFT_RESIDENCE = Object.fromEntries(
+    Object.entries(RESIDENCE_COURSES).flatMap(([res,shifts]) => shifts.map(shift => [shift,res]))
+  );
+  const PRETTY = { AGB:'AgB',POND:'PonD',AGM:'AgM',AGT:'AgT',PONM:'PonM' };
 
   const crewCache = new Map();
   const dateRowsCache = new Map();
@@ -34,11 +44,17 @@
   const esc = value => String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
   const norm = value => String(value || '').trim().toLowerCase().replace(/[_-]+/g,' ');
   const rawServiceKey = value => String(value || '').trim().toUpperCase().replace(/\s+/g,'').replace(/\*/g,'').replace(/--/g,'');
+  const prettyService = value => PRETTY[rawServiceKey(value)] || rawServiceKey(value);
   const crewServiceKey = value => {
     const raw = rawServiceKey(value);
+    if (raw === 'TERRA') return 'TERRA';
     if (NO_CREW.has(raw)) return raw;
     const match = raw.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
     return match?.[1] ? match[1].toUpperCase() : raw;
+  };
+  const crewTargetForService = value => {
+    const clean = crewServiceKey(value);
+    return GROUND_SET.has(clean) ? 'TERRA' : clean;
   };
   const grade = agent => {
     if (norm(agent?.ruolo) === 'barista') return GRADE.barista;
@@ -107,6 +123,7 @@
     el.style.left = `${Math.round(left)}px`;
     el.style.top = `${Math.round(top)}px`;
   }
+
   async function agents() {
     if (!agentsPromise) agentsPromise = NaviV2PB.listAll('agenti',{filter:'attivo = true',fields:'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo'});
     return agentsPromise;
@@ -127,13 +144,16 @@
     return promise;
   }
   async function crew(date, service) {
-    const target = crewServiceKey(service);
+    const target = crewTargetForService(service);
     const key = `${date}|${target}`;
     if (crewCache.has(key)) return crewCache.get(key);
     const [people, rows] = await Promise.all([agents(),rowsForDate(date)]);
     const byId = new Map(people.map(person => [String(person.id),person]));
     const result = rows
-      .filter(row => crewServiceKey(row.servizio) === target)
+      .filter(row => {
+        const clean = crewServiceKey(row.servizio);
+        return target === 'TERRA' ? GROUND_SET.has(clean) : clean === target;
+      })
       .map(row => ({ person:byId.get(String(row.agente)), row }))
       .filter(item => item.person)
       .sort((a,b) => {
@@ -156,9 +176,8 @@
   function isMe(person) {
     return String(person?.id || '') === String(NaviV2PB.agent()?.id || '');
   }
-  function canEdit(person) {
-    const role = String(NaviV2PB.user()?.role || '').toLowerCase();
-    return isMe(person) || role === 'admin' || role === 'super_user';
+  function canEditOwnService() {
+    return Boolean(pinned?.person && isMe(pinned.person) && pinned.mode === 'person' && pinned.row?.id);
   }
   function listHtml(list) {
     const me = NaviV2PB.agent();
@@ -168,6 +187,7 @@
       return `<div class="crew-preview-person${mine ? ' is-me' : ''}" style="--grade-color:${g.color}"><span class="crew-preview-name">${esc(person.nome_completo)}${mine ? ' · TU' : ''}</span><span class="crew-preview-grade">${esc(g.label)}</span></div>`;
     }).join('') : '<div class="crew-preview-empty">Nessun equipaggio trovato.</div>';
   }
+
   async function previewServiceForCell(cell,date) {
     const direct = cell?.dataset.service || cell?.querySelector('.cell-pill')?.textContent;
     if (direct) return String(direct).toUpperCase();
@@ -184,36 +204,47 @@
     if (!date) { hidePreview(); return; }
     const rawService = await previewServiceForCell(cell,date);
     if (activeCell && activeCell !== cell) return;
-    const service = crewServiceKey(rawService);
+    const clean = crewServiceKey(rawService);
+    const target = crewTargetForService(rawService);
     if (!rawService || rawService === '—') { hidePreview(); return; }
     activeCell = cell;
     const el = tooltip();
-    const color = SERVICE_COLORS[service] || '#2dd4bf';
+    const color = SERVICE_COLORS[target] || SERVICE_COLORS[clean] || '#2dd4bf';
     el.style.setProperty('--crew-service',color);
-    el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service || rawService)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">${NO_CREW.has(service) ? 'Nessun equipaggio previsto.' : 'Caricamento equipaggio…'}</div>`;
+    el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(prettyService(rawService))}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">${NO_CREW.has(clean) ? 'Nessun equipaggio previsto.' : 'Caricamento equipaggio…'}</div>`;
     el.classList.remove('pinned','editing');
     el.classList.add('open');
     position(el,cell);
-    if (NO_CREW.has(service)) return;
+    if (NO_CREW.has(clean)) return;
     try {
-      const list = await crew(date,service);
+      const list = await crew(date,target);
       if (activeCell !== cell || pinned) return;
-      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-list">${listHtml(list)}</div>`;
+      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(prettyService(rawService))}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-list">${listHtml(list)}</div>`;
       requestAnimationFrame(() => position(el,cell));
     } catch {
       if (activeCell !== cell || pinned) return;
-      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">Equipaggio non disponibile.</div>`;
+      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(prettyService(rawService))}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">Equipaggio non disponibile.</div>`;
       requestAnimationFrame(() => position(el,cell));
     }
   }
+
   function viewButtons(residence,active) {
-    const shifts = RESIDENCE_SHIFTS[residence] || [];
+    const shifts = [...(RESIDENCE_COURSES[residence] || []),'TERRA'];
     return shifts.map(shift => `<button type="button" class="crew-view-shift${shift===active ? ' active' : ''}" data-view-shift="${shift}" style="--shift-color:${SERVICE_COLORS[shift] || '#2dd4bf'}">${shift}</button>`).join('');
   }
-  function editButtons(residence,current) {
-    const shifts = [...(RESIDENCE_SHIFTS[residence] || []),'RIP'];
-    return shifts.map(shift => `<button type="button" class="crew-edit-shift${shift===crewServiceKey(current) ? ' active' : ''}" data-edit-shift="${shift}" style="--shift-color:${SERVICE_COLORS[shift] || '#64748b'}">${shift}</button>`).join('');
+  function editOption(service,current) {
+    const active = rawServiceKey(service) === rawServiceKey(current);
+    return `<button type="button" class="crew-edit-shift${active ? ' active' : ''}" data-edit-shift="${service}" style="--shift-color:${SERVICE_COLORS[service] || '#64748b'}">${esc(prettyService(service))}</button>`;
   }
+  function editMenuHtml(current) {
+    const meResidence = String(NaviV2PB.agent()?.residenza || '').trim().toUpperCase();
+    const own = RESIDENCE_COURSES[meResidence] || [];
+    const other = ALL_COURSES.filter(service => !own.includes(service));
+    return `<div class="crew-edit-group"><div class="crew-edit-group-title">${esc(meResidence || 'MIA RESIDENZA')}</div><div class="crew-edit-grid">${own.map(s => editOption(s,current)).join('')}</div></div>
+      <div class="crew-edit-group"><div class="crew-edit-group-title">ALTRE CORSE</div><div class="crew-edit-grid">${other.map(s => editOption(s,current)).join('')}</div></div>
+      <div class="crew-edit-group"><div class="crew-edit-group-title">TERRA</div><div class="crew-edit-grid">${GROUND_SERVICES.map(s => editOption(s,current)).join('')}</div></div>`;
+  }
+
   async function renderPinned() {
     if (!pinned) return;
     const el = tooltip();
@@ -224,25 +255,24 @@
     pinned.actualRaw = String(row?.servizio || 'RIP').toUpperCase();
     const actualCrew = crewServiceKey(pinned.actualRaw);
 
-    // Aperto dalla propria riga o dalla data: le frecce seguono automaticamente i propri turni.
-    // Appena si sceglie una corsa dai pulsanti, la navigazione mantiene invece quella corsa.
-    if (pinned.mode === 'person') pinned.viewService = NO_CREW.has(actualCrew) ? '' : actualCrew;
-    else if (!pinned.viewService) pinned.viewService = NO_CREW.has(actualCrew) ? '' : actualCrew;
+    if (pinned.mode === 'person') pinned.viewService = NO_CREW.has(actualCrew) ? '' : crewTargetForService(actualCrew);
+    else if (!pinned.viewService) pinned.viewService = NO_CREW.has(actualCrew) ? '' : crewTargetForService(actualCrew);
 
     const residence = serviceResidence(pinned.viewService || actualCrew) || String(person?.residenza || selectedTableResidence()).toUpperCase();
-    pinned.residence = RESIDENCE_SHIFTS[residence] ? residence : selectedTableResidence();
-    const color = SERVICE_COLORS[pinned.viewService || actualCrew] || '#2dd4bf';
+    pinned.residence = RESIDENCE_COURSES[residence] ? residence : selectedTableResidence();
+
+    const shownService = pinned.mode === 'course' ? (pinned.viewService || actualCrew || pinned.actualRaw) : pinned.actualRaw;
+    const shownColorKey = crewTargetForService(shownService) || shownService;
+    const color = SERVICE_COLORS[shownColorKey] || SERVICE_COLORS[crewServiceKey(shownService)] || '#2dd4bf';
     el.style.setProperty('--crew-service',color);
-    const editable = canEdit(person) && row;
-    const currentLabel = pinned.actualRaw || 'RIP';
+
+    const editable = canEditOwnService();
     const navLabel = pinned.mode === 'person' ? 'VEDI CORSA · SEGUI I MIEI TURNI' : `VEDI CORSA · SEGUI ${pinned.viewService || ''}`;
 
     el.innerHTML = `<div class="crew-popup-top">
       <div class="crew-popup-course">
-        <button type="button" class="crew-current-service${editable ? '' : ' readonly'}" ${editable ? '' : 'disabled'} title="${editable ? 'Modifica servizio' : 'Servizio in sola lettura'}">
-          <small>SERVIZIO</small><strong>${esc(currentLabel)}</strong><span>${editable ? 'MODIFICA' : ''}</span>
-        </button>
-        <div class="crew-edit-services" aria-hidden="true"><div class="crew-popup-mini-label">MODIFICA SERVIZIO</div>${editButtons(pinned.residence,currentLabel)}</div>
+        <button type="button" class="crew-current-service${editable ? '' : ' readonly'}" ${editable ? '' : 'disabled'} title="${editable ? 'Cambia il mio servizio' : ''}"><strong>${esc(prettyService(shownService))}</strong></button>
+        <div class="crew-edit-services" aria-hidden="true">${editable ? editMenuHtml(pinned.actualRaw) : ''}</div>
         <div class="crew-popup-mini-label">${esc(navLabel)}</div>
         <div class="crew-view-shifts">${viewButtons(pinned.residence,pinned.viewService)}</div>
       </div>
@@ -266,6 +296,7 @@
       if (pinned) el.querySelector('.crew-preview-list').innerHTML = '<div class="crew-preview-empty">Equipaggio non disponibile.</div>';
     }
   }
+
   async function openPinned(cell) {
     const date = cell?.dataset.date;
     const person = await personForCell(cell);
@@ -276,9 +307,10 @@
       cell,
       person,
       date,
-      viewService:crewServiceKey(directService),
+      viewService:crewTargetForService(directService),
       mode:followsMine ? 'person' : 'course',
-      editing:false
+      editing:false,
+      row:null
     };
     activeCell = cell;
     const el = tooltip();
@@ -288,6 +320,7 @@
     document.body.classList.add('crew-popup-open');
     await renderPinned();
   }
+
   function invalidateDate(date) {
     dateRowsCache.delete(date);
     [...crewCache.keys()].filter(key => key.startsWith(`${date}|`)).forEach(key => crewCache.delete(key));
@@ -301,14 +334,16 @@
     if (pill) pill.textContent = service;
   }
   async function saveService(shift) {
-    if (!pinned?.row?.id || !canEdit(pinned.person)) return;
+    if (!pinned?.row?.id || !canEditOwnService()) return;
     const button = tooltip().querySelector(`[data-edit-shift="${shift}"]`);
     if (button) button.disabled = true;
     try {
       const result = await NaviV2PB.request(`/api/navisuite-v2/turni/${encodeURIComponent(pinned.row.id)}/servizio`,{method:'POST',body:{servizio:shift}});
       invalidateDate(pinned.date);
       updateVisibleCell(pinned.person,pinned.date,String(result?.servizio || shift).toUpperCase());
+      pinned.editing = false;
       await renderPinned();
+      tooltip().classList.remove('editing');
     } catch (error) {
       const el = tooltip();
       let msg = el.querySelector('.crew-popup-error');
@@ -381,6 +416,8 @@
       if (view) {
         pinned.mode = 'course';
         pinned.viewService = view.dataset.viewShift;
+        pinned.editing = false;
+        el.classList.remove('editing');
         renderPinned();
         return;
       }
