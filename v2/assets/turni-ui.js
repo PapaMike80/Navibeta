@@ -34,23 +34,26 @@
 
   function ensureOperativeResidence() {
     const select = document.getElementById('residence');
-    if (!select) return;
-    if (OPERATIVE.some(item => item.key === currentResidenceKey())) return;
+    if (!select) return false;
+    if (OPERATIVE.some(item => item.key === currentResidenceKey())) return false;
     const first = optionFor('desenzano') || OPERATIVE.map(item => optionFor(item.key)).find(Boolean);
-    if (!first) return;
+    if (!first) return false;
     select.value = first.value;
     select.dispatchEvent(new Event('change', { bubbles:true }));
+    return true;
   }
 
   function renderResidenceBubbles() {
     const cell = document.querySelector('.turni-table .name-head');
     if (!cell) return;
     const active = currentResidenceKey();
-    cell.innerHTML = `<div class="header-residence-bubbles" aria-label="Residenza">${OPERATIVE.map(item => {
+    const available = OPERATIVE.filter(item => optionFor(item.key));
+    const signature = `${active}|${available.map(item => item.key).join(',')}`;
+    if (cell.dataset.resUi === signature && cell.querySelector('.header-residence-bubbles')) return;
+    cell.dataset.resUi = signature;
+    cell.innerHTML = `<div class="header-residence-bubbles" aria-label="Residenza">${available.map(item => {
       const option = optionFor(item.key);
-      if (!option) return '';
-      const isActive = active === item.key;
-      return `<button type="button" class="header-residence-btn${isActive ? ' active' : ''}" data-res-key="${item.key}" style="--quick-res-color:${item.color}" title="${option.textContent}">${item.label}</button>`;
+      return `<button type="button" class="header-residence-btn${active === item.key ? ' active' : ''}" data-res-key="${item.key}" style="--quick-res-color:${item.color}" title="${option.textContent}">${item.label}</button>`;
     }).join('')}</div>`;
     cell.querySelectorAll('.header-residence-btn').forEach(button => {
       button.addEventListener('click', event => {
@@ -66,8 +69,7 @@
 
   function colorShiftPills() {
     document.querySelectorAll('.turni-table .cell-pill').forEach(pill => {
-      const raw = normalizeShift(pill.textContent);
-      const key = raw === 'POND' ? 'POND' : raw;
+      const key = normalizeShift(pill.textContent);
       const palette = SHIFT_COLORS[key];
       if (!palette) return;
       pill.style.setProperty('--service-color', palette[0]);
@@ -81,13 +83,20 @@
   }
 
   function enhance() {
-    ensureOperativeResidence();
+    if (ensureOperativeResidence()) return;
     compactHeader();
     renderResidenceBubbles();
     colorShiftPills();
   }
 
   const wrap = document.getElementById('tableWrap');
-  if (wrap) new MutationObserver(() => queueMicrotask(enhance)).observe(wrap, { childList:true, subtree:true });
+  if (wrap) {
+    let scheduled = false;
+    new MutationObserver(() => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => { scheduled = false; enhance(); });
+    }).observe(wrap, { childList:true, subtree:true });
+  }
   window.addEventListener('load', () => setTimeout(enhance, 50));
 })();
