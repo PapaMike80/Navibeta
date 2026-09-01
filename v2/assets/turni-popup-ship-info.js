@@ -1,6 +1,7 @@
 (() => {
   const COURSE = new Set(['D1','D2','D3','D4','BIS','P1','P2','P3','CAP','SR1','R1','R2','R3','R4','CAR','T1','T2','M1']);
   const cache = new Map();
+  const dayRowsCache = new Map();
   let shipsPromise = null;
   let currentDate = '';
   let scheduled = false;
@@ -25,31 +26,51 @@
   const dateLabel = iso => new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(`${iso}T12:00:00`)).toUpperCase();
 
   async function ships() {
-    if (!shipsPromise) shipsPromise = NaviV2PB.listAll('navi',{filter:'attiva = true',fields:'id,nome,residenza,attiva'});
+    // Non filtrare per attiva: un turno nave storico può riferirsi a una nave
+    // oggi non attiva ma deve comunque mostrare il nome corretto.
+    if (!shipsPromise) shipsPromise = NaviV2PB.listAll('navi',{fields:'id,nome,residenza,attiva'});
     return shipsPromise;
   }
 
-  async function shipInfo(date,service) {
-    const key = `${date}|${service}`;
-    if (cache.has(key)) return cache.get(key);
-    const promise = Promise.all([
-      ships(),
-      NaviV2PB.listAll('turni_navi',{
-        filter:`data >= "${date} 00:00:00.000Z" && data <= "${date} 23:59:59.999Z" && servizio = "${NaviV2PB.escapeFilter(service)}"`,
+  function shipRowsForDate(date) {
+    if (!dayRowsCache.has(date)) {
+      dayRowsCache.set(date,NaviV2PB.listAll('turni_navi',{
+        filter:`data >= "${date} 00:00:00.000Z" && data <= "${date} 23:59:59.999Z"`,
         sort:'-updated',
         fields:'id,nave,data,servizio,ormeggio_serale,rifornimento_mattina,updated'
-      })
-    ]).then(([shipList,rows]) => {
+      }));
+    }
+    return dayRowsCache.get(date);
+  }
+
+  async function shipInfo(date,service) {
+    const normalizedService = cleanService(service);
+    const key = `${date}|${normalizedService}`;
+    if (cache.has(key)) return cache.get(key);
+
+    const promise = Promise.all([ships(),shipRowsForDate(date)]).then(([shipList,dayRows]) => {
       const byId = new Map(shipList.map(ship => [String(ship.id),ship]));
-      const usable = rows.map(row => ({row,ship:byId.get(String(row.nave))})).filter(item => item.ship);
-      const picked = usable[0] || (rows[0] ? {row:rows[0],ship:null} : null);
-      if (!picked) return null;
+
+      // La migrazione ha conservato il valore originale di `corsa` in
+      // turni_navi.servizio. Normalizzalo qui (D1*, CD1C, ecc.) invece di
+      // pretendere una corrispondenza testuale esatta lato PocketBase.
+      const rows = dayRows.filter(row => cleanService(row.servizio) === normalizedService);
+      if (!rows.length) return null;
+
+      const picked = rows
+        .map(row => ({row,ship:byId.get(String(row.nave)) || null}))
+        .find(item => item.ship) || {row:rows[0],ship:null};
+
       return {
-        nave:picked.ship?.nome || '—',
+        nave:String(picked.ship?.nome || '').trim() || '—',
         ormeggio:String(picked.row.ormeggio_serale || '').trim() || '—',
         rifornimento:Boolean(picked.row.rifornimento_mattina)
       };
-    }).catch(() => null);
+    }).catch(error => {
+      console.warn('[NaviTurni V2] dati nave non disponibili',date,normalizedService,error);
+      return null;
+    });
+
     cache.set(key,promise);
     return promise;
   }
