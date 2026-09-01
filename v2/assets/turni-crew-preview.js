@@ -12,21 +12,51 @@
     D1:'#3b6bcc',D2:'#2d9e6b',D3:'#e07b3a',D4:'#c45cba',BIS:'#5ec4d4',POND:'#f08080',DT:'#e6d44a',
     P1:'#60a5fa',P2:'#34d399',P3:'#fbbf24',CAP:'#f472b6',SR1:'#22d3ee',
     R1:'#38bdf8',R2:'#f59e0b',R3:'#22c55e',R4:'#f472b6',CAR:'#fb7185',
-    T1:'#38bdf8',T2:'#fb923c',M1:'#a78bfa',TERRA:'#fbbf24',LAV:'#fbbf24'
+    T1:'#38bdf8',T2:'#fb923c',M1:'#a78bfa',LAV:'#fbbf24'
   };
-  const cache = new Map();
+  const RESIDENCE_SHIFTS = {
+    DESENZANO:['D1','D2','D3','D4','BIS','LAV'],
+    MADERNO:['T1','T2','M1','LAV'],
+    RIVA:['R1','R2','R3','R4','CAR','LAV'],
+    PESCHIERA:['P1','P2','P3','CAP','SR1','LAV']
+  };
+  const SHIFT_RESIDENCE = Object.fromEntries(Object.entries(RESIDENCE_SHIFTS).flatMap(([res,shifts]) => shifts.filter(s => s !== 'LAV').map(s => [s,res])));
+
+  const crewCache = new Map();
+  const dateRowsCache = new Map();
   let agentsPromise = null;
   let hoverTimer = 0;
   let activeCell = null;
+  let pinned = null;
+  let lastTouch = { cell:null, at:0 };
+  let suppressClickUntil = 0;
 
   const esc = value => String(value ?? '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
   const norm = value => String(value || '').trim().toLowerCase().replace(/[_-]+/g,' ');
-  const serviceKey = value => String(value || '').trim().toUpperCase().replace(/\s+/g,'');
+  const rawServiceKey = value => String(value || '').trim().toUpperCase().replace(/\s+/g,'').replace(/\*/g,'').replace(/--/g,'');
+  const crewServiceKey = value => {
+    const raw = rawServiceKey(value);
+    if (NO_CREW.has(raw)) return raw;
+    const match = raw.match(/(?:^C)?([DRMP]\d|BIS|POND|PONM|AGB|AGM|AGT|T1|M1|DT|T2|CAR|CAP|SR1)(?:C|$)/i);
+    return match?.[1] ? match[1].toUpperCase() : raw;
+  };
+  const isTransferCode = value => {
+    const raw = rawServiceKey(value);
+    const clean = crewServiceKey(raw);
+    return Boolean(clean && raw !== clean && /^C.+C$/.test(raw));
+  };
   const grade = agent => {
     if (norm(agent?.ruolo) === 'barista') return GRADE.barista;
     return GRADE[norm(agent?.grado || agent?.ruolo)] || {label:agent?.grado || 'Equipaggio',color:'#94a3b8',rank:99};
   };
-  const dateLabel = iso => new Intl.DateTimeFormat('it-IT',{day:'numeric',month:'short'}).format(new Date(`${iso}T12:00:00`)).toUpperCase();
+  const dateLabel = iso => new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(`${iso}T12:00:00`)).toUpperCase();
+  const addDay = (iso,delta) => {
+    const d = new Date(`${iso}T12:00:00`);
+    d.setDate(d.getDate()+delta);
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  };
+  const selectedTableResidence = () => String(document.getElementById('residence')?.value || '').trim().toUpperCase();
+  const serviceResidence = service => SHIFT_RESIDENCE[crewServiceKey(service)] || '';
 
   function tooltip() {
     let el = document.getElementById('crewPreview');
@@ -38,12 +68,34 @@
     }
     return el;
   }
-  function hide() {
+  function backdrop() {
+    let el = document.getElementById('crewPreviewBackdrop');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'crewPreviewBackdrop';
+      el.className = 'crew-preview-backdrop';
+      el.addEventListener('click', closePinned);
+      document.body.appendChild(el);
+    }
+    return el;
+  }
+  function hidePreview() {
     clearTimeout(hoverTimer);
+    if (pinned) return;
     activeCell = null;
     tooltip().classList.remove('open');
   }
+  function closePinned() {
+    pinned = null;
+    activeCell = null;
+    const el = tooltip();
+    el.classList.remove('open','pinned','editing');
+    el.removeAttribute('style');
+    backdrop().classList.remove('open');
+    document.body.classList.remove('crew-popup-open');
+  }
   function position(el, cell) {
+    if (pinned) return;
     const rect = cell.getBoundingClientRect();
     const margin = 8;
     const width = el.offsetWidth || 240;
@@ -60,81 +112,250 @@
     if (!agentsPromise) agentsPromise = NaviV2PB.listAll('agenti',{filter:'attivo = true',fields:'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo'});
     return agentsPromise;
   }
-  async function crew(date, service) {
-    const key = `${date}|${serviceKey(service)}`;
-    if (cache.has(key)) return cache.get(key);
+  async function rowsForDate(date) {
+    if (dateRowsCache.has(date)) return dateRowsCache.get(date);
     const start = `${date} 00:00:00.000Z`, end = `${date} 23:59:59.999Z`;
-    const escaped = NaviV2PB.escapeFilter(service);
-    const [people, rows] = await Promise.all([
-      agents(),
-      NaviV2PB.listAll('turni_effective',{
-        filter:`data >= "${start}" && data <= "${end}" && servizio = "${escaped}" && stato != "annullato"`,
-        fields:'agente,data,servizio,stato',sort:'agente'
-      })
-    ]);
-    const byId = new Map(people.map(person => [String(person.id),person]));
-    const result = rows.map(row => byId.get(String(row.agente))).filter(Boolean).sort((a,b) => {
-      const ga = grade(a), gb = grade(b);
-      return ga.rank-gb.rank || String(a.nome_completo).localeCompare(String(b.nome_completo),'it');
+    const promise = NaviV2PB.listAll('turni_effective',{
+      filter:`data >= "${start}" && data <= "${end}" && stato != "annullato"`,
+      fields:'id,agente,data,servizio,servizio_base,origine_effective,stato,versione,residenza',sort:'agente'
     });
-    cache.set(key,result);
+    dateRowsCache.set(date,promise);
+    return promise;
+  }
+  async function crew(date, service) {
+    const target = crewServiceKey(service);
+    const key = `${date}|${target}`;
+    if (crewCache.has(key)) return crewCache.get(key);
+    const [people, rows] = await Promise.all([agents(),rowsForDate(date)]);
+    const byId = new Map(people.map(person => [String(person.id),person]));
+    const result = rows
+      .filter(row => crewServiceKey(row.servizio) === target)
+      .map(row => ({ person:byId.get(String(row.agente)), row, transfer:isTransferCode(row.servizio) }))
+      .filter(item => item.person)
+      .sort((a,b) => {
+        const ga = grade(a.person), gb = grade(b.person);
+        return ga.rank-gb.rank || String(a.person.nome_completo).localeCompare(String(b.person.nome_completo),'it');
+      });
+    crewCache.set(key,result);
     return result;
   }
-  async function show(cell) {
+  async function personForCell(cell) {
+    const legacy = cell?.closest('tr[data-agent-id]')?.dataset.agentId;
+    if (!legacy) return null;
+    return (await agents()).find(person => String(person.legacy_id) === String(legacy)) || null;
+  }
+  async function rowForPersonDate(person,date) {
+    if (!person?.id) return null;
+    return (await rowsForDate(date)).find(row => String(row.agente) === String(person.id)) || null;
+  }
+  function canEdit(person) {
+    const me = NaviV2PB.agent();
+    const role = String(NaviV2PB.user()?.role || '').toLowerCase();
+    return String(person?.id) === String(me?.id) || role === 'admin' || role === 'super_user';
+  }
+  function listHtml(list) {
+    const me = NaviV2PB.agent();
+    return list.length ? list.map(({person}) => {
+      const g = grade(person);
+      const mine = String(person.id) === String(me?.id);
+      return `<div class="crew-preview-person${mine ? ' is-me' : ''}" style="--grade-color:${g.color}"><span class="crew-preview-name">${esc(person.nome_completo)}${mine ? ' · TU' : ''}</span><span class="crew-preview-grade">${esc(g.label)}</span></div>`;
+    }).join('') : '<div class="crew-preview-empty">Nessun equipaggio trovato.</div>';
+  }
+  async function showPreview(cell) {
+    if (pinned) return;
     const date = cell?.dataset.date;
-    const service = cell?.dataset.service || cell?.querySelector('.cell-pill')?.textContent;
-    const key = serviceKey(service);
-    if (!date || NO_CREW.has(key)) { hide(); return; }
+    const rawService = cell?.dataset.service || cell?.querySelector('.cell-pill')?.textContent;
+    const service = crewServiceKey(rawService);
+    if (!date || NO_CREW.has(service)) { hidePreview(); return; }
     activeCell = cell;
     const el = tooltip();
-    const color = SERVICE_COLORS[key] || '#2dd4bf';
+    const color = SERVICE_COLORS[service] || '#2dd4bf';
     el.style.setProperty('--crew-service',color);
     el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">Caricamento equipaggio…</div>`;
+    el.classList.remove('pinned','editing');
     el.classList.add('open');
     position(el,cell);
     try {
       const list = await crew(date,service);
-      if (activeCell !== cell) return;
-      const me = NaviV2PB.agent();
-      const content = list.length ? list.map(person => {
-        const g = grade(person);
-        const mine = String(person.id) === String(me?.id);
-        return `<div class="crew-preview-person${mine ? ' is-me' : ''}" style="--grade-color:${g.color}"><span class="crew-preview-name">${esc(person.nome_completo)}${mine ? ' · TU' : ''}</span><span class="crew-preview-grade">${esc(g.label)}</span></div>`;
-      }).join('') : '<div class="crew-preview-empty">Nessun equipaggio trovato.</div>';
-      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-list">${content}</div>`;
+      if (activeCell !== cell || pinned) return;
+      el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-list">${listHtml(list)}</div>`;
       requestAnimationFrame(() => position(el,cell));
-    } catch (error) {
-      if (activeCell !== cell) return;
+    } catch {
+      if (activeCell !== cell || pinned) return;
       el.innerHTML = `<div class="crew-preview-head"><strong class="crew-preview-service">${esc(service)}</strong><span class="crew-preview-date">${esc(dateLabel(date))}</span></div><div class="crew-preview-empty">Equipaggio non disponibile.</div>`;
       requestAnimationFrame(() => position(el,cell));
+    }
+  }
+  function viewButtons(residence,active) {
+    const shifts = RESIDENCE_SHIFTS[residence] || [];
+    return shifts.map(shift => `<button type="button" class="crew-view-shift${shift===active ? ' active' : ''}" data-view-shift="${shift}" style="--shift-color:${SERVICE_COLORS[shift] || '#2dd4bf'}">${shift}</button>`).join('');
+  }
+  function editButtons(residence,current) {
+    const shifts = [...(RESIDENCE_SHIFTS[residence] || []),'RIP'];
+    return shifts.map(shift => `<button type="button" class="crew-edit-shift${shift===crewServiceKey(current) ? ' active' : ''}" data-edit-shift="${shift}" style="--shift-color:${SERVICE_COLORS[shift] || '#64748b'}">${shift}</button>`).join('');
+  }
+  async function renderPinned() {
+    if (!pinned) return;
+    const el = tooltip();
+    const person = pinned.person;
+    const row = await rowForPersonDate(person,pinned.date);
+    if (!pinned) return;
+    pinned.row = row;
+    pinned.actualRaw = String(row?.servizio || 'RIP').toUpperCase();
+    const actualCrew = crewServiceKey(pinned.actualRaw);
+    if (!pinned.viewService || pinned.resetView) pinned.viewService = NO_CREW.has(actualCrew) ? '' : actualCrew;
+    pinned.resetView = false;
+    const residence = serviceResidence(pinned.viewService || actualCrew) || String(person?.residenza || selectedTableResidence()).toUpperCase();
+    pinned.residence = RESIDENCE_SHIFTS[residence] ? residence : selectedTableResidence();
+    const color = SERVICE_COLORS[pinned.viewService || actualCrew] || '#2dd4bf';
+    el.style.setProperty('--crew-service',color);
+    const editable = canEdit(person) && row;
+    const currentLabel = pinned.actualRaw || 'RIP';
+    el.innerHTML = `<div class="crew-popup-top">
+      <div class="crew-popup-course">
+        <button type="button" class="crew-current-service${editable ? '' : ' readonly'}" ${editable ? '' : 'disabled'} title="${editable ? 'Modifica servizio' : 'Servizio in sola lettura'}">
+          <small>SERVIZIO</small><strong>${esc(currentLabel)}</strong><span>${editable ? 'MODIFICA' : ''}</span>
+        </button>
+        <div class="crew-edit-services" aria-hidden="true"><div class="crew-popup-mini-label">MODIFICA SERVIZIO</div>${editButtons(pinned.residence,currentLabel)}</div>
+        <div class="crew-popup-mini-label">VEDI CORSA</div>
+        <div class="crew-view-shifts">${viewButtons(pinned.residence,pinned.viewService)}</div>
+      </div>
+      <div class="crew-popup-day">
+        <div class="crew-popup-date">${esc(dateLabel(pinned.date))}</div>
+        <div class="crew-popup-day-nav"><button type="button" class="crew-day-arrow" data-day-step="-1" aria-label="Giorno precedente">‹</button><button type="button" class="crew-day-arrow" data-day-step="1" aria-label="Giorno successivo">›</button></div>
+      </div>
+      <button type="button" class="crew-popup-close" aria-label="Chiudi">×</button>
+    </div>
+    <div class="crew-preview-list"><div class="crew-preview-empty">Caricamento equipaggio…</div></div>`;
+    if (!pinned.viewService) {
+      el.querySelector('.crew-preview-list').innerHTML = '<div class="crew-preview-empty">Seleziona una corsa per vedere l’equipaggio.</div>';
+      return;
+    }
+    try {
+      const list = await crew(pinned.date,pinned.viewService);
+      if (!pinned) return;
+      el.querySelector('.crew-preview-list').innerHTML = listHtml(list);
+    } catch {
+      if (pinned) el.querySelector('.crew-preview-list').innerHTML = '<div class="crew-preview-empty">Equipaggio non disponibile.</div>';
+    }
+  }
+  async function openPinned(cell) {
+    const date = cell?.dataset.date;
+    const person = await personForCell(cell);
+    if (!date || !person) return;
+    pinned = { cell, person, date, viewService:crewServiceKey(cell.dataset.service || cell.querySelector('.cell-pill')?.textContent), resetView:false, editing:false };
+    activeCell = cell;
+    const el = tooltip();
+    el.removeAttribute('style');
+    el.classList.add('open','pinned');
+    backdrop().classList.add('open');
+    document.body.classList.add('crew-popup-open');
+    await renderPinned();
+  }
+  function invalidateDate(date) {
+    dateRowsCache.delete(date);
+    [...crewCache.keys()].filter(key => key.startsWith(`${date}|`)).forEach(key => crewCache.delete(key));
+  }
+  function updateVisibleCell(person,date,service) {
+    const row = [...document.querySelectorAll('tr[data-agent-id]')].find(tr => String(tr.dataset.agentId) === String(person?.legacy_id));
+    const cell = row?.querySelector(`td[data-date="${date}"]`);
+    if (!cell) return;
+    cell.dataset.service = service;
+    const pill = cell.querySelector('.cell-pill');
+    if (pill) pill.textContent = service;
+  }
+  async function saveService(shift) {
+    if (!pinned?.row?.id || !canEdit(pinned.person)) return;
+    const button = tooltip().querySelector(`[data-edit-shift="${shift}"]`);
+    if (button) button.disabled = true;
+    try {
+      const result = await NaviV2PB.request(`/api/navisuite-v2/turni/${encodeURIComponent(pinned.row.id)}/servizio`,{method:'POST',body:{servizio:shift}});
+      invalidateDate(pinned.date);
+      updateVisibleCell(pinned.person,pinned.date,String(result?.servizio || shift).toUpperCase());
+      pinned.resetView = true;
+      await renderPinned();
+    } catch (error) {
+      const el = tooltip();
+      let msg = el.querySelector('.crew-popup-error');
+      if (!msg) {
+        msg = document.createElement('div');
+        msg.className = 'crew-popup-error';
+        el.querySelector('.crew-popup-top')?.after(msg);
+      }
+      msg.textContent = error?.message || 'Modifica non salvata.';
+      if (button) button.disabled = false;
     }
   }
 
   const wrap = document.getElementById('tableWrap');
   wrap?.addEventListener('mouseover', event => {
-    if (!matchMedia('(hover:hover)').matches) return;
-    const cell = event.target.closest('tbody td[data-date]');
+    if (!matchMedia('(hover:hover)').matches || pinned) return;
+    const cell = event.target.closest('td[data-date]');
     if (!cell || cell.contains(event.relatedTarget)) return;
     clearTimeout(hoverTimer);
-    hoverTimer = setTimeout(() => show(cell),80);
+    hoverTimer = setTimeout(() => showPreview(cell),80);
   });
   wrap?.addEventListener('mouseout', event => {
-    if (!matchMedia('(hover:hover)').matches) return;
-    const cell = event.target.closest('tbody td[data-date]');
+    if (!matchMedia('(hover:hover)').matches || pinned) return;
+    const cell = event.target.closest('td[data-date]');
     if (!cell || cell.contains(event.relatedTarget)) return;
-    hoverTimer = setTimeout(hide,90);
+    hoverTimer = setTimeout(hidePreview,90);
   });
-  wrap?.addEventListener('click', event => {
-    const cell = event.target.closest('tbody td[data-date]');
-    if (!cell) return;
+  wrap?.addEventListener('touchend', event => {
+    const cell = event.target.closest('td[data-date]');
+    if (!cell || pinned) return;
+    const now = Date.now();
+    suppressClickUntil = now + 550;
     event.preventDefault();
     event.stopPropagation();
-    if (activeCell === cell && tooltip().classList.contains('open')) hide();
-    else show(cell);
+    if (lastTouch.cell === cell && now-lastTouch.at < 430) {
+      lastTouch = {cell:null,at:0};
+      openPinned(cell);
+    } else {
+      lastTouch = {cell,at:now};
+      showPreview(cell);
+    }
+  },{passive:false,capture:true});
+  wrap?.addEventListener('click', event => {
+    const cell = event.target.closest('td[data-date]');
+    if (!cell || pinned || Date.now() < suppressClickUntil) return;
+    if (!matchMedia('(hover:hover)').matches) return;
+    event.preventDefault();
+    event.stopPropagation();
+    openPinned(cell);
   },true);
+
   document.addEventListener('click', event => {
-    if (!event.target.closest('tbody td[data-date]')) hide();
+    if (pinned) {
+      const el = tooltip();
+      if (event.target.closest('.crew-popup-close')) { closePinned(); return; }
+      const day = event.target.closest('[data-day-step]');
+      if (day) {
+        pinned.date = addDay(pinned.date,Number(day.dataset.dayStep));
+        pinned.resetView = true;
+        renderPinned();
+        return;
+      }
+      const view = event.target.closest('[data-view-shift]');
+      if (view) {
+        pinned.viewService = view.dataset.viewShift;
+        pinned.resetView = false;
+        renderPinned();
+        return;
+      }
+      if (event.target.closest('.crew-current-service:not(.readonly)')) {
+        pinned.editing = !pinned.editing;
+        el.classList.toggle('editing',pinned.editing);
+        el.querySelector('.crew-edit-services')?.setAttribute('aria-hidden',pinned.editing ? 'false' : 'true');
+        return;
+      }
+      const edit = event.target.closest('[data-edit-shift]');
+      if (edit) { saveService(edit.dataset.editShift); return; }
+      return;
+    }
+    if (!event.target.closest('td[data-date]')) hidePreview();
   });
-  window.addEventListener('scroll', hide,{passive:true});
-  window.addEventListener('resize', hide,{passive:true});
+  window.addEventListener('scroll', () => { if (!pinned) hidePreview(); },{passive:true});
+  window.addEventListener('resize', () => { if (!pinned) hidePreview(); },{passive:true});
+  document.addEventListener('keydown', event => { if (event.key === 'Escape' && pinned) closePinned(); });
 })();
