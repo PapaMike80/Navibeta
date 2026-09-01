@@ -39,7 +39,8 @@ class PB {
 
 const pb=new PB(process.env.POCKETBASE_URL||"http://127.0.0.1:8090");
 await pb.login();
-const agents=await pb.listAll("agenti","legacy_id,nome_completo,residenza,attivo");
+const allAgents=await pb.listAll("agenti","legacy_id,nome_completo,residenza,attivo,user");
+const agents=allAgents.filter(agent=>String(agent.user||"").trim());
 let creates=0,updates=0,unchanged=0;
 for(const agent of agents){
   if(!String(agent.legacy_id||"").trim()||!String(agent.nome_completo||"").trim())continue;
@@ -55,4 +56,4 @@ for(const agent of agents){
   if(same){unchanged++;continue}
   await pb.update("login_directory",existing.id,payload);updates++;
 }
-console.log(JSON.stringify({agents:agents.length,creates,updates,unchanged},null,2));
+console.log(JSON.stringify({allAgents:allAgents.length,loginCapableAgents:agents.length,creates,updates,unchanged},null,2));
