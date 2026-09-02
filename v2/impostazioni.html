@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#07131b">
+  <title>Impostazioni · NaviSuite V2</title>
+  <link rel="stylesheet" href="assets/app.css?v=2">
+</head>
+<body>
+  <main class="shell settings-shell">
+    <header class="topbar">
+      <div>
+        <div class="brand">Navi<b>Suite</b> V2</div>
+        <div id="who" class="status"></div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a class="btn ghost" href="index.html">Menu</a>
+        <button id="logout" class="btn ghost" type="button">Esci</button>
+      </div>
+    </header>
+
+    <section class="settings-heading">
+      <p class="eyebrow">IMPOSTAZIONI</p>
+      <h1>Preferenze personali</h1>
+      <p class="muted">Questa pagina raccoglierà progressivamente tutte le impostazioni di NaviSuite V2.</p>
+    </section>
+
+    <section class="card settings-card">
+      <div class="settings-card-title">
+        <div>
+          <p class="eyebrow">CALENDARIO PERSONALE</p>
+          <h2>Turni su iPhone e Google Calendar</h2>
+          <p class="muted">Un unico calendario in abbonamento. Quando NaviSuite modifica un turno, il feed mantiene lo stesso evento e ne aggiorna i dettagli.</p>
+        </div>
+        <label class="switch-row compact">
+          <span>
+            <strong>Calendario attivo</strong>
+            <small>Disattivandolo il link smette di restituire eventi.</small>
+          </span>
+          <input id="calendarEnabled" type="checkbox">
+        </label>
+      </div>
+
+      <div id="calendarLoading" class="notice">Caricamento impostazioni calendario…</div>
+      <div id="calendarContent" hidden>
+        <div class="settings-grid">
+          <label class="switch-row">
+            <span><strong>Nave</strong><small>Mostra la nave nel titolo e nei dettagli.</small></span>
+            <input id="includeShip" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span><strong>Equipaggio</strong><small>Elenca i colleghi assegnati allo stesso turno nave.</small></span>
+            <input id="includeCrew" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span><strong>Ormeggio serale</strong><small>Aggiunge l’ormeggio previsto nei dettagli dell’evento.</small></span>
+            <input id="includeMooring" type="checkbox">
+          </label>
+          <label class="switch-row">
+            <span><strong>Rifornimento</strong><small>Segnala quando è previsto il rifornimento.</small></span>
+            <input id="includeFuel" type="checkbox">
+          </label>
+        </div>
+
+        <div class="calendar-range-grid">
+          <label>
+            Storico nel feed
+            <select id="pastDays">
+              <option value="30">30 giorni</option>
+              <option value="60">60 giorni</option>
+              <option value="120">120 giorni</option>
+              <option value="365">1 anno</option>
+            </select>
+          </label>
+          <label>
+            Futuro nel feed
+            <select id="futureDays">
+              <option value="120">120 giorni</option>
+              <option value="240">240 giorni</option>
+              <option value="400">400 giorni</option>
+              <option value="730">2 anni</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="feed-box">
+          <label for="feedUrl">Link personale di abbonamento</label>
+          <div class="feed-row">
+            <input id="feedUrl" type="text" readonly>
+            <button id="copyFeed" class="btn" type="button">Copia</button>
+          </div>
+          <p class="status">Il link contiene una chiave privata. Non condividerlo: chi lo possiede può leggere i tuoi turni del calendario.</p>
+        </div>
+
+        <div class="calendar-actions">
+          <a id="iphoneSubscribe" class="btn primary" href="#">Aggiungi su iPhone</a>
+          <a id="googleSubscribe" class="btn" href="#" target="_blank" rel="noopener">Apri Google Calendar</a>
+          <a id="downloadIcs" class="btn ghost" href="#" target="_blank" rel="noopener">Esporta .ics</a>
+        </div>
+
+        <div id="googleWarning" class="notice warning" hidden>
+          Google Calendar scarica il calendario dai server Google. Se PocketBase è raggiungibile solo tramite Tailscale, l’abbonamento Google non potrà aggiornarsi. iPhone invece può usare il feed mentre il dispositivo è connesso alla tailnet. Per Google servirà esporre solo questo endpoint tramite un URL HTTPS pubblico.
+        </div>
+
+        <div class="danger-zone">
+          <div>
+            <strong>Rigenera link</strong>
+            <p class="status">Invalida immediatamente il link precedente, utile se è stato condiviso per errore.</p>
+          </div>
+          <button id="regenerateFeed" class="btn ghost" type="button">Rigenera</button>
+        </div>
+
+        <p id="saveStatus" class="status settings-save-status" aria-live="polite"></p>
+      </div>
+    </section>
+
+    <section class="card settings-card future-card">
+      <p class="eyebrow">IN FUTURO</p>
+      <h2>Altre impostazioni NaviSuite</h2>
+      <p class="muted">Notifiche, preferenze Turni/Diaria e altre opzioni personali potranno essere aggiunte qui senza creare nuove pagine.</p>
+    </section>
+  </main>
+
+  <script src="assets/pb.js?v=1"></script>
+  <script src="assets/settings.js?v=1"></script>
+</body>
+</html>
