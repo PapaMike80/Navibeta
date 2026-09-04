@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NaviPush">
+  <meta name="theme-color" content="#002b5e">
+  <link rel="manifest" href="push-test-manifest.json">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <title>NaviSuite · Test notifiche iPhone</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color-scheme:dark}
+    *{box-sizing:border-box}
+    body{margin:0;min-height:100vh;display:grid;place-items:center;background:#081a23;color:#e8f3f4;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
+    main{width:min(100%,440px);background:#102833;border:1px solid #22424d;border-radius:24px;padding:24px;box-shadow:0 20px 60px #0006}
+    .icon{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:#123f3d;font-size:32px;margin-bottom:18px}
+    h1{font-size:25px;line-height:1.1;margin:0 0 10px}
+    p{color:#a9c0c6;line-height:1.5;margin:0 0 18px}
+    .steps{display:grid;gap:10px;margin:18px 0}
+    .step{display:flex;gap:11px;align-items:flex-start;padding:12px 13px;border-radius:14px;background:#0b2029;border:1px solid #294b56;font-size:14px;line-height:1.4}
+    .step b{display:grid;place-items:center;flex:0 0 24px;height:24px;border-radius:50%;background:#2dd4bf;color:#062019;font-size:12px}
+    button{width:100%;border:0;border-radius:14px;padding:14px 16px;background:#2dd4bf;color:#062019;font-weight:900;font-size:16px;cursor:pointer}
+    button:disabled{opacity:.55;cursor:default}
+    #status{margin-top:14px;min-height:46px;padding:12px 13px;border-radius:12px;background:#0b2029;border:1px solid #294b56;color:#c8dcdf;font-size:13px;line-height:1.45}
+    .ok{color:#7ce9d6!important;border-color:#267f72!important}
+    .warn{color:#ffd27a!important;border-color:#795b24!important}
+    .error{color:#ff9ba4!important;border-color:#80424a!important}
+    .small{font-size:12px;color:#829da5;margin-top:14px}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="icon">🔔</div>
+    <h1>Test notifiche iPhone</h1>
+    <p>Questa pagina serve solo a verificare che NaviSuite possa mostrare notifiche native su iPhone come PWA.</p>
+
+    <div class="steps">
+      <div class="step"><b>1</b><span>Apri questa pagina in Safari.</span></div>
+      <div class="step"><b>2</b><span>Usa <strong>Condividi → Aggiungi alla schermata Home</strong>.</span></div>
+      <div class="step"><b>3</b><span>Apri <strong>NaviPush</strong> dalla schermata Home e premi il pulsante qui sotto.</span></div>
+    </div>
+
+    <button id="test-button" type="button">🔔 Attiva e invia notifica di prova</button>
+    <div id="status" aria-live="polite">Stato: pronto per il test.</div>
+    <div class="small">Il test non salva dati, token o sottoscrizioni e non modifica NaviSuite di produzione.</div>
+  </main>
+
+  <script>
+    const button=document.getElementById('test-button');
+    const status=document.getElementById('status');
+
+    function setStatus(message,type=''){
+      status.textContent=message;
+      status.className=type;
+    }
+
+    function isStandalone(){
+      return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone===true;
+    }
+
+    function isIOS(){
+      return /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel' && navigator.maxTouchPoints>1);
+    }
+
+    async function runTest(){
+      if(!('serviceWorker' in navigator)){
+        setStatus('Questo browser non supporta i Service Worker necessari alle notifiche PWA.','error');
+        return;
+      }
+      if(!('Notification' in window)){
+        setStatus('Le notifiche Web non risultano disponibili su questo dispositivo/browser.','error');
+        return;
+      }
+      if(isIOS() && !isStandalone()){
+        setStatus('Su iPhone devi prima aggiungere questa pagina alla schermata Home e aprire NaviPush dalla sua icona.','warn');
+        return;
+      }
+
+      button.disabled=true;
+      try{
+        setStatus('Registrazione della PWA…');
+        await navigator.serviceWorker.register('./sw.js?push-test=1',{scope:'./'});
+        const registration=await navigator.serviceWorker.ready;
+
+        let permission=Notification.permission;
+        if(permission!=='granted'){
+          setStatus('Conferma “Consenti” nella richiesta notifiche di iPhone…');
+          permission=await Notification.requestPermission();
+        }
+
+        if(permission!=='granted'){
+          setStatus('Permesso notifiche non concesso. Puoi abilitarlo nelle Impostazioni di iPhone per NaviPush.','warn');
+          return;
+        }
+
+        await registration.showNotification('NaviSuite',{
+          body:'Notifica di prova ricevuta correttamente su iPhone ✅',
+          icon:'assets/images/icona_apple_180.png',
+          badge:'assets/images/icona_apple_180.png',
+          tag:'navisuite-iphone-test',
+          renotify:true,
+          data:{url:'./push-test.html'}
+        });
+        setStatus('Test inviato. Dovresti vedere una notifica “NaviSuite” su iPhone.','ok');
+      }catch(error){
+        console.error(error);
+        setStatus('Test non riuscito: '+(error?.message||String(error)),'error');
+      }finally{
+        button.disabled=false;
+      }
+    }
+
+    button.addEventListener('click',runTest);
+
+    if(isIOS() && !isStandalone()){
+      setStatus('Prima aggiungi NaviPush alla schermata Home; su iPhone il permesso Web Push è disponibile dalla PWA installata.','warn');
+    }else if(Notification.permission==='granted'){
+      setStatus('Permesso notifiche già attivo. Premi il pulsante per inviare il test.','ok');
+    }
+  </script>
+</body>
+</html>
