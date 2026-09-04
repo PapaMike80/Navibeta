@@ -1,9 +1,9 @@
 {
   "id": "./",
-  "name": "NaviSuite Push Test 2",
-  "short_name": "NaviPush 2",
-  "description": "Test isolato notifiche PWA NaviSuite su iPhone",
-  "start_url": "./index.html",
+  "name": "NaviSuite Remote Push Test",
+  "short_name": "NaviPush Remote",
+  "description": "Test isolato Web Push remoto NaviSuite su iPhone",
+  "start_url": "./index.html?v=4",
   "scope": "./",
   "display": "standalone",
   "background_color": "#081a23",
