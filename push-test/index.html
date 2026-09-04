@@ -5,17 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NaviPush 2">
+  <meta name="apple-mobile-web-app-title" content="NaviPush 3">
   <meta name="theme-color" content="#002b5e">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="../assets/images/icona_apple_180.png">
-  <title>NaviSuite · Test notifiche iPhone v2</title>
+  <title>NaviSuite · Test notifiche iPhone v3</title>
   <style>
     :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color-scheme:dark}
     *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:#081a23;color:#e8f3f4;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
     main{width:min(100%,440px);background:#102833;border:1px solid #22424d;border-radius:24px;padding:24px;box-shadow:0 20px 60px #0006}
     .icon{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:#123f3d;font-size:32px;margin-bottom:18px}
     h1{font-size:25px;line-height:1.1;margin:0 0 10px} p{color:#a9c0c6;line-height:1.5;margin:0 0 18px}
+    .preview{padding:14px;border:1px solid #31535e;border-radius:14px;background:#0b2029;margin-bottom:18px;font-size:13px;line-height:1.5}.preview strong{display:block;color:#fff;font-size:15px;margin-bottom:4px}
     button{width:100%;border:0;border-radius:14px;padding:15px 16px;background:#2dd4bf;color:#062019;font-weight:900;font-size:16px;cursor:pointer} button:disabled{opacity:.55}
     #status{margin-top:14px;min-height:58px;padding:12px 13px;border-radius:12px;background:#0b2029;border:1px solid #294b56;color:#c8dcdf;font-size:13px;line-height:1.5}
     .ok{color:#7ce9d6!important;border-color:#267f72!important}.warn{color:#ffd27a!important;border-color:#795b24!important}.error{color:#ff9ba4!important;border-color:#80424a!important}
@@ -25,11 +26,12 @@
 <body>
 <main>
   <div class="icon">🔔</div>
-  <h1>Test notifiche iPhone · v2</h1>
-  <p>Questa prova invia la notifica dal Service Worker dopo 5 secondi. Dopo aver premuto il pulsante torna subito alla Home di iPhone o blocca lo schermo.</p>
-  <button id="test" type="button">🔔 Prova notifica in background</button>
+  <h1>Test notifiche iPhone · v3</h1>
+  <p>Questa volta simuliamo una vera notifica NaviSuite con il riepilogo del turno di domani.</p>
+  <div class="preview"><strong>Domani · D3</strong>07:00–19:20 · Tibiletti, Costamagna, Paiola, Chiminelli, Pedroni</div>
+  <button id="test" type="button">🔔 Invia test tra 8 secondi</button>
   <div id="status" aria-live="polite">Stato: pronto.</div>
-  <div class="small">Test isolato: usa un Service Worker dedicato solo alla cartella <strong>push-test</strong> e non modifica Turni, Diaria o il Service Worker principale di Navibeta.</div>
+  <div class="small">Dopo aver premuto il pulsante, blocca subito l’iPhone o torna alla schermata Home. Il Service Worker resta attivo per completare il test.</div>
 </main>
 <script>
 const btn=document.getElementById('test');
@@ -39,15 +41,22 @@ const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator
 const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 
 async function getRegistration(){
-  const reg=await navigator.serviceWorker.register('./sw.js',{scope:'./',updateViaCache:'none'});
+  const reg=await navigator.serviceWorker.register('./sw.js?v=3',{scope:'./',updateViaCache:'none'});
   await reg.update().catch(()=>{});
-  if(reg.installing){await new Promise(resolve=>{const w=reg.installing;w.addEventListener('statechange',()=>{if(w.state==='activated')resolve();});setTimeout(resolve,3000);});}
+  if(reg.installing){
+    await new Promise(resolve=>{
+      const worker=reg.installing;
+      const done=()=>{if(worker.state==='activated'||worker.state==='redundant')resolve();};
+      worker.addEventListener('statechange',done);
+      setTimeout(resolve,4000);
+    });
+  }
   return navigator.serviceWorker.ready;
 }
 
 btn.addEventListener('click',async()=>{
   if(!('serviceWorker' in navigator)||!('Notification' in window)){setStatus('Questo dispositivo non espone le API necessarie.','error');return;}
-  if(ios()&&!standalone()){setStatus('Apri questa pagina da Safari, aggiungila alla schermata Home e poi apri NaviPush 2 dalla sua icona.','warn');return;}
+  if(ios()&&!standalone()){setStatus('Apri questa pagina dalla sua icona sulla schermata Home. Su iPhone le notifiche Web sono disponibili alla PWA installata.','warn');return;}
   btn.disabled=true;
   try{
     const reg=await getRegistration();
@@ -57,13 +66,16 @@ btn.addEventListener('click',async()=>{
     const worker=reg.active||reg.waiting||reg.installing;
     if(!worker) throw new Error('Service Worker non attivo');
     worker.postMessage({type:'NAVISUITE_DELAYED_NOTIFICATION_TEST'});
-    setStatus('✅ Test programmato tra 5 secondi. ADESSO torna alla Home di iPhone oppure blocca subito lo schermo.','ok');
-  }catch(err){setStatus('Errore: '+(err?.message||String(err)),'error');}
-  finally{btn.disabled=false;}
+    setStatus('✅ Test programmato. Hai 8 secondi: blocca ADESSO l’iPhone oppure torna alla Home.','ok');
+  }catch(err){
+    setStatus('Errore: '+(err?.message||String(err)),'error');
+  }finally{
+    btn.disabled=false;
+  }
 });
 
-if(ios()&&!standalone())setStatus('Prima aggiungi questa pagina alla schermata Home.','warn');
-else if(Notification.permission==='granted')setStatus('Permesso già attivo. Premi il pulsante e poi torna subito alla Home.','ok');
+if(ios()&&!standalone())setStatus('Apri NaviPush dalla schermata Home per eseguire il test.','warn');
+else if(Notification.permission==='granted')setStatus('Permesso già attivo. Premi il pulsante e poi blocca subito l’iPhone.','ok');
 </script>
 </body>
 </html>
