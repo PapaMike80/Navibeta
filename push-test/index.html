@@ -5,77 +5,73 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="NaviPush 3">
+  <meta name="apple-mobile-web-app-title" content="NaviPush Remote">
   <meta name="theme-color" content="#002b5e">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="../assets/images/icona_apple_180.png">
-  <title>NaviSuite · Test notifiche iPhone v3</title>
+  <title>NaviSuite · Web Push remoto</title>
   <style>
     :root{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif;color-scheme:dark}
-    *{box-sizing:border-box} body{margin:0;min-height:100vh;display:grid;place-items:center;background:#081a23;color:#e8f3f4;padding:max(24px,env(safe-area-inset-top)) 20px max(24px,env(safe-area-inset-bottom))}
-    main{width:min(100%,440px);background:#102833;border:1px solid #22424d;border-radius:24px;padding:24px;box-shadow:0 20px 60px #0006}
-    .icon{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:#123f3d;font-size:32px;margin-bottom:18px}
-    h1{font-size:25px;line-height:1.1;margin:0 0 10px} p{color:#a9c0c6;line-height:1.5;margin:0 0 18px}
-    .preview{padding:14px;border:1px solid #31535e;border-radius:14px;background:#0b2029;margin-bottom:18px;font-size:13px;line-height:1.5}.preview strong{display:block;color:#fff;font-size:15px;margin-bottom:4px}
-    button{width:100%;border:0;border-radius:14px;padding:15px 16px;background:#2dd4bf;color:#062019;font-weight:900;font-size:16px;cursor:pointer} button:disabled{opacity:.55}
-    #status{margin-top:14px;min-height:58px;padding:12px 13px;border-radius:12px;background:#0b2029;border:1px solid #294b56;color:#c8dcdf;font-size:13px;line-height:1.5}
-    .ok{color:#7ce9d6!important;border-color:#267f72!important}.warn{color:#ffd27a!important;border-color:#795b24!important}.error{color:#ff9ba4!important;border-color:#80424a!important}
-    .small{font-size:12px;color:#829da5;margin-top:14px;line-height:1.45}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#081a23;color:#e8f3f4;padding:max(24px,env(safe-area-inset-top)) 18px max(24px,env(safe-area-inset-bottom))}
+    main{width:min(100%,460px);background:#102833;border:1px solid #22424d;border-radius:24px;padding:22px;box-shadow:0 20px 60px #0006}
+    .icon{width:64px;height:64px;border-radius:18px;display:grid;place-items:center;background:#123f3d;font-size:32px;margin-bottom:16px}h1{font-size:24px;margin:0 0 8px}p{color:#a9c0c6;line-height:1.5;margin:0 0 16px}
+    button{width:100%;border:0;border-radius:14px;padding:14px 16px;background:#2dd4bf;color:#062019;font-weight:900;font-size:15px;cursor:pointer;margin-top:9px}button.secondary{background:#173944;color:#d8e8ea;border:1px solid #31535e}button:disabled{opacity:.55}
+    #status{margin-top:14px;min-height:52px;padding:12px 13px;border-radius:12px;background:#0b2029;border:1px solid #294b56;color:#c8dcdf;font-size:13px;line-height:1.45}.ok{color:#7ce9d6!important;border-color:#267f72!important}.warn{color:#ffd27a!important;border-color:#795b24!important}.error{color:#ff9ba4!important;border-color:#80424a!important}
+    .subscription{display:none;margin-top:14px}.subscription.show{display:block}.subscription label{display:block;color:#9fb8c2;font-size:12px;font-weight:800;margin-bottom:7px}.subscription textarea{width:100%;height:145px;resize:none;border:1px solid #31535e;border-radius:12px;background:#071b23;color:#bde9e2;padding:11px;font:11px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.small{font-size:12px;color:#829da5;margin-top:14px;line-height:1.45}
   </style>
 </head>
 <body>
 <main>
-  <div class="icon">🔔</div>
-  <h1>Test notifiche iPhone · v3</h1>
-  <p>Questa volta simuliamo una vera notifica NaviSuite con il riepilogo del turno di domani.</p>
-  <div class="preview"><strong>Domani · D3</strong>07:00–19:20 · Tibiletti, Costamagna, Paiola, Chiminelli, Pedroni</div>
-  <button id="test" type="button">🔔 Invia test tra 8 secondi</button>
+  <div class="icon">📡</div>
+  <h1>Web Push remoto · Navibeta</h1>
+  <p>Questo test crea una vera sottoscrizione push del tuo iPhone. Dopo potremo inviare una notifica da GitHub anche con NaviPush completamente chiusa.</p>
+  <button id="subscribe" type="button">🔔 Attiva vero push remoto</button>
+  <button id="local-test" class="secondary" type="button">Prova locale tra 8 secondi</button>
   <div id="status" aria-live="polite">Stato: pronto.</div>
-  <div class="small">Dopo aver premuto il pulsante, blocca subito l’iPhone o torna alla schermata Home. Il Service Worker resta attivo per completare il test.</div>
+  <div id="subscription-box" class="subscription">
+    <label for="subscription-json">Sottoscrizione iPhone</label>
+    <textarea id="subscription-json" readonly></textarea>
+    <button id="copy" class="secondary" type="button">Copia sottoscrizione</button>
+  </div>
+  <div class="small">La chiave privata VAPID non è presente in questa pagina né nel repository. Sarà custodita come GitHub Actions Secret.</div>
 </main>
 <script>
-const btn=document.getElementById('test');
+const VAPID_PUBLIC_KEY='BC6uahr9cCmvN0YcxpNevngxZLrJRRNLTXujs3CUXXN2dGdHhQI5hVws-nph1pdCtMKzQU3EBmf4UMPde_uaq1w';
+const subscribeBtn=document.getElementById('subscribe');
+const localBtn=document.getElementById('local-test');
+const copyBtn=document.getElementById('copy');
 const status=document.getElementById('status');
+const box=document.getElementById('subscription-box');
+const output=document.getElementById('subscription-json');
 const setStatus=(text,type='')=>{status.textContent=text;status.className=type;};
 const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-
-async function getRegistration(){
-  const reg=await navigator.serviceWorker.register('./sw.js?v=3',{scope:'./',updateViaCache:'none'});
-  await reg.update().catch(()=>{});
-  if(reg.installing){
-    await new Promise(resolve=>{
-      const worker=reg.installing;
-      const done=()=>{if(worker.state==='activated'||worker.state==='redundant')resolve();};
-      worker.addEventListener('statechange',done);
-      setTimeout(resolve,4000);
-    });
-  }
-  return navigator.serviceWorker.ready;
-}
-
-btn.addEventListener('click',async()=>{
-  if(!('serviceWorker' in navigator)||!('Notification' in window)){setStatus('Questo dispositivo non espone le API necessarie.','error');return;}
-  if(ios()&&!standalone()){setStatus('Apri questa pagina dalla sua icona sulla schermata Home. Su iPhone le notifiche Web sono disponibili alla PWA installata.','warn');return;}
-  btn.disabled=true;
+function urlBase64ToUint8Array(value){const pad='='.repeat((4-value.length%4)%4);const base64=(value+pad).replace(/-/g,'+').replace(/_/g,'/');const raw=atob(base64);return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));}
+async function registration(){const reg=await navigator.serviceWorker.register('./sw.js?v=4',{scope:'./',updateViaCache:'none'});await reg.update().catch(()=>{});return navigator.serviceWorker.ready;}
+async function ensurePermission(){let p=Notification.permission;if(p!=='granted')p=await Notification.requestPermission();return p;}
+async function renderSubscription(sub){const json=JSON.stringify(sub.toJSON());output.value=json;box.classList.add('show');return json;}
+subscribeBtn.addEventListener('click',async()=>{
+  if(!('serviceWorker' in navigator)||!('PushManager' in window)||!('Notification' in window)){setStatus('Web Push non disponibile su questo dispositivo.','error');return;}
+  if(ios()&&!standalone()){setStatus('Su iPhone apri NaviPush dalla schermata Home.','warn');return;}
+  subscribeBtn.disabled=true;
   try{
-    const reg=await getRegistration();
-    let permission=Notification.permission;
-    if(permission!=='granted') permission=await Notification.requestPermission();
-    if(permission!=='granted'){setStatus('Permesso notifiche non concesso.','warn');return;}
-    const worker=reg.active||reg.waiting||reg.installing;
-    if(!worker) throw new Error('Service Worker non attivo');
-    worker.postMessage({type:'NAVISUITE_DELAYED_NOTIFICATION_TEST'});
-    setStatus('✅ Test programmato. Hai 8 secondi: blocca ADESSO l’iPhone oppure torna alla Home.','ok');
-  }catch(err){
-    setStatus('Errore: '+(err?.message||String(err)),'error');
-  }finally{
-    btn.disabled=false;
-  }
+    const reg=await registration();
+    if(await ensurePermission()!=='granted'){setStatus('Permesso notifiche non concesso.','warn');return;}
+    let sub=await reg.pushManager.getSubscription();
+    if(sub){
+      const key=sub.options?.applicationServerKey;
+      const current=key?btoa(String.fromCharCode(...new Uint8Array(key))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):'';
+      if(current!==VAPID_PUBLIC_KEY){await sub.unsubscribe();sub=null;}
+    }
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    await renderSubscription(sub);
+    setStatus('✅ Sottoscrizione Web Push creata. Premi “Copia sottoscrizione” e incollamela in chat.','ok');
+  }catch(err){setStatus('Errore: '+(err?.message||String(err)),'error');}
+  finally{subscribeBtn.disabled=false;}
 });
-
-if(ios()&&!standalone())setStatus('Apri NaviPush dalla schermata Home per eseguire il test.','warn');
-else if(Notification.permission==='granted')setStatus('Permesso già attivo. Premi il pulsante e poi blocca subito l’iPhone.','ok');
+copyBtn.addEventListener('click',async()=>{try{await navigator.clipboard.writeText(output.value);setStatus('✅ Sottoscrizione copiata. Incollala nella chat.','ok');}catch(_){output.focus();output.select();setStatus('Selezionata: usa Copia e incollala nella chat.','warn');}});
+localBtn.addEventListener('click',async()=>{try{const reg=await registration();if(await ensurePermission()!=='granted')return;const worker=reg.active||reg.waiting||reg.installing;if(!worker)throw new Error('Service Worker non attivo');worker.postMessage({type:'NAVISUITE_DELAYED_NOTIFICATION_TEST'});setStatus('Test locale programmato tra 8 secondi. Blocca l’iPhone.','ok');}catch(err){setStatus('Errore: '+(err?.message||String(err)),'error');}});
+(async()=>{if(ios()&&!standalone()){setStatus('Apri questa PWA dalla schermata Home.','warn');return;}try{const reg=await registration();const sub=await reg.pushManager.getSubscription();if(sub){await renderSubscription(sub);setStatus('Sottoscrizione già presente. Puoi copiarla.','ok');}}catch(_){}})();
 </script>
 </body>
 </html>
