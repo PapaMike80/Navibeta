@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "NaviSuite Push Test 2",
+  "short_name": "NaviPush 2",
+  "description": "Test isolato notifiche PWA NaviSuite su iPhone",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#081a23",
+  "theme_color": "#002b5e",
+  "icons": [
+    {
+      "src": "../assets/images/icona_apple_180.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
