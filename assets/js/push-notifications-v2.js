@@ -7,6 +7,8 @@
   const DEVICE_KEY='navisuite.push.deviceId.v1';
   const PREFS_PREFIX='navisuite.push.preferences.';
   const VAPID_PUBLIC_KEY='BBuuE6ITF9JZ2ADHsgAbt4Vfc74bNsST6dbixZEtcWa8QppgWhrmtQdH46GkMtG12FFuC6bxl5MpxPCrRYKDgL0';
+  const VAPID_VERSION='2';
+  const VAPID_VERSION_KEY='navisuite.push.vapidVersion.v1';
 
   let volatileAuth=null;
   let pendingAuth=null;
@@ -15,6 +17,9 @@
   const now=()=>new Date().toISOString();
   const readJson=(key,fallback=null)=>{try{return JSON.parse(localStorage.getItem(key)||'null')??fallback;}catch(_){return fallback;}};
   const writeJson=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));}catch(_){}};
+  const currentVapidVersion=()=>{try{return String(localStorage.getItem(VAPID_VERSION_KEY)||'');}catch(_){return '';}};
+  const markCurrentVapid=()=>{try{localStorage.setItem(VAPID_VERSION_KEY,VAPID_VERSION);}catch(_){}};
+  const clearVapidVersion=()=>{try{localStorage.removeItem(VAPID_VERSION_KEY);}catch(_){}};
 
   function deviceId(){
     let value=String(localStorage.getItem(DEVICE_KEY)||'').trim();
@@ -94,12 +99,6 @@
     return Uint8Array.from([...raw].map(ch=>ch.charCodeAt(0)));
   }
 
-  function keyToBase64Url(key){
-    if(!key)return '';
-    const raw=String.fromCharCode(...new Uint8Array(key));
-    return btoa(raw).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  }
-
   const isIos=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   const isStandalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 
@@ -108,10 +107,12 @@
     let reg=null;
     try{reg=await window.__naviSwRegistrationPromise;}catch(_){ }
     if(!reg){
-      reg=await navigator.serviceWorker.register('sw.js?push=20260905-vapid2',{scope:'./',updateViaCache:'none'});
-      window.__naviSwRegistrationPromise=Promise.resolve(reg);
+      try{reg=await navigator.serviceWorker.getRegistration('./');}catch(_){ }
     }
-    try{await reg.update();}catch(_){ }
+    if(!reg){
+      reg=await navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});
+    }
+    window.__naviSwRegistrationPromise=Promise.resolve(reg);
     return navigator.serviceWorker.ready;
   }
 
@@ -163,18 +164,19 @@
     if(permission!=='granted')throw new Error('Permesso notifiche non concesso');
 
     let sub=await reg.pushManager.getSubscription();
-    if(sub){
-      const current=keyToBase64Url(sub.options?.applicationServerKey);
-      if(current!==VAPID_PUBLIC_KEY){
-        await sub.unsubscribe();
-        sub=null;
-      }
+    if(sub&&currentVapidVersion()!==VAPID_VERSION){
+      try{await sub.unsubscribe();}catch(_){ }
+      sub=null;
     }
-    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    if(!sub){
+      sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:urlBase64ToUint8Array(VAPID_PUBLIC_KEY)});
+    }
 
     const agentId=String(profile?.id||profile?.agentId||'').trim();
     const savedPrefs=savePreferencesLocal(agentId,prefs||preferences(agentId));
-    return saveSubscription(profile,sub,savedPrefs);
+    const saved=await saveSubscription(profile,sub,savedPrefs);
+    markCurrentVapid();
+    return saved;
   }
 
   async function unsubscribe(profile){
@@ -182,6 +184,7 @@
     const id=deviceId();
     const sub=await localSubscription();
     if(sub){try{await sub.unsubscribe();}catch(_){ }}
+    clearVapidVersion();
     if(agentId){
       try{await databaseRequest(`private/adminUpdates/pushSubscriptions/${safeKey(agentId)}/${safeKey(id)}`,{method:'DELETE'});}catch(_){ }
     }
@@ -192,9 +195,8 @@
     const agentId=String(profile?.id||profile?.agentId||'').trim();
     const next=savePreferencesLocal(agentId,prefs);
     const sub=await localSubscription();
-    if(sub&&Notification.permission==='granted'){
-      const current=keyToBase64Url(sub.options?.applicationServerKey);
-      if(current===VAPID_PUBLIC_KEY)await saveSubscription(profile,sub,next);
+    if(sub&&Notification.permission==='granted'&&currentVapidVersion()===VAPID_VERSION){
+      await saveSubscription(profile,sub,next);
     }
     return next;
   }
@@ -203,8 +205,7 @@
     const agentId=String(profile?.id||profile?.agentId||'').trim();
     const sub=await localSubscription();
     const permission='Notification' in window?Notification.permission:'unsupported';
-    const current=sub?keyToBase64Url(sub.options?.applicationServerKey):'';
-    const requiresMigration=Boolean(sub)&&current!==VAPID_PUBLIC_KEY;
+    const requiresMigration=Boolean(sub)&&currentVapidVersion()!==VAPID_VERSION;
     const enabled=Boolean(sub)&&permission==='granted'&&!requiresMigration;
     return {supported:'Notification' in window&&'PushManager' in window,permission,enabled,requiresMigration,deviceId:deviceId(),preferences:preferences(agentId)};
   }
@@ -245,5 +246,5 @@
     return Object.values(result.data||{}).filter(Boolean).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,Math.max(1,Number(limit||20)));
   }
 
-  window.NaviPush={VAPID_PUBLIC_KEY,subscribe,unsubscribe,updatePreferences,getStatus,listSubscriptions,queuePush,listQueue,localSubscription,preferences,isIos,isStandalone,provider:'Web Push v2 + Firebase registry'};
+  window.NaviPush={VAPID_PUBLIC_KEY,VAPID_VERSION,subscribe,unsubscribe,updatePreferences,getStatus,listSubscriptions,queuePush,listQueue,localSubscription,preferences,isIos,isStandalone,provider:'Web Push v2 + Firebase registry'};
 })();
