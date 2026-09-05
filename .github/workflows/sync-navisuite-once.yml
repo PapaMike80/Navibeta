@@ -1,0 +1,168 @@
+name: One-time realign NaviBeta with NaviSuite
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - ".github/workflows/sync-navisuite-once.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  realign:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout NaviBeta
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Preserve only Beta overlays
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/navibeta-overlay
+
+          preserve() {
+            if [ -e "$1" ]; then
+              mkdir -p "/tmp/navibeta-overlay/$(dirname "$1")"
+              cp -a "$1" "/tmp/navibeta-overlay/$1"
+            fi
+          }
+
+          # Turno effettivo
+          preserve assets/js/effective-schedule.js
+          preserve tests/effective-schedule.test.js
+          preserve pocketbase
+          preserve v2
+          preserve POCKETBASE_MIGRATION.md
+          preserve V2_ARCHITECTURE.md
+          preserve V2_ROADMAP_15_DAYS.md
+
+          # Notifiche Web Push
+          preserve assets/js/push-notifications.js
+          preserve assets/js/push-settings.js
+          preserve .github/push-firebase-auth.enc
+          preserve .github/workflows/push-queue.yml
+          preserve .github/workflows/push-remote-test.yml
+          preserve push-test
+          preserve push-test.html
+          preserve push-test-manifest.json
+
+          # Mantiene il test automatico del turno effettivo nel deploy Beta.
+          preserve .github/workflows/static.yml
+
+          # Dal vecchio SW Beta conserviamo SOLO gli handler Web Push.
+          awk '/^\/\/ Web Push reale NaviSuite/{keep=1} keep{print}' sw.js > /tmp/navibeta-push-tail.js || true
+
+      - name: Checkout NaviSuite production
+        uses: actions/checkout@v4
+        with:
+          repository: PapaMike80/NaviSuite
+          ref: main
+          path: _production
+
+      - name: Replace Beta baseline with production
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='_production/' \
+            _production/ ./
+          rm -rf _production
+
+          # Ripristina esclusivamente le due aree sperimentali autorizzate.
+          cp -a /tmp/navibeta-overlay/. ./
+
+      - name: Reapply Turno effettivo and notifications overlay
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # Loader Beta: la produzione resta identica; il turno effettivo viene
+          # attivato solo nelle pagine operative/amministrative che lo usano.
+          cat >> assets/js/announcements-recovered.js <<'EOF'
+
+          ;(()=>{
+            const load=(src)=>{
+              const script=document.createElement('script');
+              script.src=src;
+              script.async=false;
+              document.head.appendChild(script);
+            };
+            const path=location.pathname;
+            if(/(?:^|\/)(?:naviturni|cambi_turno|aggiornamenti|navidiaria)\.html$/i.test(path)){
+              load('assets/js/effective-schedule.js?v=20260905-3');
+            }
+            if(/(?:^|\/)impostazioni\.html$/i.test(path)){
+              load('assets/js/push-notifications.js?v=20260905-2');
+              load('assets/js/push-settings.js?v=20260905-2');
+            }
+          })();
+          EOF
+
+          # Oggi non usa announcements-recovered in produzione: carichiamo il
+          # turno effettivo direttamente, prima di oggi.js.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('oggi.html')
+          s=p.read_text()
+          marker='<script src="assets/js/shared-data.js?v=118"></script>'
+          injection=marker+'\n  <script src="assets/js/effective-schedule.js?v=20260905-3"></script>'
+          if 'effective-schedule.js' not in s:
+              s=s.replace(marker,injection)
+          p.write_text(s)
+          PY
+
+          # Il Service Worker parte da quello di NaviSuite (cache/offline vera),
+          # ma usa una cache Beta separata e mantiene Web Push.
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('sw.js')
+          s=p.read_text()
+          s=s.replace("const CACHE_VERSION = 'navisuite-v204-offline-shell';",
+                      "const CACHE_VERSION = 'navibeta-v205-effective-push-offline';")
+          s=s.replace(".filter(name => name.startsWith('navisuite-') && name !== CACHE_VERSION)",
+                      ".filter(name => name.startsWith('navibeta-') && name !== CACHE_VERSION)")
+          anchor="  './assets/js/announcements-recovered.js',"
+          extra="  './assets/js/announcements-recovered.js',\n  './assets/js/effective-schedule.js',\n  './assets/js/push-notifications.js',\n  './assets/js/push-settings.js',"
+          s=s.replace(anchor,extra)
+          p.write_text(s)
+          PY
+
+          if [ -s /tmp/navibeta-push-tail.js ]; then
+            printf '\n\n' >> sw.js
+            cat /tmp/navibeta-push-tail.js >> sw.js
+          fi
+
+      - name: Sanity checks
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check assets/js/effective-schedule.js
+          node --check assets/js/push-notifications.js
+          node --check assets/js/push-settings.js
+          node --check sw.js
+          node tests/effective-schedule.test.js
+          grep -q "navibeta-v205-effective-push-offline" sw.js
+          grep -q "effective-schedule.js" oggi.html
+          grep -q "effective-schedule.js" assets/js/announcements-recovered.js
+          grep -q "self.addEventListener('push'" sw.js
+
+      - name: Commit synchronized Beta
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Il workflow è intenzionalmente one-shot: sparisce nel commit finale.
+          rm -f .github/workflows/sync-navisuite-once.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Nessuna modifica da committare"
+            exit 0
+          fi
+          git commit -m "Realign NaviBeta to NaviSuite; keep effective schedule and notifications"
+          git push origin HEAD:main
