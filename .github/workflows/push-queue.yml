@@ -5,6 +5,8 @@ on:
   schedule:
     - cron: '*/5 * * * *'
   push:
+    branches:
+      - main
     paths:
       - '.github/workflows/push-queue.yml'
 
@@ -18,6 +20,7 @@ concurrency:
 jobs:
   send-push-queue:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     env:
       VAPID_PUBLIC_KEY: BC6uahr9cCmvN0YcxpNevngxZLrJRRNLTXujs3CUXXN2dGdHhQI5hVws-nph1pdCtMKzQU3EBmf4UMPde_uaq1w
       VAPID_PRIVATE_KEY: ${{ secrets.NAVISUITE_VAPID_PRIVATE_KEY }}
@@ -27,6 +30,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Diagnostica avvio worker
+        shell: bash
+        run: |
+          echo "Evento: $GITHUB_EVENT_NAME"
+          echo "Ref: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
+          echo "Avvio worker: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
       - name: Verifica VAPID
         shell: bash
         run: |
@@ -34,6 +45,7 @@ jobs:
             echo "::error::Manca il repository secret NAVISUITE_VAPID_PRIVATE_KEY"
             exit 1
           fi
+          echo "Secret VAPID presente."
 
       - name: Prepara sender Web Push
         run: npm install web-push@3.6.7 --no-save --ignore-scripts
@@ -190,6 +202,8 @@ jobs:
                   .filter(sub => sub.enabled !== false)
                   .filter(sub => allowedByPreferences(sub, item.kind));
 
+                console.log(`Push ${item.id || item.key}: ${subscriptions.length} sottoscrizioni utilizzabili per ${item.targetAgentId || ''}`);
+
                 for (const sub of subscriptions) {
                   if (!sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) { skipped += 1; continue; }
                   const subscription = {
@@ -212,6 +226,7 @@ jobs:
                     failed += 1;
                     const status = Number(error?.statusCode || 0);
                     errors.push(`${sub.deviceLabel || sub.deviceId || 'device'}:${status || error.message}`);
+                    console.error(`Errore invio ${item.id || item.key}:`, status || error.message);
                     if (status === 404 || status === 410) {
                       try {
                         await db(`private/adminUpdates/pushSubscriptions/${safeKey(sub.agentId || item.targetAgentId)}/${safeKey(sub.deviceId || sub.deviceKey)}`, { method: 'DELETE' });
