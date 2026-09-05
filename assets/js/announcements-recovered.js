@@ -70,10 +70,3 @@
     load('assets/js/push-worker-ui-v2.js?v=20260905-1');
   }
 })();
-
-;(()=>{
-  const script=document.createElement('script');
-  script.src='assets/js/agent-login-webpush.js?v=20260905-1';
-  script.async=false;
-  document.head.appendChild(script);
-})();
