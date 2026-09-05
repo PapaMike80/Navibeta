@@ -1,0 +1,16 @@
+services:
+  navisuite-push-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: navisuite-push-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      POLL_MS: ${POLL_MS:-5000}
+      BATCH_SIZE: ${BATCH_SIZE:-25}
+      AUTH_STATE_FILE: /data/firebase-auth.json
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-https://papamike80.github.io/Navibeta/}
+    volumes:
+      - ./data:/data
