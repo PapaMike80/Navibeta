@@ -16,9 +16,16 @@
     }
   }
 
-  // Compatibilità: se il materiale effettivo non esiste ancora, NaviTurni
-  // continua ad avere come fallback il dataset completo e mai il solo base.
-  if(/(?:^|\/)naviturni\.html$/i.test(path)&&window.NaviSharedData?.loadBase&&window.NaviSharedData?.load&&!window.NaviSharedData.__naviturniCompleteFirst){
+  // Turni e Cambi hanno già una cache visuale propria: quando parte la fase di
+  // sincronizzazione chiediamo sempre la versione server del turno effettivo.
+  // Se manca rete, effective-schedule.js ricade automaticamente sulla copia locale.
+  if(/(?:^|\/)(?:naviturni|cambi_turno)\.html$/i.test(path)&&window.NaviEffectiveSchedule&&window.NaviSharedData){
+    const effectiveLoad=window.NaviEffectiveSchedule.load;
+    window.NaviSharedData.load=(url,options={})=>effectiveLoad(url,{...options,force:true});
+    window.NaviSharedData.loadBase=(url,options={})=>effectiveLoad(url,{...options,force:true});
+    window.NaviSharedData.__naviturniCompleteFirst=true;
+  }else if(/(?:^|\/)naviturni\.html$/i.test(path)&&window.NaviSharedData?.loadBase&&window.NaviSharedData?.load&&!window.NaviSharedData.__naviturniCompleteFirst){
+    // Fallback di compatibilità se il modulo effettivo non è disponibile.
     const loadComplete=window.NaviSharedData.load.bind(window.NaviSharedData);
     window.NaviSharedData.loadBase=(url,options={})=>loadComplete(url,options);
     window.NaviSharedData.__naviturniCompleteFirst=true;
