@@ -18,4 +18,11 @@
   load('assets/js/announcements-core-20260903.js?v=1');
   load('assets/js/turn-pdf-import-repair-v2.js?v=20260903-2');
   load('assets/js/ods-navi-pdf-repair.js?v=20260904-1');
+
+  // Le notifiche reali vengono caricate solo nelle Impostazioni, così le altre
+  // pagine NaviSuite non ricevono codice o richieste di rete aggiuntive.
+  if(/(?:^|\/)impostazioni\.html$/i.test(location.pathname)){
+    load('assets/js/push-notifications.js?v=20260905-1');
+    load('assets/js/push-settings.js?v=20260905-1');
+  }
 })();
