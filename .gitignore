@@ -1,1 +1,4 @@
 .vendor/
+push-worker/.env
+push-worker/data/
+push-worker/node_modules/
