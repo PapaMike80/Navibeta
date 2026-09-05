@@ -1,12 +1,10 @@
 {
-  "id": "./",
-  "name": "NaviSuite",
-  "short_name": "NaviSuite",
-  "description": "Turni, diaria, documenti e notifiche NaviSuite.",
+  "name": "NaviDiaria - Registro Navigazione Laghi",
+  "short_name": "NaviDiaria",
+  "description": "Diario di navigazione per Gestione Navigazione Laghi.",
   "start_url": "./index.html",
-  "scope": "./",
   "display": "standalone",
-  "background_color": "#081a23",
+  "background_color": "#f4f6f9",
   "theme_color": "#002b5e",
   "icons": [
     {
