@@ -13,4 +13,7 @@ services:
       AUTH_STATE_FILE: /data/firebase-auth.json
       VAPID_SUBJECT: ${VAPID_SUBJECT:-https://papamike80.github.io/Navibeta/}
     volumes:
-      - ./data:/data
+      - navisuite-push-data:/data
+
+volumes:
+  navisuite-push-data:
