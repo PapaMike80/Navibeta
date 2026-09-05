@@ -12,7 +12,7 @@
  * - orario-lucide-init.js: forza il ricaricamento del pulsante menu in Orario.
  */
 
-const CACHE_VERSION = 'navisuite-v203-home-explicit';
+const CACHE_VERSION = 'navisuite-v204-web-push';
 
 self.addEventListener('install', event => {
   event.waitUntil(self.skipWaiting());
@@ -223,4 +223,38 @@ self.addEventListener('fetch', event => {
       return js(text);
     })());
   }
+});
+
+// Web Push reale NaviSuite. Il payload viene inviato dal backend/worker GitHub
+// e può risvegliare la PWA anche quando è completamente chiusa.
+self.addEventListener('push', event => {
+  event.waitUntil((async () => {
+    let payload = {};
+    try { payload = event.data ? event.data.json() : {}; }
+    catch (_) { payload = { body:event.data ? event.data.text() : '' }; }
+    const title = String(payload.title || 'NaviSuite');
+    const options = {
+      body:String(payload.body || ''),
+      icon:payload.icon || 'assets/images/icona_192.png',
+      badge:payload.badge || 'assets/images/icona_192.png',
+      tag:payload.tag || 'navisuite-push',
+      renotify:payload.renotify !== false,
+      data:{ url:String(payload.url || 'naviturni.html'), ...(payload.data || {}) }
+    };
+    await self.registration.showNotification(title, options);
+  })());
+});
+
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  event.waitUntil((async () => {
+    const target = new URL(event.notification?.data?.url || 'naviturni.html', self.registration.scope).href;
+    const windows = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+    for (const client of windows) {
+      if (!('focus' in client)) continue;
+      try { await client.navigate(target); } catch (_) { }
+      return client.focus();
+    }
+    return self.clients.openWindow(target);
+  })());
 });
