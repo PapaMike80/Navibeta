@@ -29,8 +29,6 @@
         firstCall=false;
         const cached=await readCompleteCache();
         if(cached&&typeof cached==='object'){
-          // Avvia subito il vero refresh senza aspettarlo. La successiva load()
-          // troverà il fetch pendente e produrrà direttamente il dataset completo.
           originalLoadBase(url,{...options,force:true}).catch(error=>
             console.warn('Aggiornamento calendario base in background non riuscito',error)
           );
@@ -65,9 +63,9 @@
     load('assets/js/effective-schedule.js?v=20260905-3');
   }
   if(/(?:^|\/)impostazioni\.html$/i.test(path)){
-    load('assets/js/push-notifications-v2.js?v=20260905-1');
+    load('assets/js/push-notifications-v3.js?v=20260905-1');
     load('assets/js/push-settings.js?v=20260905-2');
     load('assets/js/push-test-status.js?v=20260905-1');
-    load('assets/js/push-worker-ui.js?v=20260905-1');
+    load('assets/js/push-worker-ui-v2.js?v=20260905-1');
   }
 })();
