@@ -15,6 +15,7 @@
   const statusEl=document.getElementById('oggi-status');
   const contentEl=document.getElementById('oggi-content');
   const refreshButton=document.getElementById('oggi-refresh');
+  let effectivePromise=null;
   const todayIso=()=>new Date().toLocaleDateString('en-CA',{timeZone:'Europe/Rome'});
   const dateLabel=iso=>{const [year,month,day]=String(iso||'').split('-').map(Number);const date=new Date(Date.UTC(year,month-1,day,12));return `${WEEKDAY_LABELS[date.getUTCDay()]} ${day} ${MONTH_LABELS[month-1]}`;};
   const norm=value=>String(value||'').trim().toLocaleUpperCase('it').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Z0-9]+/g,' ').trim();
@@ -37,6 +38,21 @@
   function getSession(){try{return JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null')}catch{return null}}
   function validShip(value){const ship=String(value||'').trim();return ship&&!/^(?:-|N\/A|NESSUNA|NON ASSEGNATA|RIP)$/i.test(ship)&&!cleanShift(ship)?ship:''}
   function mooringFor(item){return String(item?.ormeggio_serale||item?.ormeggio||item?.ormeggioSera||'').trim()}
+
+  async function ensureEffectiveSchedule(){
+    if(window.NaviEffectiveSchedule)return window.NaviEffectiveSchedule;
+    if(effectivePromise)return effectivePromise;
+    effectivePromise=new Promise(resolve=>{
+      const script=document.createElement('script');
+      script.src='assets/js/effective-schedule.js?v=20260905-1';
+      script.async=false;
+      script.addEventListener('load',()=>resolve(window.NaviEffectiveSchedule||null),{once:true});
+      script.addEventListener('error',()=>resolve(null),{once:true});
+      document.head.appendChild(script);
+    });
+    return effectivePromise;
+  }
+
   function getShift(agent,iso,variationMap){
     const id=String(agent?.id||agent?.agent_uid||'');
     const byId=variationMap.get(`id:${id}`);const byName=variationMap.get(`name:${norm(agent?.agente||agent?.name)}`);
@@ -85,7 +101,11 @@
   async function refresh(){
     const session=getSession();if(isBarista(session)&&!isHiba(session)){contentEl.innerHTML='<section class="oggi-access"><h1>Area riservata</h1><p>La panoramica degli equipaggi non è disponibile per questo profilo.</p></section>';statusEl.hidden=true;return}
     const iso=todayIso();if(refreshButton)refreshButton.disabled=true;statusEl.hidden=false;statusEl.classList.remove('error');statusEl.textContent='Aggiornamento equipaggi…';
-    try{const data=await window.NaviSharedData.load('',{force:true});render(data,iso)}catch(error){console.error('Oggi: caricamento non riuscito',error);statusEl.hidden=false;statusEl.textContent='Impossibile caricare le corse di oggi. Riprova.';statusEl.classList.add('error');contentEl.innerHTML=''}finally{if(refreshButton)refreshButton.disabled=false}
+    try{
+      await ensureEffectiveSchedule();
+      const data=await window.NaviSharedData.load('',{force:true});
+      render(data,iso);
+    }catch(error){console.error('Oggi: caricamento non riuscito',error);statusEl.hidden=false;statusEl.textContent='Impossibile caricare le corse di oggi. Riprova.';statusEl.classList.add('error');contentEl.innerHTML=''}finally{if(refreshButton)refreshButton.disabled=false}
   }
   refreshButton?.addEventListener('click',refresh);
   contentEl?.addEventListener('click',event=>{
