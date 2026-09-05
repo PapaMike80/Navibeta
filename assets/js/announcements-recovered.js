@@ -16,13 +16,35 @@
     }
   }
 
+  // Il dataset materializzato contiene già il servizio finale in agent.turni.
+  // Ricostruiamo però la piccola lista variazioni dai metadati effettivi, perché
+  // Turni/Cambi la usano anche per frecce, indicatori ODS e dettagli del cambio.
+  const hydrateEffectiveVariations=data=>{
+    if(!data?.effective_schedule)return data;
+    if(Array.isArray(data.variazioni_ods)&&data.variazioni_ods.length)return data;
+    data.variazioni_ods=Object.values(data.effective_meta||{}).filter(item=>item&&item.origin&&item.origin!=='turno_importato').map(item=>({
+      data:item.date,
+      id_agente:item.agentId,
+      agente:item.agentName,
+      turno_originale:item.baseService,
+      turno_nuovo:item.service,
+      tipo:item.source?.tipo||(item.origin==='manuale'||item.origin==='cambio_turno'?'MANUALE':'ODS'),
+      ods:item.source?.ods||'',
+      requestId:item.source?.requestId||'',
+      note:item.source?.note||'',
+      attiva:true,
+      effective:true
+    }));
+    return data;
+  };
+
   // Turni e Cambi hanno già una cache visuale propria: quando parte la fase di
   // sincronizzazione chiediamo sempre la versione server del turno effettivo.
   // Se manca rete, effective-schedule.js ricade automaticamente sulla copia locale.
   if(/(?:^|\/)(?:naviturni|cambi_turno)\.html$/i.test(path)&&window.NaviEffectiveSchedule&&window.NaviSharedData){
     const effectiveLoad=window.NaviEffectiveSchedule.load;
-    window.NaviSharedData.load=(url,options={})=>effectiveLoad(url,{...options,force:true});
-    window.NaviSharedData.loadBase=(url,options={})=>effectiveLoad(url,{...options,force:true});
+    window.NaviSharedData.load=async(url,options={})=>hydrateEffectiveVariations(await effectiveLoad(url,{...options,force:true}));
+    window.NaviSharedData.loadBase=async(url,options={})=>hydrateEffectiveVariations(await effectiveLoad(url,{...options,force:true}));
     window.NaviSharedData.__naviturniCompleteFirst=true;
   }else if(/(?:^|\/)naviturni\.html$/i.test(path)&&window.NaviSharedData?.loadBase&&window.NaviSharedData?.load&&!window.NaviSharedData.__naviturniCompleteFirst){
     // Fallback di compatibilità se il modulo effettivo non è disponibile.
