@@ -124,132 +124,136 @@ jobs:
             return auth;
           }
 
-          const auth = await firebaseAuth();
-          const db = async (path, options = {}) => {
-            const url = `${DB}/${String(path).replace(/^\/+/, '')}.json?auth=${encodeURIComponent(auth.idToken)}`;
-            const response = await fetch(url, {
-              ...options,
-              headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
-            });
-            const data = await response.json().catch(() => null);
-            if (!response.ok) throw new Error(data?.error || `Firebase HTTP ${response.status}`);
-            return data;
-          };
-
-          webpush.setVapidDetails(
-            'https://papamike80.github.io/Navibeta/',
-            process.env.VAPID_PUBLIC_KEY,
-            VAPID_PRIVATE_KEY
-          );
-
-          const queueObject = await db('private/adminUpdates/pushQueue') || {};
-          const pending = Object.entries(queueObject)
-            .map(([key, value]) => ({ key, ...(value || {}) }))
-            .filter(item => item.status === 'pending')
-            .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')))
-            .slice(0, 20);
-
-          console.log(`Notifiche in coda: ${pending.length}`);
-
-          function allowedByPreferences(subscription, kind) {
-            const prefs = subscription?.preferences || {};
-            if (kind === 'tomorrow-summary') return prefs.tomorrowSummary !== false;
-            if (kind === 'shift-change') return prefs.shiftChanges !== false;
-            if (kind === 'ods') return prefs.ods !== false;
-            return true;
-          }
-
-          async function subscriptionsFor(targetAgentId) {
-            if (targetAgentId === '*') {
-              const all = await db('private/adminUpdates/pushSubscriptions') || {};
-              const list = [];
-              Object.entries(all).forEach(([agentKey, devices]) => {
-                Object.entries(devices || {}).forEach(([deviceKey, item]) => list.push({ agentKey, deviceKey, ...(item || {}) }));
+          (async () => {
+            const auth = await firebaseAuth();
+            const db = async (path, options = {}) => {
+              const url = `${DB}/${String(path).replace(/^\/+/, '')}.json?auth=${encodeURIComponent(auth.idToken)}`;
+              const response = await fetch(url, {
+                ...options,
+                headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
               });
-              return list;
+              const data = await response.json().catch(() => null);
+              if (!response.ok) throw new Error(data?.error || `Firebase HTTP ${response.status}`);
+              return data;
+            };
+
+            webpush.setVapidDetails(
+              'https://papamike80.github.io/Navibeta/',
+              process.env.VAPID_PUBLIC_KEY,
+              VAPID_PRIVATE_KEY
+            );
+
+            const queueObject = await db('private/adminUpdates/pushQueue') || {};
+            const pending = Object.entries(queueObject)
+              .map(([key, value]) => ({ key, ...(value || {}) }))
+              .filter(item => item.status === 'pending')
+              .sort((a, b) => String(a.createdAt || '').localeCompare(String(b.createdAt || '')))
+              .slice(0, 20);
+
+            console.log(`Notifiche in coda: ${pending.length}`);
+
+            function allowedByPreferences(subscription, kind) {
+              const prefs = subscription?.preferences || {};
+              if (kind === 'tomorrow-summary') return prefs.tomorrowSummary !== false;
+              if (kind === 'shift-change') return prefs.shiftChanges !== false;
+              if (kind === 'ods') return prefs.ods !== false;
+              return true;
             }
-            const agentKey = safeKey(targetAgentId);
-            const devices = await db(`private/adminUpdates/pushSubscriptions/${agentKey}`) || {};
-            return Object.entries(devices).map(([deviceKey, item]) => ({ agentKey, deviceKey, ...(item || {}) }));
-          }
 
-          for (const item of pending) {
-            const queuePath = `private/adminUpdates/pushQueue/${safeKey(item.key)}`;
-            await db(queuePath, {
-              method: 'PATCH',
-              body: JSON.stringify({ status: 'processing', processingAt: new Date().toISOString() })
-            });
-
-            let sent = 0;
-            let failed = 0;
-            let skipped = 0;
-            const errors = [];
-            try {
-              const subscriptions = (await subscriptionsFor(String(item.targetAgentId || '')))
-                .filter(sub => sub.enabled !== false)
-                .filter(sub => allowedByPreferences(sub, item.kind));
-
-              for (const sub of subscriptions) {
-                if (!sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) { skipped += 1; continue; }
-                const subscription = {
-                  endpoint: sub.endpoint,
-                  keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth }
-                };
-                const payload = JSON.stringify({
-                  title: String(item.title || 'NaviSuite'),
-                  body: String(item.body || ''),
-                  url: String(item.url || 'naviturni.html'),
-                  tag: `navisuite-${item.kind || 'push'}-${Date.now()}`,
-                  renotify: true,
-                  data: { kind: String(item.kind || '') }
+            async function subscriptionsFor(targetAgentId) {
+              if (targetAgentId === '*') {
+                const all = await db('private/adminUpdates/pushSubscriptions') || {};
+                const list = [];
+                Object.entries(all).forEach(([agentKey, devices]) => {
+                  Object.entries(devices || {}).forEach(([deviceKey, item]) => list.push({ agentKey, deviceKey, ...(item || {}) }));
                 });
-                try {
-                  const response = await webpush.sendNotification(subscription, payload, { TTL: 600 });
-                  console.log(`Push ${item.id || item.key} -> ${sub.agentId || item.targetAgentId}/${sub.deviceLabel || sub.deviceId}: ${response.statusCode}`);
-                  sent += 1;
-                } catch (error) {
-                  failed += 1;
-                  const status = Number(error?.statusCode || 0);
-                  errors.push(`${sub.deviceLabel || sub.deviceId || 'device'}:${status || error.message}`);
-                  if (status === 404 || status === 410) {
-                    try {
-                      await db(`private/adminUpdates/pushSubscriptions/${safeKey(sub.agentId || item.targetAgentId)}/${safeKey(sub.deviceId || sub.deviceKey)}`, { method: 'DELETE' });
-                      console.log('Sottoscrizione scaduta rimossa.');
-                    } catch (_) { }
+                return list;
+              }
+              const agentKey = safeKey(targetAgentId);
+              const devices = await db(`private/adminUpdates/pushSubscriptions/${agentKey}`) || {};
+              return Object.entries(devices).map(([deviceKey, item]) => ({ agentKey, deviceKey, ...(item || {}) }));
+            }
+
+            for (const item of pending) {
+              const queuePath = `private/adminUpdates/pushQueue/${safeKey(item.key)}`;
+              await db(queuePath, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: 'processing', processingAt: new Date().toISOString() })
+              });
+
+              let sent = 0;
+              let failed = 0;
+              let skipped = 0;
+              const errors = [];
+              try {
+                const subscriptions = (await subscriptionsFor(String(item.targetAgentId || '')))
+                  .filter(sub => sub.enabled !== false)
+                  .filter(sub => allowedByPreferences(sub, item.kind));
+
+                for (const sub of subscriptions) {
+                  if (!sub.endpoint || !sub.keys?.p256dh || !sub.keys?.auth) { skipped += 1; continue; }
+                  const subscription = {
+                    endpoint: sub.endpoint,
+                    keys: { p256dh: sub.keys.p256dh, auth: sub.keys.auth }
+                  };
+                  const payload = JSON.stringify({
+                    title: String(item.title || 'NaviSuite'),
+                    body: String(item.body || ''),
+                    url: String(item.url || 'naviturni.html'),
+                    tag: `navisuite-${item.kind || 'push'}-${Date.now()}`,
+                    renotify: true,
+                    data: { kind: String(item.kind || '') }
+                  });
+                  try {
+                    const response = await webpush.sendNotification(subscription, payload, { TTL: 600 });
+                    console.log(`Push ${item.id || item.key} -> ${sub.agentId || item.targetAgentId}/${sub.deviceLabel || sub.deviceId}: ${response.statusCode}`);
+                    sent += 1;
+                  } catch (error) {
+                    failed += 1;
+                    const status = Number(error?.statusCode || 0);
+                    errors.push(`${sub.deviceLabel || sub.deviceId || 'device'}:${status || error.message}`);
+                    if (status === 404 || status === 410) {
+                      try {
+                        await db(`private/adminUpdates/pushSubscriptions/${safeKey(sub.agentId || item.targetAgentId)}/${safeKey(sub.deviceId || sub.deviceKey)}`, { method: 'DELETE' });
+                        console.log('Sottoscrizione scaduta rimossa.');
+                      } catch (_) { }
+                    }
                   }
                 }
+
+                const finalStatus = sent > 0 ? (failed > 0 ? 'partial' : 'sent') : (subscriptions.length ? 'error' : 'no_subscriptions');
+                await db(queuePath, {
+                  method: 'PATCH',
+                  body: JSON.stringify({
+                    status: finalStatus,
+                    processedAt: new Date().toISOString(),
+                    sentCount: sent,
+                    failedCount: failed,
+                    skippedCount: skipped,
+                    errorSummary: errors.slice(0, 5).join(' | ')
+                  })
+                });
+              } catch (error) {
+                console.error(`Errore push ${item.id || item.key}:`, error.message);
+                await db(queuePath, {
+                  method: 'PATCH',
+                  body: JSON.stringify({ status: 'error', processedAt: new Date().toISOString(), errorSummary: String(error.message || error).slice(0, 500) })
+                });
               }
-
-              const finalStatus = sent > 0 ? (failed > 0 ? 'partial' : 'sent') : (subscriptions.length ? 'error' : 'no_subscriptions');
-              await db(queuePath, {
-                method: 'PATCH',
-                body: JSON.stringify({
-                  status: finalStatus,
-                  processedAt: new Date().toISOString(),
-                  sentCount: sent,
-                  failedCount: failed,
-                  skippedCount: skipped,
-                  errorSummary: errors.slice(0, 5).join(' | ')
-                })
-              });
-            } catch (error) {
-              console.error(`Errore push ${item.id || item.key}:`, error.message);
-              await db(queuePath, {
-                method: 'PATCH',
-                body: JSON.stringify({ status: 'error', processedAt: new Date().toISOString(), errorSummary: String(error.message || error).slice(0, 500) })
-              });
             }
-          }
 
-          // Mantiene la coda leggera: elimina esiti conclusi più vecchi di 14 giorni.
-          const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
-          for (const [key, item] of Object.entries(queueObject)) {
-            if (!['sent','partial','error','no_subscriptions'].includes(String(item?.status || ''))) continue;
-            const stamp = Date.parse(item?.processedAt || item?.createdAt || '');
-            if (Number.isFinite(stamp) && stamp < cutoff) {
-              try { await db(`private/adminUpdates/pushQueue/${safeKey(key)}`, { method: 'DELETE' }); } catch (_) { }
+            const cutoff = Date.now() - 14 * 24 * 60 * 60 * 1000;
+            for (const [key, item] of Object.entries(queueObject)) {
+              if (!['sent','partial','error','no_subscriptions'].includes(String(item?.status || ''))) continue;
+              const stamp = Date.parse(item?.processedAt || item?.createdAt || '');
+              if (Number.isFinite(stamp) && stamp < cutoff) {
+                try { await db(`private/adminUpdates/pushQueue/${safeKey(key)}`, { method: 'DELETE' }); } catch (_) { }
+              }
             }
-          }
+          })().catch(error => {
+            console.error(error);
+            process.exitCode = 1;
+          });
           NODE
 
       - name: Salva stato Firebase cifrato
