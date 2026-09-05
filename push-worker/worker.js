@@ -29,6 +29,7 @@ let auth = null;
 let running = false;
 let shuttingDown = false;
 let lastHeartbeat = 0;
+let stateWriteWarningShown = false;
 
 function ensureStateDir() {
   const dir = path.dirname(STATE_FILE);
@@ -44,8 +45,18 @@ function loadAuthState() {
 }
 
 function saveAuthState(value) {
-  ensureStateDir();
-  fs.writeFileSync(STATE_FILE, JSON.stringify({ refreshToken: value.refreshToken }, null, 2) + '\n', { mode: 0o600 });
+  try {
+    ensureStateDir();
+    fs.writeFileSync(STATE_FILE, JSON.stringify({ refreshToken: value.refreshToken }, null, 2) + '\n', { mode: 0o600 });
+    stateWriteWarningShown = false;
+    return true;
+  } catch (error) {
+    if (!stateWriteWarningShown) {
+      stateWriteWarningShown = true;
+      console.warn(`[push-worker] Stato Firebase non persistito (${STATE_FILE}): ${error.code || error.message}. Continuo usando la sessione in memoria.`);
+    }
+    return false;
+  }
 }
 
 async function jsonFetch(url, options = {}) {
