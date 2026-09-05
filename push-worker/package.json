@@ -1,0 +1,13 @@
+{
+  "name": "navisuite-push-worker",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Worker Web Push always-on per NaviBeta/NaviSuite",
+  "main": "worker.js",
+  "scripts": {
+    "start": "node worker.js"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}
