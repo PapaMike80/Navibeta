@@ -22,6 +22,10 @@ on:
         required: true
         default: 'https://papamike80.github.io/Navibeta/push-test/'
         type: string
+  push:
+    branches: ["main"]
+    paths:
+      - '.github/push-request.enc'
 
 permissions:
   contents: read
@@ -37,6 +41,9 @@ jobs:
       PUSH_BODY: ${{ inputs.body }}
       PUSH_URL: ${{ inputs.url }}
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Verifica secret VAPID
         shell: bash
         run: |
@@ -52,9 +59,36 @@ jobs:
         shell: bash
         run: |
           node <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
           const webpush = require('web-push');
 
-          const subscription = JSON.parse(process.env.SUBSCRIPTION_JSON);
+          let subscription;
+          let title;
+          let body;
+          let url;
+
+          if (process.env.GITHUB_EVENT_NAME === 'push') {
+            const envelope = JSON.parse(fs.readFileSync('.github/push-request.enc', 'utf8'));
+            const key = crypto.createHash('sha256').update(process.env.VAPID_PRIVATE_KEY, 'utf8').digest();
+            const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(envelope.iv, 'base64url'));
+            decipher.setAuthTag(Buffer.from(envelope.tag, 'base64url'));
+            const plaintext = Buffer.concat([
+              decipher.update(Buffer.from(envelope.ciphertext, 'base64url')),
+              decipher.final()
+            ]).toString('utf8');
+            const request = JSON.parse(plaintext);
+            subscription = request.subscription;
+            title = request.title;
+            body = request.body;
+            url = request.url;
+          } else {
+            subscription = JSON.parse(process.env.SUBSCRIPTION_JSON);
+            title = process.env.PUSH_TITLE;
+            body = process.env.PUSH_BODY;
+            url = process.env.PUSH_URL;
+          }
+
           if (!subscription?.endpoint || !subscription?.keys?.p256dh || !subscription?.keys?.auth) {
             throw new Error('PushSubscription non valida: endpoint/keys mancanti');
           }
@@ -66,9 +100,9 @@ jobs:
           );
 
           const payload = JSON.stringify({
-            title: process.env.PUSH_TITLE,
-            body: process.env.PUSH_BODY,
-            url: process.env.PUSH_URL,
+            title,
+            body,
+            url,
             tag: 'navisuite-remote-' + Date.now(),
             renotify: true
           });
