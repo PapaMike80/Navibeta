@@ -67,5 +67,6 @@
   if(/(?:^|\/)impostazioni\.html$/i.test(path)){
     load('assets/js/push-notifications.js?v=20260905-2');
     load('assets/js/push-settings.js?v=20260905-2');
+    load('assets/js/push-test-status.js?v=20260905-1');
   }
 })();
