@@ -1,3 +1,4 @@
+// Regression guard for the only NaviBeta data overlay kept above NaviSuite production.
 const assert = require('node:assert');
 const fs = require('node:fs');
 const vm = require('node:vm');
