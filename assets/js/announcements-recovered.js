@@ -65,6 +65,7 @@
   if(/(?:^|\/)impostazioni\.html$/i.test(path)){
     load('assets/js/push-notifications-v3.js?v=20260905-1');
     load('assets/js/push-settings.js?v=20260905-2');
+    load('assets/js/push-custom-admin.js?v=20260906-1');
     load('assets/js/push-day-summary.js?v=20260905-1');
     load('assets/js/push-today-summary.js?v=20260905-1');
     load('assets/js/push-worker-ui-v2.js?v=20260905-1');
