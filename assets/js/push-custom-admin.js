@@ -34,13 +34,13 @@
       </div>
       <div class="grid">
         <div class="field"><label for="push-custom-agent">Destinatario</label><select id="push-custom-agent"><option value="">Caricamento…</option></select></div>
-        <div class="field"><label for="push-custom-title">Titolo</label><input id="push-custom-title" value="NaviSuite" maxlength="120" autocomplete="off"></div>
+        <div class="field"><label for="push-custom-sender">Mittente</label><input id="push-custom-sender" value="${esc(senderName)}" readonly aria-readonly="true"></div>
       </div>
       <div class="field" style="margin-top:10px"><label for="push-custom-body">Messaggio</label><textarea id="push-custom-body" maxlength="500" rows="4" placeholder="Scrivi qui il messaggio da inviare…" style="width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);outline:none;color-scheme:dark;resize:vertical;min-height:96px;font:inherit"></textarea></div>
       <div class="field" style="margin-top:10px"><label for="push-custom-destination">Apri al tocco</label><select id="push-custom-destination"><option value="index.html">Home</option><option value="oggi.html">Oggi</option><option value="naviturni.html" selected>Turni</option><option value="cambi_turno.html">Cambio turno</option><option value="navidiaria.html">Diaria</option><option value="documenti.html">Documenti</option></select></div>
       <div style="display:flex;flex-wrap:wrap;gap:9px;margin-top:12px"><button class="btn primary" id="push-custom-send" type="button">Invia notifica</button><button class="btn" id="push-custom-refresh" type="button">Aggiorna destinatari</button></div>
       <div class="status" id="push-custom-status" aria-live="polite"></div>
-      <p style="margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.4">L’invio usa il worker Web Push su TrueNAS e normalmente viene elaborato in pochi secondi.</p>`;
+      <p style="margin:8px 0 0;color:var(--muted);font-size:11px;line-height:1.4">Il mittente viene preso automaticamente dall’agente collegato e non può essere modificato.</p>`;
     dayBox.insertAdjacentElement('afterend',box);
     return box;
   }
@@ -83,19 +83,17 @@
     refresh?.addEventListener('click',loadRecipients);
     send?.addEventListener('click',async()=>{
       const targetAgentId=String(document.getElementById('push-custom-agent')?.value||'');
-      const title=String(document.getElementById('push-custom-title')?.value||'').trim();
       const body=String(document.getElementById('push-custom-body')?.value||'').trim();
       const url=String(document.getElementById('push-custom-destination')?.value||'naviturni.html');
       if(!targetAgentId){status.textContent='Scegli un destinatario.';return;}
       if(targetAgentId==='*'&&!isAdmin){status.textContent='L’invio a tutti è riservato agli admin.';return;}
-      if(!title){status.textContent='Inserisci il titolo della notifica.';return;}
       if(!body){status.textContent='Scrivi il messaggio da inviare.';return;}
-      if(targetAgentId==='*'&&!confirm('Inviare questa notifica a tutti gli agenti con Web Push attivo?'))return;
+      if(targetAgentId==='*'&&!confirm(`Inviare questo messaggio a tutti come ${senderName}?`))return;
       send.disabled=true;
       status.textContent=targetAgentId==='*'?'Invio a tutti in corso…':'Inserimento notifica in coda…';
       try{
-        await window.NaviPush.queuePush({requestedByAgentId:senderId,requestedByName:senderName,targetAgentId,title,body,url,kind:isAdmin?'admin-custom':'user-custom'});
-        status.textContent=targetAgentId==='*'?'✅ Notifica inviata a tutti i dispositivi attivi.':'✅ Notifica inviata.';
+        await window.NaviPush.queuePush({requestedByAgentId:senderId,requestedByName:senderName,targetAgentId,title:senderName,body,url,kind:isAdmin?'admin-custom':'user-custom',meta:{senderAgentId:senderId,senderName}});
+        status.textContent=targetAgentId==='*'?`✅ Messaggio inviato a tutti come ${senderName}.`:`✅ Messaggio inviato come ${senderName}.`;
         const bodyEl=document.getElementById('push-custom-body');if(bodyEl)bodyEl.value='';
       }catch(error){status.textContent=error?.message||'Invio non riuscito.';}
       finally{send.disabled=false;}
