@@ -5,14 +5,12 @@
   const profile=(()=>{try{return JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null');}catch(_){return null;}})();
   if(!profile)return;
   const isAdmin=['91','92'].includes(String(profile?.id||''))||['admin','super_user'].includes(String(profile?.role||'').toLowerCase());
-  if(!isAdmin)return;
-
   const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const senderId=String(profile?.id||profile?.agentId||'').trim();
   const senderName=String(profile?.name||profile?.agente||profile?.cognome||senderId).trim();
 
   const waitForBase=async()=>{
-    for(let i=0;i<80;i+=1){
+    for(let i=0;i<100;i+=1){
       const base=document.querySelector('#notifiche-push .push-settings-body');
       const dayBox=document.getElementById('push-admin');
       if(base&&dayBox&&window.NaviPush)return {base,dayBox};
@@ -26,12 +24,12 @@
     if(existing)return existing;
     const box=document.createElement('div');
     box.id='push-custom-admin';
-    box.className='admin-section';
+    box.className='push-custom-section';
     box.style.paddingTop='5px';
     box.innerHTML=`
       <div style="height:1px;background:#294b56;margin:2px 0 14px"></div>
       <div class="section-head" style="margin-bottom:10px">
-        <div><h3 style="margin:0 0 4px;font-size:16px">Invia notifica personalizzata · Admin</h3><p style="margin:0;color:var(--muted);font-size:12px">Scrivi una notifica libera e inviala a un agente oppure a tutti i dispositivi Web Push attivi.</p></div>
+        <div><h3 style="margin:0 0 4px;font-size:16px">Invia notifica personalizzata</h3><p style="margin:0;color:var(--muted);font-size:12px">Scrivi un messaggio e invialo a un agente con Web Push attivo${isAdmin?', oppure a tutti':''}.</p></div>
         <span class="badge">Web Push</span>
       </div>
       <div class="grid">
@@ -56,17 +54,15 @@
     if(status)status.textContent='Aggiornamento destinatari…';
     try{
       await window.NaviAdminFirebase?.ready;
-      const [users,subs]=await Promise.all([
-        window.NaviAdminFirebase?.listRegisteredUsers?.()||[],
-        window.NaviPush.listSubscriptions()
-      ]);
+      const [users,subs]=await Promise.all([window.NaviAdminFirebase?.listRegisteredUsers?.()||[],window.NaviPush.listSubscriptions()]);
       const counts=new Map();
       subs.forEach(item=>counts.set(String(item.agentId),Number(counts.get(String(item.agentId))||0)+1));
       const byId=new Map();
       users.forEach(user=>{if(user?.id)byId.set(String(user.id),user);});
       subs.forEach(item=>{if(item?.agentId&&!byId.has(String(item.agentId)))byId.set(String(item.agentId),{id:item.agentId,name:item.agentName||item.agentId});});
       const ordered=[...byId.values()].sort((a,b)=>String(a.name||a.id).localeCompare(String(b.name||b.id),'it'));
-      select.innerHTML='<option value="">Scegli agente…</option><option value="*">📣 Tutti gli agenti con notifiche attive</option>'+ordered.map(user=>{
+      const broadcast=isAdmin?'<option value="*">📣 Tutti gli agenti con notifiche attive</option>':'';
+      select.innerHTML='<option value="">Scegli agente…</option>'+broadcast+ordered.map(user=>{
         const count=Number(counts.get(String(user.id))||0);
         return `<option value="${esc(user.id)}" ${count?'':'disabled'}>${esc(user.name||user.id)} · ${count?`${count} dispositivo${count===1?'':'i'}`:'nessun dispositivo'}</option>`;
       }).join('');
@@ -91,16 +87,16 @@
       const body=String(document.getElementById('push-custom-body')?.value||'').trim();
       const url=String(document.getElementById('push-custom-destination')?.value||'naviturni.html');
       if(!targetAgentId){status.textContent='Scegli un destinatario.';return;}
+      if(targetAgentId==='*'&&!isAdmin){status.textContent='L’invio a tutti è riservato agli admin.';return;}
       if(!title){status.textContent='Inserisci il titolo della notifica.';return;}
       if(!body){status.textContent='Scrivi il messaggio da inviare.';return;}
       if(targetAgentId==='*'&&!confirm('Inviare questa notifica a tutti gli agenti con Web Push attivo?'))return;
       send.disabled=true;
       status.textContent=targetAgentId==='*'?'Invio a tutti in corso…':'Inserimento notifica in coda…';
       try{
-        await window.NaviPush.queuePush({requestedByAgentId:senderId,requestedByName:senderName,targetAgentId,title,body,url,kind:'admin-custom'});
+        await window.NaviPush.queuePush({requestedByAgentId:senderId,requestedByName:senderName,targetAgentId,title,body,url,kind:isAdmin?'admin-custom':'user-custom'});
         status.textContent=targetAgentId==='*'?'✅ Notifica inviata a tutti i dispositivi attivi.':'✅ Notifica inviata.';
-        const bodyEl=document.getElementById('push-custom-body');
-        if(bodyEl)bodyEl.value='';
+        const bodyEl=document.getElementById('push-custom-body');if(bodyEl)bodyEl.value='';
       }catch(error){status.textContent=error?.message||'Invio non riuscito.';}
       finally{send.disabled=false;}
     });
