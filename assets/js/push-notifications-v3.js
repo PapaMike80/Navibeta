@@ -30,10 +30,26 @@
     return value;
   }
 
-  function defaultPreferences(){return {tomorrowSummary:true,shiftChanges:true,ods:true};}
-  function preferences(agentId){return {...defaultPreferences(),...(readJson(PREFS_PREFIX+String(agentId||''),{})||{})};}
+  function defaultPreferences(){
+    return {
+      tomorrowSummary:true,
+      shiftChanges:true,
+      ods:true,
+      summaryDelivery:{mode:'previous-day',time:'22:05',leadMinutes:60}
+    };
+  }
+  function normalizePreferences(value){
+    const defaults=defaultPreferences();
+    const source=value&&typeof value==='object'?value:{};
+    const delivery=source.summaryDelivery&&typeof source.summaryDelivery==='object'?source.summaryDelivery:{};
+    const mode=['previous-day','same-day','before-service'].includes(String(delivery.mode))?String(delivery.mode):defaults.summaryDelivery.mode;
+    const time=/^\d{2}:\d{2}$/.test(String(delivery.time||''))?String(delivery.time):defaults.summaryDelivery.time;
+    const lead=[30,60,120].includes(Number(delivery.leadMinutes))?Number(delivery.leadMinutes):60;
+    return {...defaults,...source,summaryDelivery:{mode,time,leadMinutes:lead}};
+  }
+  function preferences(agentId){return normalizePreferences(readJson(PREFS_PREFIX+String(agentId||''),{}));}
   function savePreferencesLocal(agentId,value){
-    const next={...defaultPreferences(),...(value||{})};
+    const next=normalizePreferences(value);
     writeJson(PREFS_PREFIX+String(agentId||''),next);
     return next;
   }
@@ -106,10 +122,8 @@
     if(!('serviceWorker' in navigator))throw new Error('Service Worker non disponibile');
     let reg=null;
     try{reg=await window.__naviSwRegistrationPromise;}catch(_){ }
-    if(!reg){
-      try{reg=await navigator.serviceWorker.getRegistration('./');}catch(_){ }
-    }
-    if(!reg){reg=await navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});}
+    if(!reg){try{reg=await navigator.serviceWorker.getRegistration('./');}catch(_){ }}
+    if(!reg)reg=await navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'});
     window.__naviSwRegistrationPromise=Promise.resolve(reg);
     return navigator.serviceWorker.ready;
   }
@@ -134,7 +148,19 @@
     let previous=null;
     try{previous=(await databaseRequest(path)).data;}catch(_){ }
     const json=subscription.toJSON();
-    const item={agentId,agentName:String(profile?.name||profile?.agente||profile?.cognome||agentId),deviceId:id,deviceLabel:deviceLabel(),endpoint:String(json.endpoint||''),keys:{p256dh:String(json.keys?.p256dh||''),auth:String(json.keys?.auth||'')},enabled:true,vapidVersion:2,preferences:{...defaultPreferences(),...(prefs||{})},createdAt:String(previous?.createdAt||now()),updatedAt:now()};
+    const item={
+      agentId,
+      agentName:String(profile?.name||profile?.agente||profile?.cognome||agentId),
+      deviceId:id,
+      deviceLabel:deviceLabel(),
+      endpoint:String(json.endpoint||''),
+      keys:{p256dh:String(json.keys?.p256dh||''),auth:String(json.keys?.auth||'')},
+      enabled:true,
+      vapidVersion:2,
+      preferences:normalizePreferences(prefs),
+      createdAt:String(previous?.createdAt||now()),
+      updatedAt:now()
+    };
     const auth=await ensureAuth();
     item.ownerUid=auth.uid;
     await databaseRequest(path,{method:'PUT',body:JSON.stringify(item)});
@@ -187,9 +213,14 @@
 
   async function listSubscriptions(agentId=''){
     const target=String(agentId||'').trim();
-    if(target){const result=await databaseRequest(`private/adminUpdates/pushSubscriptions/${safeKey(target)}`);return Object.values(result.data||{}).filter(item=>item&&item.enabled!==false);}
+    if(target){
+      const result=await databaseRequest(`private/adminUpdates/pushSubscriptions/${safeKey(target)}`);
+      return Object.values(result.data||{}).filter(item=>item&&item.enabled!==false);
+    }
     const result=await databaseRequest('private/adminUpdates/pushSubscriptions');
-    const out=[];Object.values(result.data||{}).forEach(devices=>Object.values(devices||{}).forEach(item=>{if(item&&item.enabled!==false)out.push(item);}));return out;
+    const out=[];
+    Object.values(result.data||{}).forEach(devices=>Object.values(devices||{}).forEach(item=>{if(item&&item.enabled!==false)out.push(item);}));
+    return out;
   }
 
   async function queuePush(payload={}){
@@ -197,12 +228,19 @@
     const targetAgentId=String(payload.targetAgentId||'').trim();
     const title=String(payload.title||'NaviSuite').trim().slice(0,120);
     const body=String(payload.body||'').trim().slice(0,500);
-    if(!requestedByAgentId)throw new Error('Amministratore non riconosciuto');
+    if(!requestedByAgentId)throw new Error('Utente non riconosciuto');
     if(!targetAgentId)throw new Error('Scegli un destinatario');
     if(!body)throw new Error('Inserisci il testo della notifica');
     const auth=await ensureAuth();
     const id=`PUSH_${Date.now()}_${Math.random().toString(36).slice(2,8)}`;
-    const item={id,status:'pending',kind:String(payload.kind||'admin-test'),requestedByAgentId,requestedByName:String(payload.requestedByName||''),ownerUid:auth.uid,targetAgentId,title,body,url:String(payload.url||'naviturni.html').trim().slice(0,500),createdAt:now()};
+    const item={
+      id,status:'pending',kind:String(payload.kind||'custom'),
+      requestedByAgentId,requestedByName:String(payload.requestedByName||''),ownerUid:auth.uid,
+      targetAgentId,targetDeviceId:String(payload.targetDeviceId||''),title,body,
+      url:String(payload.url||'naviturni.html').trim().slice(0,500),
+      meta:payload.meta&&typeof payload.meta==='object'?payload.meta:{},
+      createdAt:now()
+    };
     await databaseRequest(`private/adminUpdates/pushQueue/${safeKey(id)}`,{method:'PUT',body:JSON.stringify(item)});
     return item;
   }
@@ -212,5 +250,9 @@
     return Object.values(result.data||{}).filter(Boolean).sort((a,b)=>String(b.createdAt||'').localeCompare(String(a.createdAt||''))).slice(0,Math.max(1,Number(limit||20)));
   }
 
-  window.NaviPush={VAPID_PUBLIC_KEY,VAPID_VERSION,subscribe,unsubscribe,updatePreferences,getStatus,listSubscriptions,queuePush,listQueue,localSubscription,preferences,isIos,isStandalone,provider:'Web Push v3 + Firebase registry'};
+  window.NaviPush={
+    VAPID_PUBLIC_KEY,VAPID_VERSION,subscribe,unsubscribe,updatePreferences,getStatus,listSubscriptions,queuePush,listQueue,
+    localSubscription,preferences,defaultPreferences,normalizePreferences,isIos,isStandalone,deviceId,
+    provider:'Web Push v3 + Firebase registry'
+  };
 })();
