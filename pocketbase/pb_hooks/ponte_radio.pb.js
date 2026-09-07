@@ -110,9 +110,7 @@
   }, $apis.requireAuth());
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
-    const expected = workerSecret();
-    if (!expected) return e.json(500, { diagnostic: "env_missing", jobs: [] });
-    return e.json(200, { diagnostic: "env_ok", secretLength: expected.length, jobs: [] });
+    return e.json(200, { diagnostic: "static_route_ok", jobs: [] });
   });
 
   routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
