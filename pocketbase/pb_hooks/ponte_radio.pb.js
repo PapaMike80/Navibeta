@@ -33,7 +33,7 @@
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/recipients", (e) => {
     const me = currentAgent(e.app, e.auth);
-    const subscriptions = e.app.findRecordsByFilter("push_subscriptions", "enabled = true", "-updated", 500, 0);
+    const subscriptions = e.app.findRecordsByFilter("push_subscriptions", "enabled = true", "", 500, 0);
     const seen = new Set();
     const recipients = [];
     for (const sub of subscriptions) {
@@ -111,7 +111,7 @@
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
     requireWorker(e);
-    const jobs = e.app.findRecordsByFilter("push_queue", "status = 'pending'", "+created", 25, 0);
+    const jobs = e.app.findRecordsByFilter("push_queue", "status = 'pending'", "", 25, 0);
     const result = [];
     for (const job of jobs) {
       job.set("status", "processing");
@@ -136,7 +136,7 @@
     const id = String(body.id || "").trim();
     if (!id) throw new BadRequestError("Job mancante.");
     const job = e.app.findRecordById("push_queue", id);
-    const status = ["sent", "partial", "failed", "no_subscriptions"].includes(String(body.status)) ? String(body.status) : "failed";
+    const status = ["sent", "partial", "failed"].includes(String(body.status)) ? String(body.status) : "failed";
     job.set("status", status);
     job.set("error", String(body.error || "").slice(0, 1000));
     job.set("processed_at", new Date().toISOString());
