@@ -23,7 +23,7 @@ async function finish(id, status, error = '', expired = []) {
 
 async function processJob(job) {
   const subs = Array.isArray(job.subscriptions) ? job.subscriptions : [];
-  if (!subs.length) return finish(job.id, 'no_subscriptions');
+  if (!subs.length) return finish(job.id, 'failed', 'Nessuna subscription push attiva per il destinatario.');
   let sent = 0, failed = 0;
   const errors = [], expired = [];
   const payload = JSON.stringify({
