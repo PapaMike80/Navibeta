@@ -110,21 +110,40 @@
   }, $apis.requireAuth());
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
-    let requestType = "";
-    let headerType = "";
-    let getType = "";
-    let headerValue = "";
-    try {
-      requestType = typeof e.request;
-      headerType = e.request ? typeof e.request.header : "no_request";
-      getType = e.request && e.request.header ? typeof e.request.header.get : "no_header";
-      if (e.request && e.request.header && typeof e.request.header.get === "function") {
-        headerValue = String(e.request.header.get("X-PonteRadio-Worker") || "");
+    requireWorker(e);
+    const jobs = e.app.findRecordsByFilter("push_queue", "status = 'pending'", "", 25, 0);
+    const result = [];
+    for (const job of jobs) {
+      job.set("status", "processing");
+      e.app.save(job);
+
+      let subscriptions = [];
+      if (job.getBool("broadcast")) {
+        subscriptions = e.app.findRecordsByFilter("push_subscriptions", "enabled = true", "", 500, 0);
+      } else {
+        const targetId = job.getString("target_agent");
+        if (targetId) {
+          subscriptions = e.app.findRecordsByFilter("push_subscriptions", "enabled = true && agente = {:agent}", "", 50, 0, { agent: targetId });
+        }
       }
-    } catch (err) {
-      return e.json(200, { diagnostic: "request_exception", requestType, headerType, getType, error: String(err), jobs: [] });
+
+      result.push({
+        id: job.id,
+        title: job.getString("title"),
+        body: job.getString("body"),
+        url: job.getString("url"),
+        meta: job.get("meta") || {},
+        subscriptions: subscriptions.map((sub) => ({
+          id: sub.id,
+          endpoint: sub.getString("endpoint"),
+          keys: {
+            p256dh: sub.getString("p256dh"),
+            auth: sub.getString("auth_key")
+          }
+        }))
+      });
     }
-    return e.json(200, { diagnostic: "request_probe_ok", requestType, headerType, getType, suppliedLength: headerValue.length, jobs: [] });
+    return e.json(200, { jobs: result });
   });
 
   routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
