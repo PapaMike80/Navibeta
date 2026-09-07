@@ -58,8 +58,8 @@ migrate((app) => {
       { type:"date", name:"processed_at" }
     ],
     indexes: [
-      "CREATE INDEX idx_push_queue_status_created ON push_queue (status, created)",
-      "CREATE INDEX idx_push_queue_target_created ON push_queue (target_agent, created)"
+      "CREATE INDEX idx_push_queue_status ON push_queue (status)",
+      "CREATE INDEX idx_push_queue_target ON push_queue (target_agent)"
     ]
   });
   app.save(queue);
