@@ -8,12 +8,13 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v205-effective-push-offline';
+const CACHE_VERSION = 'navibeta-v206-ponteradio-pocketbase';
 const CORE_ASSETS = [
   './',
   './index.html',
   './oggi.html',
   './naviturni.html',
+  './ponteradio.html',
   './manifest.json',
   './assets/css/portal.css',
   './assets/css/navi-shared.css',
@@ -30,6 +31,8 @@ const CORE_ASSETS = [
   './assets/js/effective-schedule.js',
   './assets/js/push-notifications.js',
   './assets/js/push-settings.js',
+  './assets/js/ponteradio.js',
+  './v2/assets/pb.js',
   './assets/images/favicon.svg',
   './assets/images/icona_192.png',
   './assets/images/icona_512.png',
@@ -335,8 +338,37 @@ self.addEventListener('fetch', event => {
 });
 
 
-// Web Push reale NaviSuite. Il payload viene inviato dal backend/worker GitHub
-// e può risvegliare la PWA anche quando è completamente chiusa.
+function saveIncomingPonteRadio(payload) {
+  if (payload?.data?.kind !== 'ponteradio') return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('navisuite-ponteradio', 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('messages')) {
+        const store = db.createObjectStore('messages', { keyPath:'id' });
+        store.createIndex('time', 'time');
+      }
+    };
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      const db = request.result;
+      const transaction = db.transaction('messages', 'readwrite');
+      transaction.objectStore('messages').put({
+        id:'in-' + String(payload.data.messageId || payload.tag || Date.now()),
+        direction:'in',
+        peerId:String(payload.data.senderAgentId || ''),
+        peer:String(payload.data.senderName || 'Agente'),
+        body:String(payload.body || '').slice(0, 500),
+        time:String(payload.data.sentAt || new Date().toISOString()),
+      });
+      transaction.oncomplete = () => { db.close(); resolve(); };
+      transaction.onerror = () => { const error=transaction.error; db.close(); reject(error); };
+    };
+  });
+}
+
+// Web Push reale NaviSuite. Il payload viene inviato dal backend/worker e può
+// risvegliare la PWA anche quando è completamente chiusa.
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
     let payload = {};
@@ -351,7 +383,12 @@ self.addEventListener('push', event => {
       renotify:payload.renotify !== false,
       data:{ url:String(payload.url || 'naviturni.html'), ...(payload.data || {}) }
     };
+    await saveIncomingPonteRadio(payload).catch(() => {});
     await self.registration.showNotification(title, options);
+    if (payload?.data?.kind === 'ponteradio') {
+      const windows = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
+      windows.forEach(client => client.postMessage({ type:'ponteradio:message' }));
+    }
   })());
 });
 

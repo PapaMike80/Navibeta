@@ -37,14 +37,23 @@
     return [...new Uint8Array(digest)].map(v => v.toString(16).padStart(2, '0')).join('');
   }
 
-  async function login(loginId, pin) {
-    const password = await hashPin(pin);
+  async function loginWithPassword(loginId, password) {
     const auth = await request('/api/collections/users/auth-with-password', { method: 'POST', auth: false, body: { identity: String(loginId), password } });
     saveAuth(auth);
     const mine = await findOne('agenti', `legacy_id = "${escapeFilter(loginId)}"`, 'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo,permessi_speciali');
     if (!mine) { clear(); throw new Error('Profilo agente PocketBase non trovato.'); }
     localStorage.setItem(AGENT_KEY, JSON.stringify(mine));
     return { user: auth.record, agent: mine };
+  }
+
+  async function login(loginId, pin) {
+    return loginWithPassword(loginId, await hashPin(pin));
+  }
+
+  async function loginWithPasswordHash(loginId, passwordHash) {
+    const password = String(passwordHash || '').trim().toLowerCase();
+    if (!/^[a-f0-9]{64}$/.test(password)) throw new Error('Credenziale locale non disponibile. Accedi nuovamente a Navibeta.');
+    return loginWithPassword(loginId, password);
   }
 
   async function refresh() {
@@ -75,5 +84,5 @@
     return true;
   }
 
-  window.NaviV2PB={url:BASE_URL,request,list,listAll,findOne,create,update,remove,loginDirectory,login,refresh,requireSession,logout:clear,token,user,agent,escapeFilter};
+  window.NaviV2PB={url:BASE_URL,request,list,listAll,findOne,create,update,remove,loginDirectory,login,loginWithPasswordHash,refresh,requireSession,logout:clear,token,user,agent,escapeFilter};
 })();

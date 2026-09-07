@@ -32,7 +32,7 @@ async function processJob(job) {
     url: job.url || 'ponteradio.html',
     tag: `navisuite-ponteradio-${job.id}`,
     renotify: true,
-    data: { kind: job.kind || 'ponteradio', ...(job.meta || {}) }
+    data: { kind: job.kind || 'ponteradio', messageId:job.id, ...(job.meta || {}) }
   });
   for (const sub of subs) {
     try {
