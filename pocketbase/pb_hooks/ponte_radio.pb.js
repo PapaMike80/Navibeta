@@ -25,9 +25,15 @@
     return String($os.getenv("PONTERADIO_WORKER_SECRET") || "").trim();
   }
 
+  function workerHeader(e) {
+    const info = e.requestInfo();
+    const headers = info && info.headers ? info.headers : {};
+    return String(headers.x_ponteradio_worker || headers["x-ponteradio-worker"] || "").trim();
+  }
+
   function requireWorker(e) {
     const expected = workerSecret();
-    const supplied = String(e.request.header.get("X-PonteRadio-Worker") || "").trim();
+    const supplied = workerHeader(e);
     if (!expected || supplied !== expected) throw new ForbiddenError("Worker non autorizzato.");
   }
 
@@ -110,13 +116,20 @@
   }, $apis.requireAuth());
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
-    let value = "";
+    const expected = workerSecret();
+    let supplied = "";
     try {
-      value = $os.getenv("PONTERADIO_WORKER_SECRET");
+      supplied = workerHeader(e);
     } catch (err) {
-      return e.json(200, { diagnostic: "getenv_exception", error: String(err), jobs: [] });
+      return e.json(200, { diagnostic: "requestinfo_exception", error: String(err), jobs: [] });
     }
-    return e.json(200, { diagnostic: value ? "getenv_ok" : "getenv_empty", secretLength: value ? String(value).length : 0, jobs: [] });
+    return e.json(200, {
+      diagnostic: "requestinfo_ok",
+      expectedLength: expected.length,
+      suppliedLength: supplied.length,
+      match: !!expected && supplied === expected,
+      jobs: []
+    });
   });
 
   routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
