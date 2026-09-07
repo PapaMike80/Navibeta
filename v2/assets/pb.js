@@ -24,19 +24,9 @@
     const headers = { Accept: 'application/json' };
     if (auth && token()) headers.Authorization = token();
     if (body !== undefined) headers['Content-Type'] = 'application/json';
-    const response = await fetch(`${BASE_URL}${path}`, {
-      method,
-      headers,
-      cache: 'no-store',
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
+    const response = await fetch(`${BASE_URL}${path}`, { method, headers, cache: 'no-store', body: body === undefined ? undefined : JSON.stringify(body) });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const error = new Error(payload?.message || `Errore PocketBase ${response.status}`);
-      error.status = response.status;
-      error.payload = payload;
-      throw error;
-    }
+    if (!response.ok) { const error = new Error(payload?.message || `Errore PocketBase ${response.status}`); error.status = response.status; error.payload = payload; throw error; }
     return payload;
   }
 
@@ -49,9 +39,7 @@
 
   async function login(loginId, pin) {
     const password = await hashPin(pin);
-    const auth = await request('/api/collections/users/auth-with-password', {
-      method: 'POST', auth: false, body: { identity: String(loginId), password }
-    });
+    const auth = await request('/api/collections/users/auth-with-password', { method: 'POST', auth: false, body: { identity: String(loginId), password } });
     saveAuth(auth);
     const mine = await findOne('agenti', `legacy_id = "${escapeFilter(loginId)}"`, 'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo,permessi_speciali');
     if (!mine) { clear(); throw new Error('Profilo agente PocketBase non trovato.'); }
@@ -61,74 +49,31 @@
 
   async function refresh() {
     if (!token()) return false;
-    try {
-      const auth = await request('/api/collections/users/auth-refresh', { method: 'POST' });
-      saveAuth(auth);
-      return true;
-    } catch {
-      clear();
-      return false;
-    }
+    try { const auth = await request('/api/collections/users/auth-refresh', { method: 'POST' }); saveAuth(auth); return true; }
+    catch { clear(); return false; }
   }
 
   async function list(collection, { page = 1, perPage = 500, filter = '', sort = '', fields = '', auth = true } = {}) {
     const params = new URLSearchParams({ page: String(page), perPage: String(perPage) });
-    if (filter) params.set('filter', filter);
-    if (sort) params.set('sort', sort);
-    if (fields) params.set('fields', fields);
+    if (filter) params.set('filter', filter); if (sort) params.set('sort', sort); if (fields) params.set('fields', fields);
     return request(`/api/collections/${encodeURIComponent(collection)}/records?${params}`, { auth });
   }
+  async function listAll(collection, options = {}) { const out=[]; for(let page=1;;page++){const result=await list(collection,{...options,page,perPage:Math.min(500,options.perPage||500)});out.push(...(result.items||[]));if(page>=Number(result.totalPages||1))break;} return out; }
+  async function findOne(collection, filter, fields = '') { const result=await list(collection,{perPage:1,filter,fields}); return result.items?.[0]||null; }
+  async function create(collection, body) { return request(`/api/collections/${encodeURIComponent(collection)}/records`, { method:'POST', body }); }
+  async function update(collection, id, body) { return request(`/api/collections/${encodeURIComponent(collection)}/records/${encodeURIComponent(id)}`, { method:'PATCH', body }); }
+  async function remove(collection, id) { return request(`/api/collections/${encodeURIComponent(collection)}/records/${encodeURIComponent(id)}`, { method:'DELETE' }); }
 
-  async function listAll(collection, options = {}) {
-    const out = [];
-    for (let page = 1;; page += 1) {
-      const result = await list(collection, { ...options, page, perPage: Math.min(500, options.perPage || 500) });
-      out.push(...(result.items || []));
-      if (page >= Number(result.totalPages || 1)) break;
-    }
-    return out;
-  }
-
-  async function findOne(collection, filter, fields = '') {
-    const result = await list(collection, { perPage: 1, filter, fields });
-    return result.items?.[0] || null;
-  }
-
-  async function loginDirectory() {
-    return listAll('login_directory', {
-      auth: false,
-      filter: 'attivo = true',
-      sort: 'nome_visualizzato',
-      fields: 'login_id,nome_visualizzato,residenza,attivo',
-    });
-  }
-
+  async function loginDirectory() { return listAll('login_directory',{auth:false,filter:'attivo = true',sort:'nome_visualizzato',fields:'login_id,nome_visualizzato,residenza,attivo'}); }
   async function requireSession() {
     if (!token()) { location.replace('index.html'); return false; }
     if (!agent()) {
-      const current = user();
-      if (!current?.login_id || !(await refresh())) { location.replace('index.html'); return false; }
-      const mine = await findOne('agenti', `legacy_id = "${escapeFilter(user().login_id)}"`, 'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo,permessi_speciali');
-      if (!mine) { clear(); location.replace('index.html'); return false; }
-      localStorage.setItem(AGENT_KEY, JSON.stringify(mine));
+      const current=user(); if(!current?.login_id||!(await refresh())){location.replace('index.html');return false;}
+      const mine=await findOne('agenti',`legacy_id = "${escapeFilter(user().login_id)}"`,'id,legacy_id,nome_completo,residenza,grado,ruolo,attivo,permessi_speciali');
+      if(!mine){clear();location.replace('index.html');return false;} localStorage.setItem(AGENT_KEY,JSON.stringify(mine));
     }
     return true;
   }
 
-  window.NaviV2PB = {
-    url: BASE_URL,
-    request,
-    list,
-    listAll,
-    findOne,
-    loginDirectory,
-    login,
-    refresh,
-    requireSession,
-    logout: clear,
-    token,
-    user,
-    agent,
-    escapeFilter,
-  };
+  window.NaviV2PB={url:BASE_URL,request,list,listAll,findOne,create,update,remove,loginDirectory,login,refresh,requireSession,logout:clear,token,user,agent,escapeFilter};
 })();
