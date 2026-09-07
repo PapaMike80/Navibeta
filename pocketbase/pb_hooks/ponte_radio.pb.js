@@ -110,7 +110,13 @@
   }, $apis.requireAuth());
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
-    return e.json(200, { diagnostic: "static_route_ok", jobs: [] });
+    let value = "";
+    try {
+      value = $os.getenv("PONTERADIO_WORKER_SECRET");
+    } catch (err) {
+      return e.json(200, { diagnostic: "getenv_exception", error: String(err), jobs: [] });
+    }
+    return e.json(200, { diagnostic: value ? "getenv_ok" : "getenv_empty", secretLength: value ? String(value).length : 0, jobs: [] });
   });
 
   routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
