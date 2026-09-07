@@ -111,22 +111,7 @@
 
   routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
     requireWorker(e);
-    const jobs = e.app.findRecordsByFilter("push_queue", "status = 'pending'", "", 25, 0);
-    const result = [];
-    for (const job of jobs) {
-      job.set("status", "processing");
-      e.app.save(job);
-      const targetId = job.getString("target_agent");
-      const filter = job.getBool("broadcast") ? "enabled = true" : "enabled = true && agente = {:agent}";
-      const params = job.getBool("broadcast") ? {} : { agent: targetId };
-      const subs = e.app.findRecordsByFilter("push_subscriptions", filter, "", 500, 0, params);
-      result.push({
-        id: job.id,
-        title: job.getString("title"), body: job.getString("body"), url: job.getString("url"), kind: job.getString("kind"), meta: job.get("meta") || {},
-        subscriptions: subs.map((s) => ({ id: s.id, endpoint: s.getString("endpoint"), p256dh: s.getString("p256dh"), auth: s.getString("auth_key"), device: s.getString("device_label") || s.getString("device_id") }))
-      });
-    }
-    return e.json(200, { jobs: result });
+    return e.json(200, { diagnostic: "worker_auth_ok", jobs: [] });
   });
 
   routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
