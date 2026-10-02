@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 const webpush = require('web-push');
 
 const required = ['VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'FIREBASE_API_KEY', 'FIREBASE_DATABASE_URL'];
@@ -24,6 +25,11 @@ const STALE_PROCESSING_MS = Math.max(60000, Number(process.env.STALE_PROCESSING_
 const AUTO_CHECK_MS = Math.max(15000, Number(process.env.AUTO_CHECK_MS || 30000));
 const AUTO_GRACE_MINUTES = Math.max(2, Math.min(30, Number(process.env.AUTO_GRACE_MINUTES || 10)));
 
+// Logica del riepilogo e del turno effettivo: moduli di NaviSuite scaricati da
+// GitHub Pages (stessa logica dell'app). Se non raggiungibili resta la logica
+// locale con il turno effettivo salvato da Navibeta.
+const NAVISUITE_URL = String(process.env.NAVISUITE_URL || 'https://papamike80.github.io/NaviSuite/').replace(/\/?$/, '/');
+const MODULES_TTL_MS = Math.max(60000, Number(process.env.NAVISUITE_MODULES_TTL_MS || 10 * 60 * 1000));
 const safeKey = value => String(value || '').trim().replace(/[.#$\[\]\/]/g, '_');
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 const asArray = value => Array.isArray(value) ? value.filter(Boolean) : Object.values(value || {}).filter(Boolean);
@@ -37,6 +43,7 @@ let lastAutoCheck = 0;
 let stateWriteWarningShown = false;
 let scheduleCache = { at: 0, value: null };
 let serviceConfigCache = { at: 0, value: null };
+let modulesCache = { at: 0, value: null };
 
 function ensureStateDir() {
   const dir = path.dirname(STATE_FILE);
@@ -355,6 +362,12 @@ function dateLabel(iso) {
 }
 
 function buildSummary(data, agentId, iso) {
+  const modules = modulesCache.value;
+  if (modules) return modules.summary.buildSummary(data, agentId, iso, { courseInfo: modules.courseInfo });
+  return legacyBuildSummary(data, agentId, iso);
+}
+
+function legacyBuildSummary(data, agentId, iso) {
   const agent = findAgent(data, agentId);
   if (!agent) throw new Error(`Agente ${agentId} non trovato nel Turno effettivo`);
   const shift = normalizeShift(agent?.turni?.[iso]);
@@ -393,6 +406,10 @@ function startFromObject(value) {
 }
 
 function serviceStartFor(data, agent, shift, iso, configs) {
+  // Orario di presentazione (anticipato se c'e' rifornimento) dai moduli NaviSuite.
+  const modules = modulesCache.value;
+  const presentation = modules ? modules.summary.dayDetails(data, agent?.id, iso, { courseInfo: modules.courseInfo })?.times?.presentation : '';
+  if (presentation) return presentation;
   const agentCandidates = [
     agent?.orari?.[iso], agent?.turni_orari?.[iso], agent?.serviceTimes?.[iso], agent?.serviceStart?.[iso], agent?.orario?.[iso]
   ];
@@ -412,7 +429,63 @@ function serviceStartFor(data, agent, shift, iso, configs) {
   return FALLBACK_SERVICE_STARTS[key] || FALLBACK_SERVICE_STARTS[course] || '';
 }
 
+async function navisuiteModules() {
+  if (modulesCache.value && Date.now() - modulesCache.at < MODULES_TTL_MS) return modulesCache.value;
+  try {
+    const files = ['assets/js/shared-data.js', 'assets/js/course-info.js', 'assets/js/push-summary.js'];
+    const sources = await Promise.all(files.map(async file => {
+      const response = await fetch(`${NAVISUITE_URL}${file}?t=${Date.now()}`);
+      if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
+      return response.text();
+    }));
+    const memory = new Map();
+    const storage = { getItem: key => (memory.has(key) ? memory.get(key) : null), setItem: (key, value) => memory.set(key, String(value)), removeItem: key => memory.delete(key) };
+    const sandbox = { console, Date, Promise, setTimeout, clearTimeout, Intl, localStorage: storage, document: {}, location: { hostname: 'push-worker' }, fetch: () => Promise.reject(new Error('offline')) };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    sources.forEach((source, index) => vm.runInContext(source, sandbox, { filename: files[index] }));
+    if (!sandbox.NaviPushSummary?.buildSummary || !sandbox.NaviCourseInfo?.info || !sandbox.NaviSharedData?.applyScheduleImports) throw new Error('moduli incompleti');
+    modulesCache = { at: Date.now(), value: { summary: sandbox.NaviPushSummary, courseInfo: sandbox.NaviCourseInfo, shared: sandbox.NaviSharedData } };
+    console.log(`[push-worker] Moduli NaviSuite caricati da ${NAVISUITE_URL}`);
+  } catch (error) {
+    console.warn('[push-worker] Moduli NaviSuite non disponibili, uso la logica locale:', error.message);
+    modulesCache = { at: Date.now(), value: modulesCache.value || null };
+  }
+  return modulesCache.value;
+}
+
+// Turno effettivo calcolato dai dati aggiornati di NaviSuite: turno caricato,
+// cambi di residenza, variazioni ODS/manuali e dati nave.
+async function freshScheduleData(modules) {
+  const [base, scheduleImports, agentProfiles, odsVariations, manualVariations, turniNavi] = await Promise.all([
+    db('public/schedule'),
+    db('private/adminUpdates/scheduleImports'),
+    db('private/adminUpdates/agentProfiles'),
+    db('private/adminUpdates/odsVariations'),
+    db('private/adminUpdates/manualVariations'),
+    db('private/adminUpdates/turniNavi')
+  ]);
+  if (!base?.residenze) throw new Error('public/schedule non disponibile');
+  return modules.summary.effectiveData(base, { scheduleImports, agentProfiles, odsVariations, manualVariations, turniNavi }, modules.shared);
+}
+
 async function effectiveScheduleData() {
+  if (scheduleCache.value && Date.now() - scheduleCache.at < 60000) return scheduleCache.value;
+  const modules = await navisuiteModules();
+  if (modules) {
+    try {
+      const data = await freshScheduleData(modules);
+      scheduleCache = { at: Date.now(), value: data };
+      return data;
+    } catch (error) {
+      console.warn('[push-worker] Turno aggiornato non disponibile, uso il turno effettivo salvato:', error.message);
+    }
+  }
+  return savedEffectiveScheduleData();
+}
+
+async function savedEffectiveScheduleData() {
   if (scheduleCache.value && Date.now() - scheduleCache.at < 60000) return scheduleCache.value;
   const snapshot = await db('private/adminUpdates/effectiveSchedule');
   const data = snapshot?.data || null;
