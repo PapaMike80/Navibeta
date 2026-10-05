@@ -13,6 +13,22 @@ Worker Web Push always-on per NaviBeta. Legge la stessa coda Firebase usata dall
 - mantiene la sessione Firebase in `/data/firebase-auth.json`;
 - non espone nessuna porta: TrueNAS deve solo avere accesso Internet in uscita.
 
+## Riepilogo della giornata
+
+Testo del riepilogo e turno effettivo vengono dai moduli di NaviSuite
+(`assets/js/shared-data.js`, `course-info.js`, `push-summary.js`), scaricati
+da GitHub Pages ogni 10 minuti: la logica e' la stessa dell'app. Il turno si
+calcola dai dati aggiornati di Firebase (`public/schedule` + turni caricati,
+cambi di residenza, variazioni ODS/manuali, turni nave). Il riepilogo indica
+nave, orario di presentazione (60' prima della prima partenza, 30' in piu'
+con rifornimento), prima partenza, numeri corsa, ormeggio ed equipaggio.
+
+Se NaviSuite non e' raggiungibile resta la logica precedente con
+`private/adminUpdates/effectiveSchedule`.
+
+Variabili facoltative: `NAVISUITE_URL` (predefinito
+`https://papamike80.github.io/NaviSuite/`), `NAVISUITE_MODULES_TTL_MS`.
+
 ## Installazione su TrueNAS
 
 ```bash
