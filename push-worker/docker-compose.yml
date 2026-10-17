@@ -11,7 +11,7 @@ services:
       POLL_MS: ${POLL_MS:-5000}
       BATCH_SIZE: ${BATCH_SIZE:-25}
       AUTH_STATE_FILE: /data/firebase-auth.json
-      VAPID_SUBJECT: ${VAPID_SUBJECT:-https://papamike80.github.io/Navibeta/}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-https://papamike80.github.io/NaviSuite/}
     volumes:
       - navisuite-push-data:/data
 

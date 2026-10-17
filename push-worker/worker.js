@@ -17,12 +17,16 @@ const VAPID_PUBLIC_KEY = process.env.VAPID_PUBLIC_KEY.trim();
 const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY.trim();
 const FIREBASE_API_KEY = process.env.FIREBASE_API_KEY.trim();
 const DB = process.env.FIREBASE_DATABASE_URL.replace(/\/$/, '');
-const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'https://papamike80.github.io/Navibeta/';
+const VAPID_SUBJECT = process.env.VAPID_SUBJECT || 'https://papamike80.github.io/NaviSuite/';
 const POLL_MS = Math.max(2000, Number(process.env.POLL_MS || 5000));
 const BATCH_SIZE = Math.max(1, Math.min(100, Number(process.env.BATCH_SIZE || 25)));
 const STATE_FILE = process.env.AUTH_STATE_FILE || '/data/firebase-auth.json';
 const STALE_PROCESSING_MS = Math.max(60000, Number(process.env.STALE_PROCESSING_MS || 120000));
 const AUTO_CHECK_MS = Math.max(15000, Number(process.env.AUTO_CHECK_MS || 30000));
+// Tempo massimo per ogni richiesta di rete: senza, una risposta mai arrivata bloccava il worker per giorni.
+const FETCH_TIMEOUT_MS = Math.max(5000, Number(process.env.FETCH_TIMEOUT_MS || 20000));
+// Se un ciclo non finisce entro questo tempo il processo esce e Docker lo riavvia (restart: unless-stopped).
+const WATCHDOG_MS = Math.max(120000, Number(process.env.WATCHDOG_MS || 5 * 60 * 1000));
 const AUTO_GRACE_MINUTES = Math.max(2, Math.min(30, Number(process.env.AUTO_GRACE_MINUTES || 10)));
 
 // Logica del riepilogo e del turno effettivo: moduli di NaviSuite scaricati da
@@ -74,7 +78,7 @@ function saveAuthState(value) {
 }
 
 async function jsonFetch(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
     const error = new Error(data?.error?.message || data?.error || `HTTP ${response.status}`);
@@ -125,7 +129,7 @@ async function getAuth(forceRefresh = false) {
 async function authorizedFetch(pathname, options = {}, retry = true) {
   const current = await getAuth();
   const url = `${DB}/${String(pathname).replace(/^\/+/, '')}.json?auth=${encodeURIComponent(current.idToken)}`;
-  const response = await fetch(url, options);
+  const response = await fetch(url, { ...options, signal: options.signal || AbortSignal.timeout(FETCH_TIMEOUT_MS) });
   if ((response.status === 401 || response.status === 403) && retry) {
     auth = null;
     await getAuth(true);
@@ -223,7 +227,7 @@ async function processItem(item) {
       });
 
       try {
-        const response = await webpush.sendNotification(subscription, payload, { TTL: 600 });
+        const response = await webpush.sendNotification(subscription, payload, { TTL: 600, timeout: FETCH_TIMEOUT_MS });
         console.log(`[push-worker] ${item.id || item.key} -> ${sub.agentId || item.targetAgentId}/${sub.deviceLabel || sub.deviceId || sub.deviceKey}: ${response.statusCode}`);
         sent += 1;
       } catch (error) {
@@ -434,7 +438,7 @@ async function navisuiteModules() {
   try {
     const files = ['assets/js/shared-data.js', 'assets/js/course-info.js', 'assets/js/push-summary.js'];
     const sources = await Promise.all(files.map(async file => {
-      const response = await fetch(`${NAVISUITE_URL}${file}?t=${Date.now()}`);
+      const response = await fetch(`${NAVISUITE_URL}${file}?t=${Date.now()}`, { signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`${file}: HTTP ${response.status}`);
       return response.text();
     }));
@@ -646,7 +650,15 @@ process.on('SIGINT', () => { shuttingDown = true; });
 (async () => {
   console.log(`[push-worker] NaviSuite Push Worker avviato · polling ${POLL_MS} ms · riepiloghi automatici attivi`);
   await getAuth();
+  let cycleStartedAt = Date.now();
+  setInterval(() => {
+    if (Date.now() - cycleStartedAt > WATCHDOG_MS) {
+      console.error(`[push-worker] Ciclo bloccato da oltre ${Math.round(WATCHDOG_MS / 60000)} min: esco, Docker mi riavvia.`);
+      process.exit(1);
+    }
+  }, 30000).unref();
   while (!shuttingDown) {
+    cycleStartedAt = Date.now();
     await processQueue();
     await sleep(POLL_MS);
   }
