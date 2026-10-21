@@ -3,7 +3,7 @@ const calls = [];
 global.window = global; global.location = { href: 'https://papamike80.github.io/Navibeta/index.html' };
 global.document = { getElementById: () => null, body: null };
 global.localStorage = { getItem: () => null };
-global.navigator = { sendBeacon: () => true };
+Object.defineProperty(global, 'navigator', { value: { sendBeacon: () => true }, configurable: true });
 global.XMLHttpRequest = function () {}; XMLHttpRequest.prototype.open = function () {}; XMLHttpRequest.prototype.send = function () { calls.push('xhr'); };
 global.fetch = async (u, o) => { calls.push((o && o.method) || 'GET'); return { status: 200 }; };
 require('../assets/js/beta-readonly.js');
