@@ -1,9 +1,31 @@
 (function () {
-  const DATA_KEY = 'navi.sharedData.v1';
-  const TIME_KEY = 'navi.sharedDataTime.v1';
+  const DATA_KEY_BASE = 'navi.sharedData.v1';
+  const TIME_KEY_BASE = 'navi.sharedDataTime.v1';
   const DIRECTORY_KEY = 'navi.agentDirectory.v2';
   const MAX_AGE = 10 * 60 * 1000;
   const FIREBASE_SCHEDULE_URL = 'https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app/public/schedule.json';
+  // Sorgente dati commutabile (test admin). Firebase resta il default.
+  const PB_DEFAULT_BASE = 'https://truenas-scale.tail805e51.ts.net:8443';
+  const pbBase = () => { try { return (localStorage.getItem('navisuite.pbBase') || PB_DEFAULT_BASE).replace(/\/$/, ''); } catch (_) { return PB_DEFAULT_BASE; } };
+  // NaviDistinta usa sempre PocketBase, ma solo per se': prima scriveva il
+  // flag in localStorage e cosi' anche NaviTurni/Oggi passavano a PocketBase
+  // (turni incompleti). Il flag resta per il toggle di test in Impostazioni.
+  const isDistintaPage = () => /(^|\/)navidistinta\.html$/.test(location.pathname);
+  try {
+    // Una sola volta: azzera il flag lasciato dalle vecchie versioni di NaviDistinta.
+    if (!localStorage.getItem('navisuite.dataSourceReset.v1')) {
+      localStorage.removeItem('navisuite.dataSource');
+      // e la copia dei turni che potrebbe venire da PocketBase.
+      localStorage.removeItem(DATA_KEY_BASE);
+      localStorage.removeItem(TIME_KEY_BASE);
+      localStorage.setItem('navisuite.dataSourceReset.v1', '1');
+    }
+  } catch (_) {}
+  const dataSource = () => { if (isDistintaPage()) return 'pocketbase'; try { return localStorage.getItem('navisuite.dataSource') === 'pocketbase' ? 'pocketbase' : 'firebase'; } catch (_) { return 'firebase'; } };
+  // Copie locali separate per sorgente: i turni PocketBase di NaviDistinta
+  // non devono comparire in NaviTurni/Oggi (e viceversa).
+  const cacheSuffix = () => (dataSource() === 'pocketbase' ? '.pb' : '');
+  const scheduleUrl = () => (dataSource() === 'pocketbase' ? `${pbBase()}/api/navisuite-v2/schedule` : FIREBASE_SCHEDULE_URL);
   let pending = null;
   let lastSource = 'local';
 
@@ -28,16 +50,26 @@
   // PDF è stato usato soltanto per trascrivere questa lista: a runtime
   // l'abbinamento avviene esclusivamente tramite il nominativo normalizzato,
   // così un futuro cambio di numero non modifica l'anzianità.
-  const PDF_SENIORITY_NAMES = `CANDOLFO N.|RONCAGALLI M.|CASTELLARI M.|RASPOLINI F.|GARIANO A.|CINGARLINI N.|MESSINA G.|STEFANI D.|BERNARDELLI M.|VALENTI M.|GAVIOLI D.|LORENZINI F.|DAL BOSCO G.|MAROGNA S.|BARZOI A.|FERRARI M.|KARPATI L.|SERVINO S.|COLO' J.|PINCELLI A.|OMEZZOLLI O.|GAROFALO A.|GUADAGNOLO O.|PERINI N.|TAMBURINI A.|MAFFEI K.|POLETTINI T.|AMATO M.|MIORELLI A.|GUARISE R.|MESSINA GNI.|BERNARDELLI S.|FACCOLI A.|DEFANT M.|RIGOBELLO M.|BOCCOLA G.|CARLETTI A.|SCARMIGLIATI M.|TONONI R.|FERTONANI GL.|SISTO S.|GENOCCHIO PC.|MEMINI I.|FERRARO V.|ALGERI A.|TONELLI D.|RAMBALDINI M.|ZANINI GL.|VINCIATI C.|GONZALEZ E.|FORESTI A.|TOSINI GL.|DA FORNO F.|BOTTURI D.|CENTONZA P.F.|FERRARI P.|BUCCHIERI N.|MORETTO A.C.|STRINGHINI G.|MODENA L.|LUGOBONI A.|VERTUA F.|AMADORI D.|CIVETTINI G.|TIBILETTI F.|BITTURINI D.|GASPARINI F.|BURDO A.|GRUMELLI M.|BETTINI M.|GIACCI GL.|AVANZINI A.|GHIZZI E.|ZENEGAGLIA D.|COSTAMAGNA S.|PROSPERO L.|SCANNAPIECO A.|CEFARIELLO G.|SQUARZONI P.|LA BELLA V.|CAMPOSTRINI E.|CHIMINELLI M.|BARBIERI G.|TANZI E.|VALOTTI G.|MONACO S.|PEROTTI F.|CAMPAGNARO R.|FRANZONI F.|DOLCERA L.|PEDRONI M.|STUMPO D.|BARTOLI F.|LONARDI N.|SCALA L.|BUTTURINI C.|GARDANI R.|BERSANELLI S.|SCARMIGLIATI A.|CACEFFO M.|SPILLER M.|BERGAMINI D.|PAIOLA D.|VERITA' M.|PITTIGLIANI F.|VALLE M.|PUSINELLI L.|CASTELLINI F.|LAVELLI D.|LUGO G.|PEGORARI C.|MOSCATELLI A.|CENZON A.|PEROTTI D.|SAMBERO A.|BERTAJOLA D.|BERTUZZO F.|CHIGNOLA M.|TAMIOZZO M.|GOLA M.|FONTANA A.|FORTE D.|SCHIPPERS E.|CALANCHI N.|HARRABI S.|RIGHETTI M.|POLLONI G.|REGA F.|TURRINI M.|BITTURINI N.|VULTAGGIO F.|NIZI M.|MARCOLINI A.|PEGORARI L.|CHIMINI M.|BUTTITTA A.|MOSELE M.|MENEGHETTI G.|PERINELLI A.|GHIDINELLI F.|MEDA M.|DALLA BONA M.|MALVONE S.|PRADELLA P.|MOSELE S.|BIGNOTTI F.|CUPOLILLO M.`.split('|');
-  const PDF_SENIORITY_RANK = new Map(
-    PDF_SENIORITY_NAMES.map((name, index) => [normalizeAgentName(name), index])
-  );
+  const PDF_SENIORITY_NAMES = `CANDOLFO N.|RONCAGALLI M.|CASTELLARI M.|RASPOLINI F.|GARIANO A.|CINGARLINI N.|MESSINA G.|STEFANI D.|BERNARDELLI M.|VALENTI M.|GAVIOLI D.|LORENZINI F.|DAL BOSCO G.|MAROGNA S.|BARZOI A.|FERRARI M.|KARPATI L.|SERVINO S.|COLO' J.|PINCELLI A.|OMEZZOLLI O.|GAROFALO A.|GUADAGNOLO O.|PERINI N.|TAMBURINI A.|MAFFEI K.|POLETTINI T.|AMATO M.|MIORELLI A.|GUARISE R.|MESSINA GNI.|BERNARDELLI S.|FACCOLI A.|DEFANT M.|RIGOBELLO M.|BOCCOLA G.|CARLETTI A.|SCARMIGLIATI M.|TONONI R.|FERTONANI GL.|SISTO S.|GENOCCHIO PC.|MEMINI I.|FERRARO V.|ALGERI A.|TONELLI D.|RAMBALDINI M.|ZANINI GL.|VINCIATI C.|GONZALEZ E.|FORESTI A.|TOSINI GL.|DA FORNO F.|BOTTURI D.|CENTONZA P.F.|FERRARI P.|BUCCHIERI N.|MORETTO A.C.|STRINGHINI G.|MODENA L.|LUGOBONI A.|VERTUA F.|AMADORI D.|CIVETTINI G.|TIBILETTI F.|BITTURINI D.|GASPARINI F.|BURDO A.|GRUMELLI M.|BETTINI M.|GIACCI GL.|AVANZINI A.|GHIZZI E.|ZENEGAGLIA D.|COSTAMAGNA S.|PROSPERO L.|SCANNAPIECO A.|CEFARIELLO G.|BLEIL L.|SQUARZONI P.|LA BELLA V.|CAMPOSTRINI E.|CHIMINELLI M.|BARBIERI G.|TANZI E.|VALOTTI G.|MONACO S.|PEROTTI F.|CAMPAGNARO R.|FRANZONI F.|DOLCERA L.|PEDRONI M.|STUMPO D.|BARTOLI F.|LONARDI N.|SCALA L.|BUTTURINI C.|GARDANI R.|BERSANELLI S.|SCARMIGLIATI A.|CACEFFO M.|SPILLER M.|BERGAMINI D.|PAIOLA D.|VERITA' M.|PITTIGLIANI F.|VALLE M.|PUSINELLI L.|CASTELLINI F.|LAVELLI D.|LUGO G.|PEGORARI C.|MOSCATELLI A.|CENZON A.|PEROTTI D.|SAMBERO A.|BERTAJOLA D.|BERTUZZO F.|CHIGNOLA M.|TAMIOZZO M.|GOLA M.|FONTANA A.|FORTE D.|SCHIPPERS E.|CALANCHI N.|HARRABI S.|RIGHETTI M.|POLLONI G.|REGA F.|TURRINI M.|BITTURINI N.|VULTAGGIO F.|NIZI M.|MARCOLINI A.|PEGORARI L.|CHIMINI M.|BUTTITTA A.|MOSELE M.|MENEGHETTI G.|PERINELLI A.|GHIDINELLI F.|MEDA M.|DALLA BONA M.|MALVONE S.|PRADELLA P.|MOSELE S.|BIGNOTTI F.|CUPOLILLO M.`.split('|');
+  // Ordine del turno 05/10-01/11/2026 (residenze cambiate per 15 agenti, un
+  // nuovo agente, nove cessati in fondo). Vale dalla data di decorrenza: prima
+  // di allora restano validi l'ordine e le residenze precedenti.
+  const PDF_SENIORITY_NAMES_2026_10_05 = `CANDOLFO N.|RONCAGALLI M.|CASTELLARI M.|RASPOLINI F.|GARIANO A.|CINGARLINI N.|MESSINA G.|STEFANI D.|SISTO S.|BERNARDELLI M.|VALENTI M.|AVANZINI A.|DAL BOSCO G.|MAROGNA S.|BARZOI A.|LORENZINI F.|FERRARI M.|KARPATI L.|SERVINO S.|COLO' J.|PINCELLI A.|GAROFALO A.|OMEZZOLLI O.|TAMBURINI A.|AMATO M.|MIORELLI A.|GUARISE R.|MESSINA GNI.|BERNARDELLI S.|FACCOLI A.|DEFANT M.|RIGOBELLO M.|BOCCOLA G.|CARLETTI A.|SCARMIGLIATI M.|TONONI R.|FERTONANI GL.|CENZON A.|GENOCCHIO PC.|MEMINI I.|GAVIOLI D.|ALGERI A.|TONELLI D.|RAMBALDINI M.|ZANINI GL.|VINCIATI C.|MAFFEI K.|POLETTINI T.|REGA F.|FRANZONI F.|PEDRONI M.|GONZALEZ E.|TOSINI GL.|BOTTURI D.|CENTONZA P.F.|FERRARI P.|BUCCHIERI N.|MORETTO A.C.|STRINGHINI G.|MODENA L.|LUGOBONI A.|VERTUA F.|AMADORI D.|CIVETTINI G.|TIBILETTI F.|BITTURINI D.|GASPARINI F.|BURDO A.|BETTINI M.|GIACCI GL.|GHIZZI E.|ZENEGAGLIA D.|COSTAMAGNA S.|PROSPERO L.|SCANNAPIECO A.|CEFARIELLO G.|BLEIL L.|CAMPOSTRINI E.|CHIMINELLI M.|FERRARO V.|BARBIERI G.|LA BELLA V.|TANZI E.|VALOTTI G.|MONACO S.|TURRINI M.|POLLONI G.|DOLCERA L.|STUMPO D.|BARTOLI F.|LONARDI N.|SCALA L.|BUTTURINI C.|GARDANI R.|BERSANELLI S.|SCARMIGLIATI A.|CACEFFO M.|SPILLER M.|BERGAMINI D.|VERITA' M.|PITTIGLIANI F.|VALLE M.|PUSINELLI L.|LAVELLI D.|GRUMELLI M.|LUGO G.|PEGORARI C.|MOSCATELLI A.|PEROTTI D.|SAMBERO A.|BERTAJOLA D.|BERTUZZO F.|CHIGNOLA M.|TAMIOZZO M.|GOLA M.|FONTANA A.|SQUARZONI P.|FORTE D.|SCHIPPERS E.|CALANCHI N.|HARRABI S.|RIGHETTI M.|BITTURINI N.|VULTAGGIO F.|NIZI M.|MARCOLINI A.|BUTTITTA A.|MOSELE M.|MENEGHETTI G.|PERINELLI A.|GHIDINELLI F.|PAIOLA D.|MEDA M.|DALLA BONA M.|MALVONE S.|PRADELLA P.|MOSELE S.|BIGNOTTI F.|CUPOLILLO M.`.split('|');
+  const SENIORITY_SETS = [
+    { from: '', ranks: new Map(PDF_SENIORITY_NAMES.map((name, index) => [normalizeAgentName(name), index])) },
+    { from: '2026-10-05', ranks: new Map(PDF_SENIORITY_NAMES_2026_10_05.map((name, index) => [normalizeAgentName(name), index])) }
+  ];
 
-  function pdfSeniorityRank(agent) {
-    return PDF_SENIORITY_RANK.get(normalizeAgentName(agent?.agente)) ?? Number.POSITIVE_INFINITY;
+  function seniorityRanks(todayIso) {
+    const today = todayIso || localTodayIso();
+    return SENIORITY_SETS.filter(set => today >= set.from).pop().ranks;
   }
 
-  function normalizeScheduleAgents(data) {
+  function pdfSeniorityRank(agent, todayIso) {
+    return seniorityRanks(todayIso).get(normalizeAgentName(agent?.agente)) ?? Number.POSITIVE_INFINITY;
+  }
+
+  function normalizeScheduleAgents(data, todayIso) {
     const seen = new Map();
     Object.entries(data?.residenze || {}).forEach(([residence, list]) => {
       const unique = [];
@@ -60,7 +92,7 @@
       // sort() è stabile: i nuovi nominativi non ancora presenti nel PDF
       // conservano il loro ordine originale in fondo alla residenza.
       data.residenze[residence] = unique.sort((a, b) =>
-        pdfSeniorityRank(a) - pdfSeniorityRank(b)
+        pdfSeniorityRank(a, todayIso) - pdfSeniorityRank(b, todayIso)
       );
     });
     return data;
@@ -85,6 +117,7 @@
           residence,
           role:String(agent.role || '').trim().toLowerCase() || (qualifica.toLowerCase() === 'barista' ? 'barista' : '')
         };
+        if (agent.residenzaNuova && agent.residenzaDal) Object.assign(item, { residenzaPrecedente:String(agent.residenzaPrecedente || ''), residenzaNuova:String(agent.residenzaNuova), residenzaDal:String(agent.residenzaDal) });
         if (item.agent_uid && item.name) byId.set(item.agent_uid, item);
       });
     });
@@ -105,6 +138,7 @@
       if (!override) return;
       if (override.qualifica) agent.qualifica = override.qualifica;
       if (override.role !== undefined) agent.role = override.role;
+      applicaFF(agent, override);
     });
 
     Object.values(profileOverrides).forEach(override => {
@@ -125,6 +159,12 @@
       });
     });
 
+    // Residenza "Scali": un utente fisso per ogni scalo (assets/js/shared-roles.js), solo per il login.
+    (window.NaviRoles?.scaloAgents?.() || []).forEach(item => {
+      const uid = stableAgentUid(item.name);
+      if (!byId.has(uid)) byId.set(uid, { id:item.id, agent_uid:uid, name:item.name, qualifica:item.qualifica, residence:item.residence, role:item.role });
+    });
+
     return [...byId.values()].sort((a, b) => {
       const baristaA = String(a.role || a.qualifica || '').toLowerCase() === 'barista' ? 1 : 0;
       const baristaB = String(b.role || b.qualifica || '').toLowerCase() === 'barista' ? 1 : 0;
@@ -132,24 +172,84 @@
     });
   }
 
+  // L'agente collegato conserva la residenza che aveva al login: dopo un cambio
+  // di residenza (turno caricato o pagina Agenti) la sessione salvata si
+  // allinea a quella in vigore oggi, cosi' Turni e Cambi aprono quella giusta.
+  const LOGGED_AGENT_KEYS = ['naviturni_logged_agent', 'navidiaria.activeAgent'];
+  function syncLoggedResidence(list) {
+    const fixed = ['uffici', 'bariste', 'scali'];
+    LOGGED_AGENT_KEYS.forEach(key => {
+      try {
+        const profile = JSON.parse(localStorage.getItem(key) || 'null');
+        const id = String(profile?.id || '').trim();
+        if (!id) return;
+        const agent = list.find(item => String(item.id) === id);
+        const wanted = String(agent?.residence || '').trim();
+        const current = String(profile.residence || '').trim();
+        if (!wanted || wanted === current || fixed.includes(wanted.toLowerCase()) || fixed.includes(current.toLowerCase())) return;
+        localStorage.setItem(key, JSON.stringify({ ...profile, residence: wanted }));
+      } catch (_) {}
+    });
+  }
+
+  // Copia veloce (localStorage, poco spazio su iPhone): turni da una settimana fa in poi.
+  // Copia completa, con tutto il passato: nella Cache Storage del browser, letta solo quando serve (senza rete).
+  const GIORNI_PASSATI = 7;
+  const COMPLETA_CACHE = 'navi-dati-v1', COMPLETA_URL = '/__dati/turni-completi';
+  function leggero(data) {
+    const d = new Date(); d.setDate(d.getDate() - GIORNI_PASSATI);
+    const cut = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const out = { ...data, __leggeroDal: cut };
+    out.date = (data.date || []).filter(x => !x?.iso || x.iso >= cut);
+    out.residenze = Object.fromEntries(Object.entries(data.residenze || {}).map(([r, list]) => [r, (list || []).map(a =>
+      (a && a.turni ? { ...a, turni: Object.fromEntries(Object.entries(a.turni).filter(([k]) => k >= cut)) } : a))]));
+    return out;
+  }
+  function salvaCompleta(serialized) {
+    try { caches.open(COMPLETA_CACHE).then(c => c.put(COMPLETA_URL + cacheSuffix(), new Response(serialized, { headers: { 'Content-Type': 'application/json' } }))).catch(() => {}); } catch (_) {}
+  }
+  async function leggiCompleta() {
+    try { const r = await (await caches.open(COMPLETA_CACHE)).match(COMPLETA_URL + cacheSuffix()); return r ? normalizeScheduleAgents(normalizeScheduleShifts(await r.json())) : null; } catch (_) { return null; }
+  }
+
+  // Aggiorna solo l'elenco agenti (per l'accesso), senza toccare la copia completa dei turni
+  function soloElenco(data) {
+    normalizeScheduleAgents(data);
+    normalizeScheduleShifts(data);
+    injectProfileAgents(data);
+    try { localStorage.setItem(DIRECTORY_KEY, JSON.stringify(directoryFrom(data))); } catch (_) {}
+    return data;
+  }
   function save(data) {
     normalizeScheduleAgents(data);
     normalizeScheduleShifts(data);
     injectProfileAgents(data);
-    const serialized = JSON.stringify(data);
-    const directory = JSON.stringify(directoryFrom(data));
+    const serialized = JSON.stringify(leggero(data));
+    if (!data.__leggeroDal) salvaCompleta(JSON.stringify(data)); // mai sovrascrivere la completa con una copia leggera
+    const directoryList = directoryFrom(data);
+    const directory = JSON.stringify(directoryList);
+    syncLoggedResidence(directoryList);
     try {
-      localStorage.setItem(DATA_KEY, serialized);
-      localStorage.setItem(TIME_KEY, String(Date.now()));
+      localStorage.setItem(DATA_KEY_BASE + cacheSuffix(), serialized);
+      localStorage.setItem(TIME_KEY_BASE + cacheSuffix(), String(Date.now()));
       localStorage.setItem(DIRECTORY_KEY, directory);
     } catch (error) {
+      // Spazio pieno (iPhone ~5 MB): si liberano le copie accessorie e si riprova, prima di rinunciare alla copia completa
+      try {
+        ['navisuite.turniNavi.v1', DATA_KEY_BASE + '.pb', TIME_KEY_BASE + '.pb'].forEach(k => localStorage.removeItem(k));
+        Object.keys(localStorage).filter(k => /^navisuite\.adm\.|^navi\.cache\.|^navidiaria\.backup/.test(k)).forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(DATA_KEY_BASE + cacheSuffix(), serialized);
+        localStorage.setItem(TIME_KEY_BASE + cacheSuffix(), String(Date.now()));
+        localStorage.setItem(DIRECTORY_KEY, directory);
+        return data;
+      } catch (_) { /* proprio non c'e' spazio */ }
       // La cache è un'accelerazione, non un requisito: Safari/Chrome possono
       // esaurire la quota locale. In quel caso i dati appena letti restano
       // utilizzabili in memoria e la pagina non deve fermarsi al turno base.
       console.warn('Cache turni non disponibile; continuo senza cache locale', error);
       try {
-        localStorage.removeItem(DATA_KEY);
-        localStorage.removeItem(TIME_KEY);
+        localStorage.removeItem(DATA_KEY_BASE + cacheSuffix());
+        localStorage.removeItem(TIME_KEY_BASE + cacheSuffix());
         localStorage.removeItem(DIRECTORY_KEY);
         localStorage.setItem(DIRECTORY_KEY, directory);
       } catch (_) {}
@@ -167,8 +267,9 @@
   function normalizedImportedShift(value) {
     const raw = String(value ?? '').trim().toUpperCase().replace(/[‐‑–—]/g, '-');
     if (!raw || /^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw)) return 'RIP';
-    if (/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw)) return 'CON';
-    if (/^(?:LAV\.?|TERRA)$/.test(raw)) return 'TERRA';
+    if (/^(?:CONG?\.?|CON[;/]|CONC\.?|C\.)$/.test(raw)) return 'CON';
+    if (/^(?:LAV[.;]?|TERRA)$/.test(raw)) return 'TERRA';
+    if (/^L\.?D[.;]?$/.test(raw)) return 'L.D.';
     if (/^F\.?P\.?-*$/.test(raw)) return 'F.P.';
     return raw.replace(/\.{2,}$/g, '.').replace(/-+$/g, '');
   }
@@ -225,7 +326,7 @@
     const extras = Object.values(data.agentProfileOverrides || {})
       .filter(item => item && String(item.id || "").trim() &&
         String(item.residence || "").trim() &&
-        String(item.residence || "").trim().toLowerCase() !== "uffici");
+        !["uffici", "scali"].includes(String(item.residence || "").trim().toLowerCase()));
     if (!extras.length) return data;
     data.residenze = data.residenze || {};
     extras.forEach(item => {
@@ -267,8 +368,52 @@
     };
   }
 
-  function applyScheduleImports(data, imports) {
-    normalizeScheduleAgents(data);
+  // FF (facente funzione): grado temporaneo impostato nella scheda agente. Vale solo nel periodo dal-al.
+  function ffAttivo(override, todayIso) {
+    const ff = override?.ff, t = todayIso || localTodayIso();
+    return ff && ff.grado && ff.dal && ff.al && ff.dal <= t && t <= ff.al ? ff : null;
+  }
+  function applicaFF(agent, override) {
+    const ff = ffAttivo(override);
+    if (!ff) return;
+    if (!agent.qualifica_base) agent.qualifica_base = String(agent.qualifica || '').trim().toLowerCase();
+    agent.qualifica = String(ff.grado).trim().toLowerCase();
+    agent.ff = { grado: agent.qualifica, dal: ff.dal, al: ff.al };
+  }
+  function localTodayIso() {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  }
+
+  function residenceKeyOf(data, agent) {
+    return Object.keys(data?.residenze || {}).find(key => (data.residenze[key] || []).includes(agent)) || '';
+  }
+
+  // Sposta l'agente nella residenza "effettiva" oggi: quella precedente fino
+  // alla data di decorrenza, quella nuova da quel giorno in poi. E' idempotente:
+  // i dati in cache vengono rielaborati a ogni caricamento.
+  function moveAgentToResidence(data, agent, wanted) {
+    const current = residenceKeyOf(data, agent);
+    if (!wanted || (current && current.toUpperCase() === String(wanted).toUpperCase())) return;
+    const target = Object.keys(data.residenze || {}).find(key => key.toUpperCase() === String(wanted).toUpperCase()) || String(wanted).toUpperCase();
+    if (current) data.residenze[current] = data.residenze[current].filter(item => item !== agent);
+    data.residenze[target] = data.residenze[target] || [];
+    data.residenze[target].push(agent);
+  }
+
+  function sortResidencesBySeniority(data, todayIso) {
+    Object.keys(data?.residenze || {}).forEach(key => {
+      if (key === UFFICI_RESIDENCE || key.toUpperCase() === 'BARISTE') return;
+      data.residenze[key] = (data.residenze[key] || [])
+        .map((agent, index) => ({ agent, index }))
+        .sort((a, b) => (pdfSeniorityRank(a.agent, todayIso) - pdfSeniorityRank(b.agent, todayIso)) || (a.index - b.index))
+        .map(item => item.agent);
+    });
+  }
+
+  function applyScheduleImports(data, imports, options = {}) {
+    const todayIso = options.today || localTodayIso();
+    normalizeScheduleAgents(data, todayIso);
     const active = (imports || []).filter(item => item && item.attiva !== false)
       .sort((a,b) => String(a.importedAt || '').localeCompare(String(b.importedAt || '')));
     if (!active.length) return data;
@@ -284,16 +429,46 @@
         const legacyName = legacyBatch ? legacyDesenzanoJune2026[Number(row.id_agente)] : '';
         const wantedUid = String(row.agent_uid || stableAgentUid(legacyName || row.agente));
         const wantedName = normalizeAgentName(row.agente);
-        const target = agents.find(agent => String(agent.agent_uid || stableAgentUid(agent.agente)) === wantedUid) ||
+        let target = agents.find(agent => String(agent.agent_uid || stableAgentUid(agent.agente)) === wantedUid) ||
           (wantedName ? agents.find(agent => normalizeAgentName(agent.agente) === wantedName) : null) ||
           agents.find(agent => String(agent.id || '') === String(row.id_agente || ''));
+        // Agente nuovo comparso per la prima volta nel turno (es. neo assunto):
+        // viene creato nella residenza indicata dal PDF, con la qualifica scelta
+        // in anteprima. Ai caricamenti successivi viene ritrovato per agent_uid.
+        if (!target && row.nuovo && row.residenza) {
+          const residence = String(row.residenza).trim().toUpperCase();
+          target = {
+            id: String(row.id_agente || wantedUid),
+            agente: String(row.agente || '').trim(),
+            agent_uid: wantedUid,
+            qualifica: String(row.qualifica || 'marinaio').trim().toLowerCase(),
+            turni: {}
+          };
+          data.residenze = data.residenze || {};
+          const key = Object.keys(data.residenze).find(item => item.toUpperCase() === residence) || residence;
+          (data.residenze[key] = data.residenze[key] || []).push(target);
+          agents.push(target);
+        }
         if (!target) return;
         if (!target.turni) target.turni = {};
         (batch.dates || []).forEach((iso, index) => {
           target.turni[iso] = normalizedImportedShift(row.turni?.[index]);
         });
+        if (row.residenzaNuova && row.sposta !== false) {
+          const dal = String(row.residenzaDal || batch.inizio || '').slice(0, 10);
+          // Se la riga importata non porta la residenza precedente (es. import
+          // salvato prima di questa correzione), si usa quella strutturale
+          // attuale dell'agente: cosi' non parte prima del tempo per Firebase.
+          const before = String(row.residenzaPrecedente || residenceKeyOf(data, target) || '').toUpperCase();
+          const after = String(row.residenzaNuova).toUpperCase();
+          target.residenzaPrecedente = before;
+          target.residenzaNuova = after;
+          target.residenzaDal = dal;
+          moveAgentToResidence(data, target, dal && todayIso < dal && before ? before : after);
+        }
       });
     });
+    sortResidencesBySeniority(data, todayIso);
 
     // Correzione verificata sulla bozza 07/09-04/10/2026: la riga 66
     // BITTURINI D. era stata spezzata dal PDF e alcune celle venivano
@@ -334,6 +509,34 @@
     return data;
   }
 
+  // Cambio di residenza deciso dalla pagina Agenti (profilo Firebase con
+  // residenzaNuova/residenzaDal): stessa logica degli import del turno e, per
+  // lo stesso agente, ha la precedenza su di essi.
+  function applyProfileResidenceMoves(data, overrides, options = {}) {
+    const todayIso = options.today || localTodayIso();
+    const agents = Object.values(data?.residenze || {}).flat();
+    let moved = false;
+    Object.values(overrides || {}).forEach(override => {
+      const after = String(override?.residenzaNuova || '').trim().toUpperCase();
+      const dal = String(override?.residenzaDal || '').slice(0, 10);
+      if (!after || !/^\d{4}-\d{2}-\d{2}$/.test(dal)) return;
+      const id = String(override.id || '').trim();
+      const name = normalizeAgentName(override.name);
+      const target = (id && agents.find(agent => String(agent.id || '') === id)) ||
+        (name ? agents.find(agent => normalizeAgentName(agent.agente) === name) : null);
+      if (!target) return;
+      const before = String(override.residenzaPrecedente || residenceKeyOf(data, target) || '').trim().toUpperCase();
+      if (!before || before === after) return;
+      target.residenzaPrecedente = before;
+      target.residenzaNuova = after;
+      target.residenzaDal = dal;
+      moveAgentToResidence(data, target, todayIso < dal ? before : after);
+      moved = true;
+    });
+    if (moved) sortResidencesBySeniority(data, todayIso);
+    return data;
+  }
+
   async function mergeAdminUpdates(data) {
     const providers = [window.NaviFirebase, window.NaviAdminFirebase]
       .filter((provider, index, list) => provider?.getAdminUpdates && list.indexOf(provider) === index);
@@ -346,6 +549,7 @@
       applyScheduleImports(data, updates.scheduleImports);
       const profileOverrides = updates.agentProfiles || {};
       data.agentProfileOverrides = profileOverrides;
+      applyProfileResidenceMoves(data, profileOverrides);
       Object.values(data.residenze || {}).forEach(list => (list || []).forEach(agent => {
         const override = profileOverrides[String(agent.id)] || Object.values(profileOverrides).find(item => String(item?.id) === String(agent.id));
         if (!override) return;
@@ -355,6 +559,7 @@
           agent.regraded = String(override.qualifica).trim().toLowerCase() !== agent.schedule_qualifica;
         }
         if (override.role !== undefined) agent.role = override.role;
+        applicaFF(agent, override);
       }));
       const ods = [...(updates.odsVariations || []), ...(updates.manualVariations || [])];
       data.variazioni_ods = replaceByKey(
@@ -377,19 +582,24 @@
         updates.turniNavi || [],
         item => `${item?.data || ''}|${item?.corsa || ''}|${String(item?.nave || '').trim().toLocaleUpperCase('it')}`
       );
+      // turni fermati o ripresi dal Movimento (righe con "stagione"): servono a NaviOrarioGiorno.inServizio
+      try { window.NaviOrarioGiorno?.stagioneDaRighe?.(data.turni_navi); } catch { /* orario non caricato */ }
       data.dismissedOdsApprovals = Array.isArray(updates.dismissedOdsApprovals) ? updates.dismissedOdsApprovals : [];
+        try { localStorage.removeItem('navisuite.erroreAggiornamenti'); } catch (_) {}
         return data;
       } catch (error) {
         lastError = error;
       }
     }
     console.warn('Aggiornamenti amministrativi Firebase non disponibili.', lastError);
+    try { localStorage.setItem('navisuite.erroreAggiornamenti', `${new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })} · ${lastError?.message || lastError || 'errore'}`); } catch (_) {}
+    data.__senzaAggiornamenti = true; // solo turno base: non deve sostituire la copia completa salvata
     return data;
   }
 
   function cached(allowStale = false) {
-    const data = read(DATA_KEY);
-    const age = Date.now() - Number(localStorage.getItem(TIME_KEY) || 0);
+    const data = read(DATA_KEY_BASE + cacheSuffix());
+    const age = Date.now() - Number(localStorage.getItem(TIME_KEY_BASE + cacheSuffix()) || 0);
     return data && (allowStale || age < MAX_AGE) ? normalizeScheduleAgents(normalizeScheduleShifts(data)) : null;
   }
 
@@ -411,12 +621,88 @@
     }
   }
 
-  async function load(_url, { force = false } = {}) {
+  // Turno pronto preparato dal NAS ogni pochi minuti (public/turnoFuturo): da una settimana fa in poi, gia' unito con
+  // importazioni e O.d.S. Si usa se e' aggiornato rispetto agli ultimi salvataggi admin (updatedAt e versioni):
+  // un solo download piccolo invece di turno base + importazioni + variazioni.
+  const PRONTO_URL = 'https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app/public/turnoFuturo.json';
+  async function turnoPronto() {
+    const api = window.NaviAdminFirebase;
+    if (dataSource() === 'pocketbase' || !api?.getSegnoAggiornamenti) return null;
+    try {
+      const [pronto, segno] = await Promise.all([fetchJson(PRONTO_URL, 20000), api.getSegnoAggiornamenti()]);
+      if (!pronto?.data?.residenze || !segno) return null;
+      if (Date.now() - Date.parse(pronto.creato || 0) > 3 * 3600 * 1000) return null; // NAS fermo da ore: meglio il percorso completo
+      if (String(pronto.segno || '') !== String(segno)) return null; // un admin ha appena cambiato qualcosa: percorso completo
+      return pronto.data;
+    } catch (_) { return null; }
+  }
+
+  async function load(_url, { force = false, completo = false } = {}) {
+    if (force && !completo) {
+      const pronto = await turnoPronto();
+      if (pronto) {
+        lastSource = 'firebase';
+        window.NaviOffline?.segnaCopiaLocale?.(false);
+        try { localStorage.removeItem('navisuite.erroreAggiornamenti'); } catch (_) {}
+        return save(pronto); // e' gia' leggero (__leggeroDal): non sostituisce la copia completa del passato
+      }
+    }
+    const completoPrima = cached(true); // copia completa (con turni importati) prima di riscaricare il turno base
     const base = await loadBase(_url, { force });
-    return mergeAdminUpdates(base).then(data => {
+    // In modalita' PocketBase la route /schedule restituisce gia' il dataset
+    // completo (variazioni ODS, profili, bariste): niente merge Firebase.
+    if (dataSource() === 'pocketbase') {
+      lastSource = 'pocketbase';
+      return save(base);
+    }
+    return mergeAdminUpdates(base).then(async data => {
+      // Rete lenta o assente: gli aggiornamenti (turni importati, O.d.S.) non sono arrivati. Si tiene l'ultima
+      // copia completa salvata invece di mostrare (e salvare) il solo turno base.
+      if (data?.__senzaAggiornamenti) {
+        delete data.__senzaAggiornamenti;
+        const completa = await leggiCompleta();
+        if (completa || completoPrima) { lastSource = 'local'; window.NaviOffline?.segnaCopiaLocale?.(true); return completa || completoPrima; }
+      }
       lastSource = 'firebase';
+      window.NaviOffline?.segnaCopiaLocale?.(false);
       return save(data);
     });
+  }
+
+  // Cache-first + aggiornamento in background, condiviso fra Oggi e Turni.
+  // 1. Se esiste una copia locale (anche vecchia) chiama subito onData(dati, { stale:true }).
+  // 2. In parallelo scarica il dataset completo da Firebase (base + variazioni admin),
+  //    riscrive la cache e richiama onData(dati, { stale:false }).
+  // Al primo avvio assoluto (nessuna copia locale) chiama onData una volta sola,
+  // dopo la rete; se anche la rete fallisce propaga l'errore al chiamante.
+  function loadCacheFirst(onData, { url = '' } = {}) {
+    const local = cached(true);
+    const hadLocal = !!local;
+    if (hadLocal) {
+      try { onData(local, { stale: true, hadLocal: true }); }
+      catch (error) { console.warn('Render dalla copia locale non riuscito', error); }
+    }
+    // Rete lenta = rete assente: se in 1 secondo non arriva niente si resta sulla copia salvata con il banner
+    // OFFLINE; il download continua in silenzio e, quando arriva, aggiorna la pagina e toglie il banner.
+    let arrivato = false;
+    const lento = hadLocal ? setTimeout(() => { if (!arrivato) window.NaviOffline?.segnaCopiaLocale?.(true); }, 1000) : 0;
+    return load(url, { force: true })
+      .then(fresh => {
+        arrivato = true; clearTimeout(lento);
+        if (lastSource !== 'local') window.NaviOffline?.segnaCopiaLocale?.(false);
+        try { onData(fresh, { stale: false, hadLocal }); }
+        catch (error) { console.warn('Render dei dati aggiornati non riuscito', error); }
+        return fresh;
+      })
+      .catch(error => {
+        arrivato = true; clearTimeout(lento);
+        if (hadLocal) {
+          window.NaviOffline?.segnaCopiaLocale?.(true);
+          console.warn('Aggiornamento in background non riuscito; resta la copia locale.', error);
+          return null;
+        }
+        throw error;
+      });
   }
 
   async function loadBase(_url, { force = false } = {}) {
@@ -424,18 +710,23 @@
       const data = cached();
       if (data) {
         lastSource = 'local';
-        return data;
+        // copia recente: si usa quella completa (con il passato, es. per la Distinta) se c'e'
+        return (await leggiCompleta()) || data;
       }
     }
     if (pending) return pending;
-    pending = fetchJson(FIREBASE_SCHEDULE_URL, 8000)
+    const src = dataSource();
+    pending = fetchJson(scheduleUrl(), 8000)
       .then(data => {
-        lastSource = 'firebase';
+        lastSource = src === 'pocketbase' ? 'pocketbase' : 'firebase';
+        // Il turno base (fino all'ultima pubblicazione) NON deve sostituire la copia completa salvata
+        // (con i turni importati): con rete lenta o app chiusa a meta' restava solo il turno base.
+        if (src !== 'pocketbase' && cached(true)) return soloElenco(data);
         return save(data);
       })
-      .catch(error => {
-        const fallback = cached(true);
-        if (fallback) { lastSource = 'local'; return fallback; }
+      .catch(async error => {
+        const fallback = await leggiCompleta() || cached(true);
+        if (fallback) { lastSource = 'local'; window.NaviOffline?.segnaCopiaLocale?.(true); return fallback; }
         throw error;
       })
       .finally(() => {
@@ -449,20 +740,32 @@
   }
 
   function clear() {
-    localStorage.removeItem(DATA_KEY);
-    localStorage.removeItem(TIME_KEY);
+    localStorage.removeItem(DATA_KEY_BASE + cacheSuffix());
+    localStorage.removeItem(TIME_KEY_BASE + cacheSuffix());
     localStorage.removeItem(DIRECTORY_KEY);
     localStorage.removeItem('navi.agentDirectory.v1');
   }
 
+  // Tutto lo storico (es. "Mostra passato"): subito la copia completa sul telefono, se c'e', poi quella dalla rete
+  async function loadCompleto({ onLocale } = {}) {
+    const locale = await leggiCompleta();
+    if (locale && onLocale) { try { onLocale(locale); } catch (_) {} }
+    try { return await load('', { force: true, completo: true }); } catch (error) { if (locale) return locale; throw error; }
+  }
   window.NaviSharedData = {
+    loadCompleto,
+    leggero,
     load,
     loadBase,
+    loadCacheFirst,
     directory,
     clear,
     isFresh:() => !!cached(),
     source:() => lastSource,
-    provider:() => lastSource === 'firebase' ? 'NaviSuite Database' : 'Memoria locale',
-    seniorityRank:name => pdfSeniorityRank({ agente: name })
+    dataSource,
+    provider:() => lastSource === 'pocketbase' ? 'PocketBase' : lastSource === 'firebase' ? 'NaviSuite Database' : 'Memoria locale',
+    applyProfileResidenceMoves,
+    seniorityRank:name => pdfSeniorityRank({ agente: name }),
+    applyScheduleImports
   };
 })();

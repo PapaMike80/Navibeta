@@ -6,7 +6,13 @@
     },
     "public": {
       ".read": true,
-      ".write": false
+      ".write": false,
+      "schedule": {
+        ".write": "auth != null"
+      },
+      "turnoFuturo": {
+        ".write": "auth != null"
+      }
     },
     "private": {
       "changeRequests": {
@@ -17,7 +23,12 @@
       },
       "adminUpdates": {
         ".read": "auth != null",
-        ".write": "auth != null"
+        ".write": "auth != null",
+        "pushQueue": {
+          "$id": {
+            ".validate": "data.exists() || (newData.child('kind').val() !== 'agent-connection' && newData.child('source').val() !== 'navisuite-connection') || root.child('private/adminUpdates/pushSettings/agentConnectionAlerts').val() !== false"
+          }
+        }
       },
       "$other": {
         ".read": false,

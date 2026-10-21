@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="NaviDiaria">
+  <meta name="apple-mobile-web-app-title" content="NaviBeta">
   <meta name="theme-color" content="#002b5e">
   <link rel="manifest" href="manifest.json">
   <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
@@ -16,9 +16,9 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/styles.css">
-  <link rel="stylesheet" href="assets/css/naviturni-theme.css">
-  <link rel="stylesheet" href="assets/css/shared-menu.css">
-  <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=110">
+  <link rel="stylesheet" href="assets/css/naviturni-theme.css?v=12">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
+  <link rel="stylesheet" href="assets/css/navidiaria-weekly.css?v=111">
   <link rel="stylesheet" href="assets/css/navidiaria-monthly.css?v=122">
   <style>
     .ccnl-result-line{grid-column:1/-1;margin:0;padding:0;font-weight:700;line-height:1.45}
@@ -61,6 +61,7 @@
     html.navisuite-light .weekly-bubble strong,html.navisuite-light .weekly-more-bubble strong{color:#17323a!important}
     @media(max-width:640px){.day-browser-heading{align-items:center}.day-browser-date{min-width:0;font-size:.95rem}.day-nav-button,.day-edit-button{width:34px;height:34px}}
   </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
 </head>
 <body class="diaria-page turni-page" data-default-residence="Desenzano">
   <div class="app-shell">
@@ -103,6 +104,7 @@
               <div class="hero-matured-grid" aria-label="Totale maturato">
                 <div><small>Straordinari</small><strong id="heroOvertime">—</strong></div>
                 <div><small>Banca ore</small><strong id="heroBank">—</strong></div>
+                <div><small>Recupero forfait</small><strong id="heroRF">—</strong></div>
                 <div><small>BP</small><strong id="heroBp">—</strong></div>
                 <div><small>Diaria</small><strong id="heroAllowance">—</strong></div>
               </div>
@@ -136,8 +138,10 @@
                 <button id="monthlyNext" class="monthly-month-button" type="button" aria-label="Mese successivo">›</button>
                 <button id="monthlyToday" class="monthly-today-button" type="button">Oggi</button>
                 <button id="monthlyPrint" class="monthly-today-button" type="button">Stampa / PDF</button>
+                <button id="monthlyVerifyPayslip" class="monthly-today-button" type="button" onclick="location.href='verifica-busta.html'">Verifica busta</button>
               </div>
               <p id="monthlyCompetencePeriod" class="monthly-sheet-period"></p>
+              <p id="monthlyDataSource" class="monthly-sheet-period" hidden></p>
             </div>
           </div>
           <div id="monthlySheetGrid" class="monthly-sheet-grid"></div>
@@ -171,6 +175,7 @@
             <label>Servizio<select id="entryShift"></select></label>
             <label>Straordinario (min)<input id="entryDelay" type="number" min="0" step="1" value="0"></label>
             <label>Altra banca ore (min)<input id="entryBank" type="number" step="5" value="0"></label>
+            <label class="check-label"><input id="entryRF" type="checkbox"><span>Recupero forfait (prova barca)</span></label>
             <label>Indennità aliscafo (n.)<input id="entryHydrofoil" type="number" min="0" step="1" value="0"></label>
             <label>Mancato riposo (min)<input id="entryMissedRest" type="number" min="0" step="5" value="0"></label>
             <label>2° ticket presenza (n.)<input id="entrySecondMeal" type="number" min="0" max="2" step="1" value="0"></label>
@@ -202,7 +207,9 @@
             </label>
             <label class="check-label"><input id="entryEmbark" type="checkbox" checked><span>Giorno d'imbarco</span></label>
             <label class="check-label"><input id="entryCashHandling" type="checkbox"><span>Indennità maneggio denaro</span></label>
-            <label class="check-label"><input id="entryRefuel" type="checkbox"><span id="refuelLabel">Rifornimento (+30 min)</span></label>
+            <label>Rifornimento (banca ore)
+              <select id="entryRefuel"><option value="0">Nessuno</option><option value="30">00:30</option><option value="60">01:00</option><option value="90">01:30</option><option value="120">02:00</option></select>
+            </label>
             <label class="check-label"><input id="entryMeal" type="checkbox"><span>Buono pasto usato</span></label>
             <label>Note<input id="entryNote" type="text" placeholder="Facoltative"></label>
             <label class="check-label"><input id="entryTravel" type="checkbox"><span>Trasferta · diaria 50%</span></label>
@@ -246,7 +253,7 @@
       <p class="login-copy">Inserisci il cognome e scegli il tuo nominativo tra i suggerimenti. Al primo accesso, il PIN verrà associato al tuo profilo.</p>
       <label>Cognome<input id="loginAgentSearch" type="text" list="loginAgentSuggestions" autocomplete="off" placeholder="Inizia a digitare il cognome…" required></label>
       <datalist id="loginAgentSuggestions"></datalist>
-      <label>PIN personale<input id="loginPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="current-password" placeholder="Da 4 a 8 cifre" required></label>
+      <label>PIN personale<input id="loginPin" type="password" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" autocomplete="off" placeholder="Da 4 a 8 cifre" required></label>
       <p id="loginMessage" class="login-message"></p>
       <button id="loginSubmit" class="primary-button" type="submit">Accedi</button>
       <small>Il PIN viene memorizzato soltanto su questo dispositivo.</small>
@@ -266,16 +273,25 @@
     </form>
   </div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="assets/js/admin-firebase-rest.js?v=38"></script>
-  <script src="assets/js/shared-data.js?v=118"></script>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
   <script src="assets/js/firebase-auth.js"></script>
-  <script src="assets/js/shared-menu.js?v=1.54"></script>
-  <script src="assets/js/overtime-components.js?v=5"></script>
-  <script src="assets/js/app.js?v=118"></script>
-  <script src="assets/js/navidiaria-weekly.js?v=123"></script>
-  <script src="assets/js/day-popup.js?v=15"></script>
-  <script src="assets/js/navidiaria-monthly.js?v=127"></script>
-  <script src="assets/js/navidiaria-reset-hours.js?v=1"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/overtime-components.js?v=11"></script>
+  <script src="assets/js/shift-competence.js?v=4"></script>
+  <script src="assets/js/app.js?v=139"></script>
+  <script src="assets/js/competenze-elenco.js?v=6"></script>
+  <script src="assets/js/ritardi-equipaggio.js?v=1"></script>
+  <script src="assets/js/navidiaria-conversione.js?v=13"></script>
+  <script src="assets/js/diaria-backup.js?v=9"></script>
+  <script src="assets/js/navidiaria-backup-ui.js?v=4"></script>
+  <script src="assets/js/navidiaria-anno.js?v=5"></script>
+  <script src="assets/js/navidiaria-weekly.js?v=125"></script>
+  <script src="assets/js/day-popup.js?v=31"></script>
+  <script src="assets/js/navidiaria-monthly.js?v=142"></script>
+  <script src="assets/js/navidiaria-reset-hours.js?v=9"></script>
   <script>
   (() => {
     const byId = id => document.getElementById(id);

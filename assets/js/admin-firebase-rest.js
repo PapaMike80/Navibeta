@@ -70,6 +70,8 @@
       expiresAt:Date.now() + Number(data.expires_in || 3600) * 1000
     });
     } catch (error) {
+      // Senza rete (o rete lentissima) si tiene il token: crearne uno nuovo non servirebbe e farebbe un altro account
+      if (!navigator.onLine || error?.name === 'TypeError' || error?.name === 'AbortError') throw error;
       // Un token locale vecchio non deve poter bloccare l'intera applicazione.
       localStorage.removeItem(AUTH_KEY);
       return signUp();
@@ -93,11 +95,54 @@
     finally { pendingAuth = null; }
   }
 
+  // Rami pesanti e che cambiano di rado: si tengono sul telefono e si riscaricano solo quando cambiano
+  // (private/adminUpdates/versione/<ramo> = ora dell'ultima modifica, aggiornata a ogni scrittura).
+  // Con segnale debole in mezzo al lago si risparmiano ~2,5 MB a ogni apertura.
+  const RAMI_CACHE = ["scheduleImports", "agentProfiles", "baristas", "approvedChangeRequests", "dismissedOdsApprovals"];
+  const CACHE_MAX = 6 * 3600 * 1000;
+  function ramiScritti(path, options) {
+    const m = String(path).replace(/^\/+/, "").match(/^private\/adminUpdates(?:\/([^/]+))?/);
+    if (!m) return [];
+    if (m[1]) return RAMI_CACHE.includes(m[1]) ? [m[1]] : [];
+    try { return Object.keys(JSON.parse(options.body || "{}")).filter(k => RAMI_CACHE.includes(k)); } catch { return []; }
+  }
+  async function versioni() {
+    try { return (await databaseRequest("private/adminUpdates/versione")).data || {}; } catch { return {}; }
+  }
+  // Copia dei rami nella Cache Storage del browser (spazio ampio), non in localStorage: su iPhone localStorage
+  // ha ~5 MB e i turni importati lo riempivano, facendo perdere la copia completa dei turni.
+  const DATI_CACHE = "navi-dati-v1"; // non "navisuite-": il service worker cancella quelle cache a ogni versione
+  try { Object.keys(localStorage).filter(k => k.startsWith("navisuite.adm.")).forEach(k => localStorage.removeItem(k)); } catch { /* niente */ }
+  async function copiaLeggi(ramo) {
+    try { const c = await caches.open(DATI_CACHE); const r = await c.match(`/__dati/${ramo}`); return r ? await r.json() : null; } catch { return null; }
+  }
+  async function copiaScrivi(ramo, valore) {
+    try { const c = await caches.open(DATI_CACHE); await c.put(`/__dati/${ramo}`, new Response(JSON.stringify(valore), { headers:{ "Content-Type":"application/json" } })); } catch { /* niente */ }
+  }
+  async function copiaTogli(ramo) { try { const c = await caches.open(DATI_CACHE); await c.delete(`/__dati/${ramo}`); } catch { /* niente */ } }
+  async function leggiRamo(ramo, ver) {
+    const v = ver?.[ramo];
+    const salvata = await copiaLeggi(ramo);
+    if (v && salvata && salvata.v === v && Date.now() - (salvata.t || 0) < CACHE_MAX) return salvata.data;
+    let data;
+    try { data = (await databaseRequest(`private/adminUpdates/${ramo}`, { timeout:60000 })).data; } // rami grandi: anche con rete lenta
+    catch (error) {
+      if (salvata) return salvata.data; // rete lenta/assente: meglio la copia salvata (anche vecchia) che niente
+      throw error;
+    }
+    let nv = v;
+    if (!nv) { nv = Date.now(); databaseRequest("private/adminUpdates/versione", { method:"PATCH", body:JSON.stringify({ [ramo]:nv }) }).catch(() => {}); }
+    await copiaScrivi(ramo, { v:nv, t:Date.now(), data });
+    return data;
+  }
+
   async function databaseRequest(path, options = {}) {
     const auth = await ensureAuth();
-    const url = `${DATABASE_URL}/${String(path).replace(/^\/+/, "")}.json?auth=${encodeURIComponent(auth.idToken)}`;
+    const url = `${DATABASE_URL}/${String(path).replace(/^\/+/, "")}.json?auth=${encodeURIComponent(auth.idToken)}${options.query ? `&${options.query}` : ""}`;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    // letture: 8 s (con segnale debole si usa la copia salvata); scritture: 15 s
+    const attesa = options.timeout || (String(options.method || "GET").toUpperCase() === "GET" ? 8000 : 15000);
+    const timeout = setTimeout(() => controller.abort(), attesa);
     try {
       const response = await fetch(url, {
         ...options,
@@ -109,9 +154,18 @@
         const message = data?.error || `Firebase HTTP ${response.status}`;
         throw new Error(message === "Permission denied" ? "Permesso negato dalle regole Firebase" : message);
       }
+      const metodo = String(options.method || "GET").toUpperCase();
+      if (metodo !== "GET") {
+        const rami = ramiScritti(path, options);
+        if (rami.length) {
+          const ora = Date.now();
+          rami.forEach(r => copiaTogli(r));
+          databaseRequest("private/adminUpdates/versione", { method:"PATCH", body:JSON.stringify(Object.fromEntries(rami.map(r => [r, ora]))) }).catch(() => {});
+        }
+      }
       return { data, auth };
     } catch (error) {
-      if (error?.name === "AbortError") throw new Error("Firebase non risponde entro 15 secondi");
+      if (error?.name === "AbortError") { const e = new Error(`Firebase non risponde entro ${attesa / 1000} secondi`); e.name = "AbortError"; throw e; }
       throw error;
     } finally {
       clearTimeout(timeout);
@@ -171,22 +225,41 @@
     return true;
   }
 
+  // Ogni ramo per conto suo: se uno non arriva (rete lenta) si usa la sua ultima copia, senza perdere gli altri.
+  // Prima bastava un ramo in ritardo per perdere tutti i turni importati (si vedeva solo il turno base).
+  async function ramoFresco(ramo, timeout = 30000) {
+    try {
+      const data = (await databaseRequest(`private/adminUpdates/${ramo}`, { timeout })).data;
+      copiaScrivi(`fresco-${ramo}`, { t:Date.now(), data });
+      return { data, ok:true };
+    } catch (error) {
+      const c = await copiaLeggi(`fresco-${ramo}`);
+      if (c) return { data:c.data, ok:false };
+      return { data:null, ok:false, error };
+    }
+  }
   async function getAdminUpdates() {
-    const [owner, updated, ods, manual, baristas, approvals, dismissedOds, scheduleImports, turniNavi] = await Promise.all([
-      databaseRequest("private/adminUpdates/ownerUid"),
-      databaseRequest("private/adminUpdates/updatedAt"),
-      databaseRequest("private/adminUpdates/odsVariations"),
-      databaseRequest("private/adminUpdates/manualVariations"),
-      databaseRequest("private/adminUpdates/baristas"),
-      databaseRequest("private/adminUpdates/approvedChangeRequests"),
-      databaseRequest("private/adminUpdates/dismissedOdsApprovals"),
-      databaseRequest("private/adminUpdates/scheduleImports"),
-      databaseRequest("private/adminUpdates/turniNavi")
+    const auth = await ensureAuth();
+    const ver = await versioni();
+    const daCache = ramo => leggiRamo(ramo, ver).then(data => ({ data, ok:true })).catch(error => ({ data:null, ok:false, error }));
+    const [owner, updated, ods, manual, baristas, approvals, dismissedOds, scheduleImports, turniNavi, profili] = await Promise.all([
+      ramoFresco("ownerUid", 15000),
+      ramoFresco("updatedAt", 15000),
+      ramoFresco("odsVariations"),
+      ramoFresco("manualVariations"),
+      daCache("baristas"),
+      daCache("approvedChangeRequests"),
+      daCache("dismissedOdsApprovals"),
+      daCache("scheduleImports"),
+      ramoFresco("turniNavi"),
+      daCache("agentProfiles")
     ]);
+    // senza i turni importati (e senza alcuna copia) non ha senso continuare: chi chiama usa la copia completa
+    if (scheduleImports.data == null && scheduleImports.error) throw scheduleImports.error;
     const asArray = input => Array.isArray(input) ? input.filter(Boolean) : Object.values(input || {});
     return {
       ownerUid:String(owner.data || ""),
-      currentUid:owner.auth.uid,
+      currentUid:auth.uid,
       updatedAt:String(updated.data || ""),
       odsVariations:asArray(ods.data),
       manualVariations:asArray(manual.data),
@@ -195,8 +268,141 @@
       dismissedOdsApprovals:asArray(dismissedOds.data)
       ,scheduleImports:asArray(scheduleImports.data)
       ,turniNavi:asArray(turniNavi.data)
-      ,agentProfiles:(await databaseRequest("private/adminUpdates/agentProfiles")).data || {}
+      ,agentProfiles:profili.data || {}
     };
+  }
+
+  // Solo i turni nave (nave, ormeggio serale, rifornimento) degli O.d.S.: per la pagina Servizi a terra.
+  // Turni nave (navi, ormeggi, ritardi): copia sul telefono per aprire subito Scali e Il mio turno anche senza rete
+  const TURNI_NAVI_KEY = "navisuite.turniNavi.v1";
+  function turniNaviSalvati() { try { return JSON.parse(localStorage.getItem(TURNI_NAVI_KEY) || "null")?.righe || null; } catch { return null; } }
+  async function getTurniNavi() {
+    const result = await databaseRequest("private/adminUpdates/turniNavi");
+    const righe = Array.isArray(result.data) ? result.data.filter(Boolean) : Object.values(result.data || {});
+    // sul telefono solo da ieri in poi (la copia serve per oggi): poche decine di KB invece di centinaia
+    const ieri = new Date(Date.now() - 864e5).toISOString().slice(0, 10);
+    try { localStorage.setItem(TURNI_NAVI_KEY, JSON.stringify({ t:Date.now(), righe:righe.filter(r => String(r?.data || "9") >= ieri) })); } catch { /* niente */ }
+    return righe;
+  }
+
+  // Ufficio Movimento (pagina movimento.html): nave, ormeggi, rifornimento e corse sospese di un turno
+  // nave in un giorno. La riga del Movimento (fonte "movimento") sostituisce quelle degli O.d.S. dello
+  // stesso giorno e turno, che restano salvate ma non attive (sostituita_da_movimento) e tornano
+  // attive con il ripristino. Ogni salvataggio rilegge i turni nave e riscrive solo quel nodo.
+  const corsaDi = row => String(row?.corsa || "").toUpperCase().replace(/\s+/g, "").replace(/^BIS2$/, "BIS");
+  const stessoTurnoNave = (row, day, corsa) => String(row?.data || "").slice(0, 10) === day && corsaDi(row) === corsa;
+  async function writeTurniNavi(rows) {
+    await databaseRequest("private/adminUpdates/turniNavi", { method:"PUT", body:JSON.stringify(rows) });
+    await databaseRequest("private/adminUpdates/updatedAt", { method:"PUT", body:JSON.stringify(new Date().toISOString()) });
+    return rows;
+  }
+  async function saveTurnoNaveMovimento(day, corsa, values = {}, updatedBy = "") {
+    const code = String(corsa || "").toUpperCase();
+    const rows = (await getTurniNavi()).map(row => (stessoTurnoNave(row, day, code) && row.fonte !== "movimento" && row.attiva !== false)
+      ? { ...row, attiva:false, sostituita_da_movimento:true } : row)
+      .filter(row => !(stessoTurnoNave(row, day, code) && row.fonte === "movimento"));
+    const row = {
+      data:day, corsa:code,
+      nave:String(values.nave || "").trim(),
+      ormeggio_mattino:String(values.ormeggio_mattino || "").trim(),
+      ormeggio_serale:String(values.ormeggio_serale || "").trim(),
+      rifornimento_mattina:values.rifornimento_mattina ? "Sì" : "",
+      sospesa:values.sospesa === true,
+      sospesa_motivo:values.sospesa ? String(values.sospesa_motivo || "").trim() : "",
+      sospesa_il:values.sospesa ? String(values.sospesa_il || new Date().toISOString()) : "",
+      // corse sospese una per una (numeri di corsa), senza sospendere tutto il turno
+      corse_sospese:(Array.isArray(values.corse_sospese) ? values.corse_sospese : []).map(x => (x && typeof x === "object"
+        ? { corsa:String(x.corsa || ""), da:String(x.da || ""), scalo:String(x.scalo || "") } : { corsa:String(x), da:"", scalo:"" })).filter(x => x.corsa),
+      // ritardi per corsa (a scatti di 5 minuti fino a 2 ore, oppure oltre 2 ore)
+      // con "scalo": ritardo da quello scalo in poi nella corsa; "inOrario": in orario (ferma il ritardo della corsa prima)
+      ritardi:(Array.isArray(values.ritardi) ? values.ritardi : []).filter(r => r && r.corsa && (Number(r.minuti) > 0 || r.oltre || r.inOrario)).map(r => ({
+        corsa:String(r.corsa), ...(r.scalo ? { scalo:String(r.scalo) } : {}),
+        ...(r.inOrario ? { minuti:0, oltre:false, inOrario:true } : { minuti:r.oltre ? 120 : Math.min(120, Number(r.minuti)), oltre:r.oltre === true })
+      })),
+      // BIS: incarichi del giorno (sostituisce un turno nave o fa corse in aiuto)
+      incarichi:(Array.isArray(values.incarichi) ? values.incarichi : []).filter(inc => inc && inc.turno && inc.dalla).map(inc => ({
+        tipo:inc.tipo === "aiuto" ? "aiuto" : "sostituzione", turno:String(inc.turno).toUpperCase(),
+        dalla:String(inc.dalla), alla:String(inc.alla || ""), nota:String(inc.nota || "")
+      })),
+      ods:"MOVIMENTO", fonte:"movimento", attiva:true,
+      inserita_il:new Date().toISOString(), modificata_da:String(updatedBy || "")
+    };
+    return writeTurniNavi([...rows, row]);
+  }
+  // Turno fermato o ripreso fuori dal calendario dell'O.d.S. (pagina Movimento): una riga per turno con il campo "stagione"
+  // ("ferma" | "attiva"), valida dal giorno `dal` al giorno `al` (vuoto = fino a nuovo ordine).
+  async function saveStagioneTurno(code, stato, dal, al = "", updatedBy = "") {
+    const turno = String(code || "").toUpperCase();
+    const rows = (await getTurniNavi()).filter(row => !(row?.stagione && corsaDi(row) === turno));
+    rows.push({
+      data:String(dal), corsa:turno, nave:"", stagione:stato === "attiva" ? "attiva" : "ferma", stagione_al:String(al || ""),
+      ods:"MOVIMENTO", fonte:"movimento", attiva:true, inserita_il:new Date().toISOString(), modificata_da:String(updatedBy || "")
+    });
+    return writeTurniNavi(rows);
+  }
+  async function togliStagioneTurno(code) {
+    const turno = String(code || "").toUpperCase();
+    return writeTurniNavi((await getTurniNavi()).filter(row => !(row?.stagione && corsaDi(row) === turno)));
+  }
+  async function ripristinaTurnoNave(day, corsa) {
+    const code = String(corsa || "").toUpperCase();
+    const rows = (await getTurniNavi())
+      .filter(row => !(stessoTurnoNave(row, day, code) && row.fonte === "movimento"))
+      .map(row => {
+        if (!stessoTurnoNave(row, day, code) || !row.sostituita_da_movimento) return row;
+        const { sostituita_da_movimento, ...rest } = row;
+        return { ...rest, attiva:true };
+      });
+    return writeTurniNavi(rows);
+  }
+  // Approvazione dei cambi turno fatti dagli agenti dalla propria Distinta (pagina Movimento): una voce per agente e giorno
+  // {turno, approvata_da, approvata_il}; il cambio resta "in attesa" finche' non c'e' una voce con lo stesso turno.
+  const chiaveApprovazione = (agentId, day) => `${String(agentId).replace(/[.#$\[\]/]/g, "-")}_${day}`;
+  async function getApprovazioniTurni() {
+    const result = await databaseRequest("private/adminUpdates/approvazioniTurni");
+    return result.data && typeof result.data === "object" ? result.data : {};
+  }
+  async function saveApprovazioneTurno(agentId, day, turno, approvataDa = "", stato = "approvata") {
+    // turno = quello chiesto dall'agente; stato = approvata | rifiutata | modificata (la richiesta e' chiusa in ogni caso)
+    const item = { agentId:String(agentId), data:day, turno:String(turno || "").toUpperCase(), stato, approvata_da:String(approvataDa), approvata_il:new Date().toISOString() };
+    await databaseRequest(`private/adminUpdates/approvazioniTurni/${chiaveApprovazione(agentId, day)}`, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  // Equipaggio: le modifiche del Movimento sono variazioni manuali dei turni (ods "MOVIMENTO"), una
+  // per agente e giorno; turnoNuovo vuoto annulla la variazione.
+  async function saveVariazioneMovimento(day, agent = {}, turnoNuovo = "", turnoOriginale = "", note = "", extra = {}) {
+    const result = await databaseRequest("private/adminUpdates/manualVariations");
+    const id = String(agent.id || "");
+    const rows = (Array.isArray(result.data) ? result.data.filter(Boolean) : Object.values(result.data || {}))
+      .filter(item => !(String(item?.data || "").slice(0, 10) === day && String(item?.id_agente || "") === id && item?.ods === "MOVIMENTO"));
+    if (turnoNuovo) rows.push({
+      attiva:true, data:day, id_agente:id, agente:String(agent.agente || agent.name || ""),
+      turno_originale:String(turnoOriginale || "").toUpperCase(), turno_nuovo:String(turnoNuovo).toUpperCase(),
+      ods:"MOVIMENTO", tipo:"MANUALE", note:String(note || "Ufficio Movimento"), inserita_il:new Date().toISOString(),
+      // membro aggiunto dal "+" della corsa: in piu' del minimo, eventualmente sovrannumero
+      ...(extra.aggiunto ? { aggiunto:true } : {}), ...(extra.sovrannumero ? { sovrannumero:true } : {}),
+      // cambio dell'agente (dalla Distinta) che questa decisione del Movimento sovrascrive (vuoto = nessuno)
+      ...(extra.sovrascrive !== undefined ? { sovrascrive:String(extra.sovrascrive || "") } : {})
+    });
+    await databaseRequest("private/adminUpdates/manualVariations", { method:"PUT", body:JSON.stringify(rows) });
+    await databaseRequest("private/adminUpdates/updatedAt", { method:"PUT", body:JSON.stringify(new Date().toISOString()) });
+    return rows;
+  }
+
+  // Pontile scelto per ogni corsa nella pagina Servizi a terra:
+  // private/adminUpdates/pontiliCorse/{residenza}/{corsa}/{data} = "1".."6" oppure "-" (nessuno).
+  const pontileKey = value => String(value || "").replace(/[.#$\[\]/]/g, "-");
+  async function getPontiliCorse(residence) {
+    const result = await databaseRequest(`private/adminUpdates/pontiliCorse/${pontileKey(residence)}`);
+    return result.data && typeof result.data === "object" ? result.data : {};
+  }
+
+  async function savePontileCorsa(residence, course, date, value) {
+    await databaseRequest(`private/adminUpdates/pontiliCorse/${pontileKey(residence)}/${pontileKey(course)}/${pontileKey(date)}`, {
+      method:"PUT",
+      body:JSON.stringify(String(value || "-"))
+    });
+    return true;
   }
 
   async function getBaristaUpdates() {
@@ -211,6 +417,34 @@
       body:JSON.stringify(rows)
     });
     return { baristas:rows, updatedAt:new Date().toISOString() };
+  }
+
+  // Segno degli ultimi salvataggi admin (updatedAt + versioni dei rami): se coincide con quello del turno pronto del NAS,
+  // il turno pronto e' aggiornato. Pochi byte.
+  async function getSegnoAggiornamenti() {
+    const [u, v] = await Promise.all([databaseRequest("private/adminUpdates/updatedAt", { timeout:8000 }), databaseRequest("private/adminUpdates/versione", { timeout:8000 })]);
+    return segnoDa(u.data, v.data);
+  }
+  function segnoDa(updatedAt, versione) {
+    const v = versione || {};
+    return [String(updatedAt || ""), ...Object.keys(v).sort().map(k => `${k}:${v[k]}`)].join("|");
+  }
+
+  // Turno base (public/schedule): lettura e pubblicazione del turno consolidato (serve la regola di scrittura per gli admin)
+  async function getTurnoBase() { return (await databaseRequest("public/schedule", { timeout:60000 })).data || null; }
+  async function pubblicaTurnoBase(data) {
+    await ensureAuth();
+    await databaseRequest("public/schedule", { method:"PUT", body:JSON.stringify(data), timeout:60000 });
+    return true;
+  }
+
+  // Archivio delle importazioni disattivate: si aggiungono (non si sovrascrivono) e le pagine non lo scaricano
+  async function archiviaImportazioni(items = []) {
+    await ensureAuth();
+    const patch = {};
+    items.forEach((item, i) => { patch[`${Date.now()}_${i}`] = item; });
+    await databaseRequest("private/adminUpdates/scheduleImportsArchivio", { method:"PATCH", body:JSON.stringify(patch) });
+    return items.length;
   }
 
   async function saveAdminUpdates(payload = {}) {
@@ -233,6 +467,27 @@
     return { ...item, currentUid:auth.uid };
   }
 
+  // Richiesta di allineamento del Foglio Google al turno caricato: la scrive
+  // la pagina Aggiornamenti (solo admin), la esegue lo script del foglio
+  // (controlloPeriodico, ogni 5 minuti) che poi scrive "result".
+  async function getSheetSync() {
+    const result = await databaseRequest("private/adminUpdates/sheetSync");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return { request:value.request || null, result:value.result || null };
+  }
+
+  async function requestSheetSync(agent = {}) {
+    const auth = await ensureAuth();
+    const request = {
+      id:`SYNC_${Date.now()}`,
+      requestedAt:new Date().toISOString(),
+      requestedBy:String(agent.name || agent.agente || agent.id || ""),
+      ownerUid:auth.uid
+    };
+    await databaseRequest("private/adminUpdates/sheetSync/request", { method:"PUT", body:JSON.stringify(request) });
+    return request;
+  }
+
   async function getShipConfigurations() {
     let direct = {};
     try {
@@ -243,9 +498,8 @@
     if (directConfiguration && Object.keys(directConfiguration).length) {
       return { configurations:directConfiguration, updatedAt:String(direct.updatedAt || "") };
     }
-    const result = await databaseRequest("private/adminUpdates");
-    const value = result.data && typeof result.data === "object" ? result.data : {};
-    return { configurations:value.gestioneNaviConfig || {}, updatedAt:String(value.updatedAt || "") };
+    const [config, updatedAt] = await Promise.all(["gestioneNaviConfig", "updatedAt"].map(key => databaseRequest(`private/adminUpdates/${key}`).then(r => r.data).catch(() => null)));
+    return { configurations:config || {}, updatedAt:String(updatedAt || "") };
   }
 
   async function saveShipConfigurations(configurations = {}) {
@@ -272,6 +526,30 @@
     return item;
   }
 
+  // Anagrafica navi dell'ufficio movimento: equipaggio minimo per nave, con
+  // periodi di validita' (es. estate/inverno). Nodo dedicato, separato dal
+  // vecchio shipConfigurations di Gestione navi.
+  async function getFleet() {
+    const result = await databaseRequest("private/adminUpdates/movimentoFlotta");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return {
+      navi:value.navi && typeof value.navi === "object" ? value.navi : {},
+      updatedAt:String(value.updatedAt || ""),
+      updatedBy:String(value.updatedBy || "")
+    };
+  }
+
+  async function saveFleet(navi = {}, updatedByName = "") {
+    const auth = await ensureAuth();
+    const item = {
+      navi:navi && typeof navi === "object" ? navi : {},
+      updatedAt:new Date().toISOString(),
+      updatedBy:String(updatedByName || auth.uid)
+    };
+    await databaseRequest("private/adminUpdates/movimentoFlotta", { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
   async function getAnnouncements() {
     const result = await databaseRequest("private/adminUpdates/announcements");
     return result.data && typeof result.data === "object" ? result.data : {};
@@ -290,8 +568,9 @@
     const result = await databaseRequest("private/adminUpdates/draftPeriod");
     const value = result.data || {};
     return {
-      start:String(value.start || "2026-08-10"),
-      end:String(value.end || "2026-09-06"),
+      // nessun periodo salvato = nessuna bozza (prima tornava sempre 10/08-06/09)
+      start:String(value.start || ""),
+      end:String(value.end || ""),
       updatedAt:String(value.updatedAt || "")
     };
   }
@@ -312,6 +591,43 @@
   async function resetDraftPeriod() {
     await databaseRequest("private/adminUpdates/draftPeriod", { method:"DELETE" });
     return true;
+  }
+
+  // Impostazioni notifiche globali (lette anche dai dispositivi degli agenti,
+  // es. connection-webpush.js). Chiave assente => avvisi attivi (comportamento
+  // storico).
+  async function getPushSettings() {
+    const result = await databaseRequest("private/adminUpdates/pushSettings");
+    const value = result.data && typeof result.data === "object" ? result.data : {};
+    return { agentConnectionAlerts:value.agentConnectionAlerts !== false };
+  }
+
+  async function savePushSettings(patch = {}) {
+    const auth = await ensureAuth();
+    const current = await getPushSettings();
+    const item = {
+      ...current,
+      ...(typeof patch.agentConnectionAlerts === "boolean" ? { agentConnectionAlerts:patch.agentConnectionAlerts } : {}),
+      updatedAt:new Date().toISOString(),
+      ownerUid:auth.uid
+    };
+    await databaseRequest("private/adminUpdates/pushSettings", { method:"PUT", body:JSON.stringify(item) });
+    return { agentConnectionAlerts:item.agentConnectionAlerts };
+  }
+
+  // Rimuove dalla coda push gli avvisi "agente collegato" ancora in attesa.
+  // Il worker invia tutto cio' che trova in pushQueue senza guardare il flag,
+  // quindi quando l'amministratore spegne l'interruttore va svuotato l'arretrato
+  // (accodato anche da NaviBeta o da client con cache vecchia).
+  async function clearPendingConnectionAlerts() {
+    const result = await databaseRequest("private/adminUpdates/pushQueue");
+    const keys = Object.entries(result.data || {})
+      .filter(([, value]) => value && (value.kind === "agent-connection" || value.source === "navisuite-connection"))
+      .map(([key]) => key);
+    await Promise.all(keys.map(key =>
+      databaseRequest(`private/adminUpdates/pushQueue/${encodeURIComponent(key)}`, { method:"DELETE" })
+    ));
+    return keys.length;
   }
 
   async function getAdminDocuments() {
@@ -453,8 +769,10 @@
   }
 
   async function getAgentAdminData() {
-    const result = await databaseRequest("private/adminUpdates");
-    const value = result.data || {};
+    // solo i rami che servono: l'intero adminUpdates (distinte di tutti) supera i 25 MB
+    const [users, profiles, auth, legacy] = await Promise.all(["userRegistry", "agentProfiles", "userAuth", "legacyUsersImportedAt"]
+      .map(key => databaseRequest(`private/adminUpdates/${key}`).then(r => r.data)));
+    const value = { userRegistry:users, agentProfiles:profiles, userAuth:auth, legacyUsersImportedAt:legacy };
     return {
       users:Object.values(value.userRegistry || {}).filter(Boolean),
       profiles:value.agentProfiles || {},
@@ -486,6 +804,53 @@
     return getAgentAdminData();
   }
 
+  // Sezione Utente (Impostazioni): il proprio profilo e la propria registrazione, in lettura
+  async function getMioProfilo(agentId) {
+    const key = safeUserKey(String(agentId || "").trim());
+    const [profilo, registro] = await Promise.all([`agentProfiles/${key}`, `userRegistry/${key}`]
+      .map(ramo => databaseRequest(`private/adminUpdates/${ramo}`).then(r => r.data || null).catch(() => null)));
+    return { profilo: profilo || {}, registro: registro || {} };
+  }
+  // Telefono per WhatsApp: l'unico dato del profilo che l'agente puo' cambiare da solo
+  async function saveAgentTelefono(agentId, telefono) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const valore = String(telefono || "").replace(/[^\d+ ]/g, "").trim().slice(0, 20);
+    await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PATCH", body:JSON.stringify({ id, telefono:valore, telefonoAggiornato:new Date().toISOString() }) });
+    return valore;
+  }
+  // Facente funzione (FF): grado temporaneo dell'agente per un periodo (max 6 mesi). ff = {grado, dal, al} oppure null per toglierlo.
+  async function saveAgentFF(agentId, ff) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const path = `private/adminUpdates/agentProfiles/${safeUserKey(id)}/ff`;
+    if (!ff) { await databaseRequest(path, { method:"DELETE" }); return null; }
+    const item = { grado:String(ff.grado || "").trim().toLowerCase(), dal:String(ff.dal || ""), al:String(ff.al || ""), updatedAt:new Date().toISOString() };
+    await databaseRequest(path, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  // Categoria dell'agente: stabili (indeterminato), stagionali o esterni (a termine, con inizio e fine).
+  // servizio = {categoria, inizio, fine, accessoForzato}; null lo toglie (= stabili).
+  async function saveAgentServizio(agentId, servizio) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const path = `private/adminUpdates/agentProfiles/${safeUserKey(id)}/servizio`;
+    if (!servizio) { await databaseRequest(path, { method:"DELETE" }); return null; }
+    const categoria = ["stabili", "stagionali", "esterni"].includes(servizio.categoria) ? servizio.categoria : "stabili";
+    const termine = categoria !== "stabili";
+    const item = { categoria, inizio:termine ? String(servizio.inizio || "") : "", fine:termine ? String(servizio.fine || "") : "", accessoForzato:!!servizio.accessoForzato, updatedAt:new Date().toISOString() };
+    await databaseRequest(path, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  // Fuori servizio: stagionali ed esterni dopo la data di fine, salvo "Forza accesso consentito"
+  function servizioTerminato(servizio, oggi = new Date().toLocaleDateString("sv-SE")) {
+    if (!servizio || !["stagionali", "esterni"].includes(servizio.categoria) || servizio.accessoForzato) return false;
+    return !!servizio.fine && oggi > servizio.fine;
+  }
+  async function accessoRevocato(agentId) {
+    const { profilo } = await getMioProfilo(agentId);
+    return servizioTerminato(profilo?.servizio);
+  }
   async function saveAgentProfile(agentId, values = {}) {
     const id = String(agentId || "").trim();
     if (!id) throw new Error("Agente non valido");
@@ -497,7 +862,22 @@
       qualifica: String(values.qualifica || "").trim().toLowerCase(),
       updatedAt: new Date().toISOString()
     };
-    await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PUT", body:JSON.stringify(item) });
+    // PATCH: un eventuale cambio di residenza salvato sullo stesso profilo resta.
+    await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PATCH", body:JSON.stringify(item) });
+    return item;
+  }
+
+  // Cambio di residenza dalla data indicata (vuoto = annulla il cambio).
+  async function saveAgentResidenceMove(agentId, values = {}) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const after = String(values.residenzaNuova || "").trim().toUpperCase();
+    const dal = String(values.residenzaDal || "").slice(0, 10);
+    if (after && !/^\d{4}-\d{2}-\d{2}$/.test(dal)) throw new Error("Data di decorrenza non valida");
+    const item = after
+      ? { id, name:String(values.name || "").trim(), residenzaPrecedente:String(values.residenzaPrecedente || "").trim().toUpperCase(), residenzaNuova:after, residenzaDal:dal, residenzaAggiornata:new Date().toISOString() }
+      : { id, residenzaPrecedente:null, residenzaNuova:null, residenzaDal:null, residenzaAggiornata:new Date().toISOString() };
+    await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PATCH", body:JSON.stringify(item) });
     return item;
   }
 
@@ -515,6 +895,33 @@
     const item = { id, name:String(profile.name || profile.agente || profile.cognome || id), uid:auth.uid, lastSeen:new Date().toISOString() };
     await databaseRequest(`private/adminUpdates/userPresence/${safeUserKey(id)}/${safeUserKey(auth.uid)}`, { method:"PUT", body:JSON.stringify(item) });
     return item;
+  }
+
+  // Ultimi 10 accessi per agente con le pagine visitate; una sessione = un'apertura dell'app.
+  async function registraVisita(profile = {}, pagina = "") {
+    await ensureAuth();
+    const id = String(profile.id || profile.agentId || "").trim();
+    if (!id || !pagina) return null;
+    let sessione = "";
+    try { sessione = sessionStorage.getItem("navi-sessione-visite") || ""; } catch {}
+    if (!sessione) { sessione = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); try { sessionStorage.setItem("navi-sessione-visite", sessione); } catch {} }
+    const path = `private/adminUpdates/attivita/${safeUserKey(id)}`;
+    const ora = new Date().toISOString();
+    const letti = (await databaseRequest(path)).data;
+    const lista = Array.isArray(letti) ? letti.filter(Boolean) : Object.values(letti || {});
+    let accesso = lista.find(item => item.s === sessione);
+    if (!accesso) { accesso = { s:sessione, inizio:ora, dispositivo:/iphone|ipad|android|mobile/i.test(navigator.userAgent) ? "Mobile" : "Computer", pagine:[] }; lista.push(accesso); }
+    accesso.ultimo = ora;
+    accesso.pagine = Array.isArray(accesso.pagine) ? accesso.pagine : [];
+    if (accesso.pagine[accesso.pagine.length - 1]?.p !== pagina) accesso.pagine.push({ p:pagina, t:ora });
+    accesso.pagine = accesso.pagine.slice(-40);
+    const tenuti = lista.sort((a,b)=>String(b.inizio||"").localeCompare(String(a.inizio||""))).slice(0, 10);
+    await databaseRequest(path, { method:"PUT", body:JSON.stringify(tenuti) });
+    return accesso;
+  }
+
+  async function getAttivita() {
+    return (await databaseRequest("private/adminUpdates/attivita")).data || {};
   }
 
   async function listUserPresence(maxAgeMs = 120000) {
@@ -638,6 +1045,79 @@
     };
   }
 
+  // Accesso alle pagine: {pagina: 'tutti' | 'admin'} (sezione della pagina Agenti)
+  // Competenze dei servizi (tabella Competenze): archivio principale, copia su PocketBase
+  async function getCompetenzeServizi() {
+    const result = await databaseRequest("private/adminUpdates/competenzeServizi");
+    const value = result.data || {};
+    return { servizi:Array.isArray(value.servizi) ? value.servizi.filter(Boolean) : [], updatedAt:String(value.updatedAt || "") };
+  }
+  async function saveCompetenzeServizi(servizi = [], aggiornatoDa = "") {
+    await ensureAuth();
+    const item = { servizi:(Array.isArray(servizi) ? servizi : []).filter(Boolean), aggiornatoDa:String(aggiornatoDa || ""), updatedAt:new Date().toISOString() };
+    await databaseRequest("private/adminUpdates/competenzeServizi", { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
+  async function getPageAccess() {
+    // in Firebase le chiavi non possono contenere il punto: "quiz" -> "quiz.html"
+    const result = await databaseRequest("private/adminUpdates/pageAccess");
+    const out = {};
+    Object.entries(result.data || {}).forEach(([key, value]) => { out[key === "updatedAt" ? key : `${key}.html`] = value; });
+    return out;
+  }
+  async function savePageAccess(access = {}) {
+    await ensureAuth();
+    const item = {};
+    // una lista vuota (solo admin) Firebase la cancellerebbe: si salva come "admin"
+    Object.entries(access).forEach(([key, value]) => { if (key !== "updatedAt") item[key.replace(/\.html$/, "")] = Array.isArray(value) && !value.length ? "admin" : value; });
+    item.updatedAt = new Date().toISOString();
+    await databaseRequest("private/adminUpdates/pageAccess", { method:"PUT", body:JSON.stringify(item) });
+    return { ...access, updatedAt:item.updatedAt };
+  }
+
+  // Prima pagina imposta dagli admin a tutti (Impostazioni): {pagina, ts, da}; ogni nuovo ts azzera le scelte personali.
+  async function getPaginaIniziale() {
+    const result = await databaseRequest("private/adminUpdates/paginaIniziale");
+    return result.data || null;
+  }
+  async function savePaginaIniziale(pagina, da = "") {
+    await ensureAuth();
+    const item = { pagina:String(pagina || "auto").replace(/\.html$/, ""), ts:new Date().toISOString(), da:String(da || "") };
+    await databaseRequest("private/adminUpdates/paginaIniziale", { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
+  // Backup centrale (pagina Agenti): distinte di tutti, trasformazioni, profili, turni e variazioni.
+  async function getBackupCentrale() {
+    const chiavi = ["diaria", "diariaConversioni", "agentProfiles", "pageAccess", "scheduleImports", "odsVariations", "manualVariations",
+      "turniNavi", "approvazioniTurni", "userRegistry", "baristas", "pontiliCorse"];
+    const parti = await Promise.all(chiavi.map(k => databaseRequest(`private/adminUpdates/${k}`).then(r => r.data ?? null).catch(() => null)));
+    const schedule = await databaseRequest("public/schedule").then(r => r.data ?? null).catch(() => null);
+    return { adminUpdates:Object.fromEntries(chiavi.map((k, i) => [k, parti[i]])), schedule };
+  }
+
+  // Straordinari trasformati in banca ore, per mese: {map: {'2026-10': minuti}, updatedAt}
+  // Buste paga: solo i dati letti (mese, totali, voci), mai il PDF. {'2026-10': {...}}
+  async function getBustePaga(agentId) {
+    return (await databaseRequest(`private/adminUpdates/bustePaga/${safeUserKey(agentId)}`)).data || {};
+  }
+  async function saveBustaPaga(agentId, mese, dati) {
+    if (!/^\d{4}-\d{2}$/.test(String(mese || ""))) throw new Error("Mese della busta non valido");
+    const path = `private/adminUpdates/bustePaga/${safeUserKey(agentId)}/${mese}`;
+    await databaseRequest(path, dati ? { method:"PUT", body:JSON.stringify(dati) } : { method:"DELETE" });
+  }
+  async function getDiariaConversioni(agentId) {
+    const result = await databaseRequest(`private/adminUpdates/diariaConversioni/${safeUserKey(agentId)}`);
+    return result.data || null;
+  }
+  async function saveDiariaConversioni(agentId, value = {}) {
+    await ensureAuth();
+    const item = { map:value.map || {}, updatedAt:String(value.updatedAt || new Date().toISOString()) };
+    await databaseRequest(`private/adminUpdates/diariaConversioni/${safeUserKey(agentId)}`, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
   async function loadAllDiaria() {
     const result = await databaseRequest("private/adminUpdates/diaria");
     const value = result.data && typeof result.data === "object" ? result.data : {};
@@ -675,6 +1155,63 @@
     const backups = (await databaseRequest(`private/adminUpdates/diariaBackups/${safeUserKey(id)}`)).data || {};
     const oldKeys = Object.entries(backups).sort((a,b) => String(a[1]?.savedAt || "").localeCompare(String(b[1]?.savedAt || ""))).slice(0, -35).map(([key]) => key);
     await Promise.all(oldKeys.map(key => databaseRequest(`private/adminUpdates/diariaBackups/${safeUserKey(id)}/${key}`, { method:"DELETE" })));
+  }
+
+  // Copie di sicurezza della Distinta (le ultime 35), dalla piu' recente
+  async function listDiariaBackups(agentId) {
+    const id = String(agentId || "").trim();
+    if (!id) throw new Error("Agente non valido");
+    const backups = (await databaseRequest(`private/adminUpdates/diariaBackups/${safeUserKey(id)}`)).data || {};
+    return Object.entries(backups).map(([key, value]) => ({ key, savedAt:String(value?.savedAt || ""), sourceUpdatedAt:String(value?.sourceUpdatedAt || ""), reason:String(value?.reason || ""), entryCount:Number(value?.entryCount || 0), entries:Array.isArray(value?.entries) ? value.entries.filter(Boolean) : [] }))
+      .sort((a, b) => b.savedAt.localeCompare(a.savedAt));
+  }
+
+  // Ritardi dell'equipaggio: chi segna un ritardo lo passa ai colleghi con lo stesso turno quel giorno.
+  // ritardiEquipaggio/<giorno>/<TURNO>/<agente> = { minuti, nome, t }
+  async function getRitardiEquipaggio(dal) {
+    const result = await databaseRequest("private/adminUpdates/ritardiEquipaggio", { query:`orderBy=${encodeURIComponent('"$key"')}&startAt=${encodeURIComponent(JSON.stringify(String(dal)))}` });
+    return result.data || {};
+  }
+  async function saveRitardoEquipaggio(day, turno, agentId, value) {
+    const path = `private/adminUpdates/ritardiEquipaggio/${safeUserKey(day)}/${safeUserKey(String(turno).toUpperCase())}/${safeUserKey(agentId)}`;
+    await databaseRequest(path, { method:"PUT", body:JSON.stringify(value) });
+  }
+
+  // Richiesta di accesso dalla pagina di login: arriva come notifica all'admin (nessun numero pubblicato).
+  async function richiestaAccesso({ agentId = "", nome = "", telefono = "", nota = "" } = {}) {
+    const auth = await ensureAuth();
+    const stamp = Date.now();
+    const id = `ACCESSO_${stamp}_${Math.random().toString(36).slice(2, 8)}`;
+    const pulito = v => String(v || "").trim().slice(0, 120);
+    const richiesta = { id, agentId:pulito(agentId), nome:pulito(nome), telefono:pulito(telefono), nota:pulito(nota), createdAt:new Date(stamp).toISOString(), ownerUid:auth.uid || "" };
+    await databaseRequest(`private/adminUpdates/richiesteAccesso/${id}`, { method:"PUT", body:JSON.stringify(richiesta) });
+    const push = {
+      id, status:"pending", kind:"access-request", source:"navisuite-access", ownerUid:auth.uid || "", targetAgentId:"92",
+      title:"NaviSuite · richiesta di accesso",
+      body:`${richiesta.nome || "Agente"} chiede l'accesso · tel. ${richiesta.telefono}${richiesta.nota ? ` · ${richiesta.nota}` : ""}`,
+      url:"agenti.html#richieste-accesso", createdAt:richiesta.createdAt
+    };
+    await databaseRequest(`private/adminUpdates/pushQueue/${id}`, { method:"PUT", body:JSON.stringify(push) });
+    return richiesta;
+  }
+
+  async function listRichiesteAccesso() {
+    const result = await databaseRequest("private/adminUpdates/richiesteAccesso");
+    return Object.values(result.data || {}).filter(Boolean).sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
+  }
+  // Primo accesso completato: il numero passa nel profilo dell'agente e le sue richieste spariscono.
+  async function chiudiRichiesteAccesso(agentId) {
+    const id = String(agentId || "").trim();
+    if (!id) return null;
+    const mie = (await listRichiesteAccesso()).filter(r => String(r.agentId) === id);
+    if (!mie.length) return null;
+    const telefono = mie.find(r => r.telefono)?.telefono || "";
+    if (telefono) await databaseRequest(`private/adminUpdates/agentProfiles/${safeUserKey(id)}`, { method:"PATCH", body:JSON.stringify({ id, telefono, telefonoDal:new Date().toISOString() }) });
+    await Promise.all(mie.map(r => deleteRichiestaAccesso(r.id)));
+    return telefono;
+  }
+  async function deleteRichiestaAccesso(id) {
+    await databaseRequest(`private/adminUpdates/richiesteAccesso/${safeUserKey(id)}`, { method:"DELETE" });
   }
 
   async function saveDiaria(agentId, entries = []) {
@@ -716,9 +1253,18 @@
     saveChangeRequest,
     deleteChangeRequest,
     getAdminUpdates,
+    archiviaImportazioni,
+    getTurnoBase,
+    getSegnoAggiornamenti,
+    segnoDa,
+    pubblicaTurnoBase,
     saveAdminUpdates,
+    getSheetSync,
+    requestSheetSync,
     getShipConfigurations,
     saveShipConfigurations,
+    getFleet,
+    saveFleet,
     getBaristaUpdates,
     saveBaristaUpdates,
     getAnnouncements,
@@ -726,7 +1272,21 @@
     getDraftPeriod,
     saveDraftPeriod,
     resetDraftPeriod,
+    getPushSettings,
+    savePushSettings,
+    clearPendingConnectionAlerts,
     getAdminDocuments,
+    getTurniNavi,
+    turniNaviSalvati,
+    saveTurnoNaveMovimento,
+    ripristinaTurnoNave,
+    saveVariazioneMovimento,
+    getApprovazioniTurni,
+    saveApprovazioneTurno,
+    saveStagioneTurno,
+    togliStagioneTurno,
+    getPontiliCorse,
+    savePontileCorsa,
     getAdminDocumentFile,
     saveAdminDocument,
     deleteAdminDocument,
@@ -741,8 +1301,17 @@
     getAgentAdminData,
     importLegacyUsers,
     saveAgentProfile,
+    saveAgentFF,
+    getMioProfilo,
+    saveAgentTelefono,
+    saveAgentResidenceMove,
     deleteAgentProfile,
     touchUserPresence,
+    saveAgentServizio,
+    servizioTerminato,
+    accessoRevocato,
+    registraVisita,
+    getAttivita,
     listUserPresence,
     getQuizCorrections,
     saveQuizCorrections,
@@ -751,8 +1320,26 @@
     updateFeedbackTicket,
     deleteFeedbackTicket,
     loadDiaria,
+    listDiariaBackups,
     loadAllDiaria,
     saveDiaria,
+    richiestaAccesso,
+    listRichiesteAccesso,
+    deleteRichiestaAccesso,
+    chiudiRichiesteAccesso,
+    getRitardiEquipaggio,
+    saveRitardoEquipaggio,
+    getDiariaConversioni,
+    getBustePaga,
+    saveBustaPaga,
+    getCompetenzeServizi,
+    saveCompetenzeServizi,
+    getPageAccess,
+    getPaginaIniziale,
+    savePaginaIniziale,
+    getBackupCentrale,
+    savePageAccess,
+    saveDiariaConversioni,
     provider:"Firebase REST"
   };
 })();

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NaviBeta">
+  <meta name="theme-color" content="#002b5e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <title>NaviSuite Scali</title>
+  <link rel="stylesheet" href="assets/css/navi-shared.css">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
+  <link rel="stylesheet" href="assets/css/servizi-terra.css?v=17">
+  <link rel="stylesheet" href="assets/css/orario.css?v=42">
+<script src="assets/js/beta-readonly.js?v=1"></script>
+</head>
+<body class="servizi-terra-page orario-page">
+  <aside class="app-sidebar" id="orario-sidebar"></aside>
+
+  <header class="page-header">
+    <p class="terra-label">SCALI E NAVI</p>
+    <h1 class="terra-title" id="orario-title">Scali</h1>
+    <p class="terra-context" id="orario-context">Navi sul lago e allo scalo, con pontili, ormeggi e agenti di servizio</p>
+  </header>
+
+  <main id="orario">
+    <div class="terra-bar">
+      <span class="terra-day">
+        <button type="button" class="terra-day-nav" id="orario-day-prev" aria-label="Giorno precedente">‹</button>
+        <span class="terra-day-current"><span class="terra-day-label" id="orario-day-label"></span>
+          <input type="date" class="terra-day-input" id="orario-day-input" aria-label="Scegli la giornata"></span>
+        <button type="button" class="terra-day-nav" id="orario-day-next" aria-label="Giorno successivo">›</button>
+      </span>
+      <div class="or-ctrl">
+        <button type="button" class="terra-day-today or-b" id="orario-day-today" hidden>Oggi</button>
+        <select class="terra-day-scalo or-b" id="orario-scalo-top" aria-label="Scalo"></select>
+        <nav class="or-tabs" id="orario-tabs" aria-label="Vista">
+          <button type="button" data-view="lago">Scali</button>
+          <button type="button" data-view="viaggio">Da → A</button>
+        </nav>
+        <a id="orario-stampa" class="or-b" href="orari.html" title="Orari della stagione e orario ufficiale">🕒 Orario</a>
+      </div>
+    </div>
+    <div class="terra-notice" id="orario-notice" hidden></div>
+    <div id="orario-content"></div>
+  </main>
+
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/firebase-auth.js?v=2"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/turni-giorno.js?v=8"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/orario-corse.js?v=1"></script>
+  <script src="assets/js/orario-corse-estate.js?v=1"></script>
+  <script src="assets/js/orario-giorno.js?v=7"></script>
+  <script src="assets/js/coincidenze-ufficiali.js?v=1"></script>
+  <script src="assets/js/orari-stagioni.js?v=9"></script>
+  <script src="assets/js/orario-lago.js?v=2"></script>
+  <script src="assets/js/admin-pocketbase-rest.js?v=6"></script>
+  <script src="assets/js/comitive-ods.js?v=1"></script>
+  <script src="assets/js/comitive.js?v=8"></script>
+  <script src="assets/js/orario-page.js?v=80"></script>
+  <script src="assets/js/push-arrivi.js?v=9"></script>
+  <script src="assets/js/arrivi-avvisi.js?v=1"></script>
+  <script>
+  // Orario: stesso scalo e giorno della pagina
+  document.getElementById('orario-stampa')?.addEventListener('click', e => {
+    const q = new URLSearchParams(location.search), day = document.getElementById('orario-day-input')?.value || '';
+    const u = new URLSearchParams(); if (q.get('scalo')) u.set('scalo', q.get('scalo')); if (day) u.set('giorno', day);
+    e.currentTarget.href = 'orari.html' + (u.toString() ? '?' + u : '');
+  });
+  </script>
+</body>
+</html>

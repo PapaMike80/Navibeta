@@ -5,10 +5,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>NaviSuite Agenti</title>
   <link rel="stylesheet" href="assets/css/navi-shared.css">
-  <link rel="stylesheet" href="assets/css/shared-menu.css">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
   <style>
     :root{--bg:#061821;--panel:#0c2530;--line:#28515d;--ink:#edfafa;--muted:#9eb9c1;--accent:#2dd4bf;--red:#fb7185}
-    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}main{margin-left:230px;padding:30px;max-width:1500px}.eyebrow{color:var(--accent);font-size:11px;font-weight:900;letter-spacing:.15em}.hero h1{margin:7px 0 5px;font-size:30px}.hero p{margin:0;color:var(--muted)}.status{margin:20px 0;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#0b222c;color:#b9d2d8}.status.ok{border-color:#1d8f7f;color:#99f6e4}.status.bad{border-color:#9f3044;color:#fecdd3}.section{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:15px;background:rgba(12,37,48,.94)}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:13px;cursor:pointer;user-select:none}.section-head>div{flex:1;min-width:0}.chevron{color:var(--muted);font-size:12px;transition:transform .2s}.section.collapsed .chevron{transform:rotate(-90deg)}.section.collapsed .section-body{display:none}.hidden{display:none!important}.section h2{margin:0;font-size:18px}.section p{margin:4px 0 0;color:var(--muted);font-size:12px}.count{padding:4px 9px;border-radius:999px;background:#163b45;color:#99f6e4;font-size:11px;font-weight:900}.agent-list{display:grid;gap:9px}.agent-search-input{width:min(620px,100%);margin-top:10px;padding:11px 12px;border:1px solid #3b707c;border-radius:10px;background:#0b2731;color:#fff;font:800 13px inherit}.agent-search-input::placeholder{color:#8faeb6}.agent-row.search-target{outline:3px solid #facc15;outline-offset:2px;box-shadow:0 0 22px rgba(250,204,21,.42);transition:outline-color .35s,box-shadow .35s}.agent-row{display:grid;grid-template-columns:minmax(210px,1.4fr) minmax(145px,.9fr) minmax(120px,.7fr) minmax(140px,.8fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid #28515d;border-radius:11px;background:#071b24}.agent-row.latest{border-color:var(--accent);background:linear-gradient(100deg,rgba(45,212,191,.13),#071b24)}.agent-name strong{display:block;font-size:14px}.agent-name small{display:block;margin-top:4px;color:#86aab3}.access{color:#bfe2e6;font-size:12px}.access strong{display:block;color:#fff}.agent-row label{display:grid;gap:5px;color:#91aeb7;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.agent-row select{width:100%;padding:9px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:700 12px inherit}.save-agent{min-height:38px;padding:8px 12px;border:1px solid var(--accent);border-radius:8px;background:rgba(45,212,191,.15);color:#99f6e4;font-weight:900;cursor:pointer}.save-agent:disabled{opacity:.5}.empty{padding:20px;color:#86aab3;text-align:center}.mobile-nav{display:none}
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,Arial,sans-serif}main{margin-left:230px;padding:30px;max-width:1500px}.eyebrow{color:var(--accent);font-size:11px;font-weight:900;letter-spacing:.15em}.hero h1{margin:7px 0 5px;font-size:30px}.hero p{margin:0;color:var(--muted)}.status{margin:20px 0;padding:12px 14px;border:1px solid var(--line);border-radius:11px;background:#0b222c;color:#b9d2d8}.status.ok{border-color:#1d8f7f;color:#99f6e4}.status.bad{border-color:#9f3044;color:#fecdd3}.section{margin-top:18px;padding:18px;border:1px solid var(--line);border-radius:15px;background:rgba(12,37,48,.94)}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:13px;cursor:pointer;user-select:none}.section-head>div{flex:1;min-width:0}.chevron{color:var(--muted);font-size:12px;transition:transform .2s}.section.collapsed .chevron{transform:rotate(-90deg)}.section.collapsed .section-body{display:none}.hidden{display:none!important}.section h2{margin:0;font-size:18px}.section p{margin:4px 0 0;color:var(--muted);font-size:12px}.count{padding:4px 9px;border-radius:999px;background:#163b45;color:#99f6e4;font-size:11px;font-weight:900}.agent-list{display:grid;gap:9px}.agent-search-input{width:min(620px,100%);margin-top:10px;padding:11px 12px;border:1px solid #3b707c;border-radius:10px;background:#0b2731;color:#fff;font:800 13px inherit}.agent-search-input::placeholder{color:#8faeb6}.agent-row.search-target{outline:3px solid #facc15;outline-offset:2px;box-shadow:0 0 22px rgba(250,204,21,.42);transition:outline-color .35s,box-shadow .35s}.agent-row{display:grid;grid-template-columns:minmax(210px,1.4fr) minmax(145px,.9fr) minmax(120px,.7fr) minmax(140px,.8fr) auto;gap:10px;align-items:center;padding:12px;border:1px solid #28515d;border-radius:11px;background:#071b24}.agent-row.latest{border-color:var(--accent);background:linear-gradient(100deg,rgba(45,212,191,.13),#071b24)}.agent-name strong{display:block;font-size:14px}.agent-name small{display:block;margin-top:4px;color:#86aab3}.access{color:#bfe2e6;font-size:12px}.access strong{display:block;color:#fff}.agent-row label{display:grid;gap:5px;color:#91aeb7;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.agent-row select{width:100%;padding:9px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:700 12px inherit}.save-agent{min-height:38px;padding:8px 12px;border:1px solid var(--accent);border-radius:8px;background:rgba(45,212,191,.15);color:#99f6e4;font-weight:900;cursor:pointer}.save-agent:disabled{opacity:.5}.empty{padding:20px;color:#86aab3;text-align:center}.mobile-nav{display:none}.page-access-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:9px}.page-access-roles{display:flex;flex-wrap:wrap;gap:5px;justify-content:flex-end}.pa-role{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border:1px solid #315b66;border-radius:999px;color:#91aeb7;font-size:11px;font-weight:800;cursor:pointer}.pa-role.on{border-color:#2dd4bf;background:rgba(45,212,191,.14);color:#e6fffb}.pa-role.fixed{opacity:.6;cursor:default}.pa-role input{margin:0;accent-color:#2dd4bf}.page-access-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid #28515d;border-radius:11px;background:#071b24}.page-access-row.admin{border-color:#f59e0b;background:rgba(245,158,11,.08)}.page-access-row strong{font-size:13px}.page-access-row select{padding:7px 9px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:800 12px inherit}.page-access-status{min-height:16px}
+.accessi-block{grid-column:1/-1;padding-top:9px;border-top:1px dashed #28515d;font-size:12px}.accessi-block ol{margin:6px 0 0;padding-left:20px}.accessi-block li{margin:4px 0}.accessi-block li span{font-weight:800}.accessi-block li small{display:block;opacity:.8;overflow-wrap:anywhere}
+.cat-block{border-top-color:#38bdf8}.cat-block .move-info b{color:#7dd3fc!important}.cat-block .save-cat{border-color:#38bdf8;background:#0c2a3a;color:#bae6fd}.cat-block select{padding:8px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:700 12px inherit}.cat-force{display:flex!important;align-items:center;gap:6px;min-width:auto!important;font-size:12px;font-weight:800;color:#fde68a;text-transform:none}.cat-date[hidden]{display:none!important}.cat-off{background:#3a1520!important;color:#fecdd3!important;border-color:#fb7185!important;margin-left:4px}
+/* scheda agente: profilo nelle bolle, sezioni richiudibili */
+.agent-row:not(.chiuso){grid-template-columns:1fr!important}
+.agent-row .agent-name{position:relative}.ag-turno{position:absolute;top:2px;right:26px;display:inline-grid;place-items:center;min-width:38px;padding:3px 10px;border-radius:999px;background:var(--t);color:#06231f;font:900 12px Manrope,Inter,sans-serif;white-space:nowrap;box-shadow:0 0 10px color-mix(in srgb,var(--t) 45%,transparent)}
+.ag-bolle{display:inline-flex;flex-wrap:wrap;gap:4px;vertical-align:middle}
+.ag-b{cursor:pointer;font:inherit}.ag-b.ag-cat{border-color:#38bdf8!important;color:#7dd3fc!important;background:#0c2a3a!important}.ag-b.ag-adm{border-color:#2dd4bf!important;color:#2dd4bf!important}
+.ag-edit{display:none;grid-template-columns:1fr 1fr auto;gap:8px;align-items:end;padding:10px;border-radius:12px;border:1px solid color-mix(in srgb,#38bdf8 45%,transparent);background:color-mix(in srgb,#38bdf8 8%,#071b24)}
+.agent-row.editing .ag-edit{display:grid}.ag-edit .save-agent{min-height:38px!important;padding:6px 12px!important;font-size:12px!important;width:auto}.ag-edit .cat-block{grid-column:1/-1}
+.ag-sezioni{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:start}
+.ag-sez{border-radius:12px;background:color-mix(in srgb,var(--c) 9%,#071b24);border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+.ag-sez>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:9px 12px;cursor:pointer;font:800 13px Manrope,Inter,system-ui,sans-serif;color:var(--c)}
+.ag-sez>summary::-webkit-details-marker{display:none}.ag-sez>summary::after{content:'▾';color:#86aab3}.ag-sez[open]>summary::after{content:'▴'}
+.ag-sez>summary span{flex:1;white-space:nowrap}.ag-sez>summary i{font-style:normal;font-weight:600;font-size:12px;color:#e8f3f6;text-align:right}
+.ag-sez-body{padding:0 12px 12px}.ag-sez-body>.residence-move{border-top:0;padding-top:0}.ag-sez-body .accessi-block{border-top:0;padding-top:0}.ag-sez-body .accessi-block>b{display:none}
+.ag-sez-body .agent-actions{display:flex;flex-wrap:wrap;gap:6px}
+@media(max-width:850px){.ag-sezioni{grid-template-columns:1fr}.ag-edit{grid-template-columns:1fr 1fr}.ag-edit .save-agent{grid-column:1/-1}}
+.ff-block{border-top-color:#a78bfa}.ff-block .move-info b{color:#c4b5fd!important}.ff-block{border-top-color:#a78bfa!important}.ff-block .save-ff{border-color:#a78bfa;background:#2a2148;color:#ddd6fe}.ff-badge{background:#2a2148!important;color:#ddd6fe!important;border-color:#a78bfa!important;margin-left:4px}
     @media(max-width:850px){body{padding-bottom:100px}main{margin:0;padding:18px 12px}.hero h1{font-size:25px}.section{padding:13px}.agent-row{grid-template-columns:1fr 1fr}.agent-name,.access{grid-column:1/-1}.save-agent{grid-column:1/-1;width:100%}.mobile-nav{position:fixed;left:50%;bottom:14px;z-index:50;display:flex;align-items:center;justify-content:space-evenly;width:calc(100% - 24px);height:70px;transform:translateX(-50%);border:1px solid rgba(255,255,255,.18);border-top-color:rgba(255,255,255,.24);border-radius:38px;background:rgba(18,34,45,.42);box-shadow:0 24px 48px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.12);backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%)}.mobile-nav a{display:flex;flex:1 1 0;min-width:0;max-width:65px;flex-direction:column;align-items:center;gap:4px;padding:8px;color:#9fb8c2;text-decoration:none;font-size:9px;font-weight:800}.mobile-nav a span{font-size:20px}.mobile-nav a.active{color:var(--accent)}}
     .agent-row{border-color:color-mix(in srgb,var(--grade-color,#9ca3af) 60%,#28515d);border-left:5px solid var(--grade-color,#9ca3af);background:linear-gradient(100deg,color-mix(in srgb,var(--grade-color,#9ca3af) 13%,#071b24),#071b24 42%)}.agent-row.latest{border-color:var(--grade-color,#2dd4bf);box-shadow:0 0 0 1px color-mix(in srgb,var(--grade-color,#2dd4bf) 45%,transparent)}.agent-name strong{color:var(--grade-color,#edfafa)}.grade-badge{display:inline-flex;margin-top:6px;padding:3px 7px;border:1px solid var(--grade-color);border-radius:999px;background:color-mix(in srgb,var(--grade-color) 14%,transparent);color:var(--grade-color);font-size:9px;font-weight:900;text-transform:uppercase}.agent-actions{display:grid;gap:6px;min-width:122px}.agent-actions button{min-height:34px;padding:7px 9px;border-radius:8px;font-size:10px;font-weight:900;cursor:pointer}.reset-pin{border:1px solid #f59e0b;background:#3a2910;color:#fcd34d}.delete-registration{border:1px solid #e11d48;background:#3b1721;color:#fecdd3}.delete-agent{border:1px solid #dc2626;background:#3b0f14;color:#fecaca}.online-dot{display:inline-block;width:8px;height:8px;margin-right:6px;border-radius:50%;background:#22c55e;box-shadow:0 0 9px #22c55e}.online-time{color:#86efac!important}    .agent-row select[data-grade]{border-color:var(--grade-color,#315b66)}
     .initial-pin-panel{margin:12px 0 4px;padding:13px;border:1px solid rgba(245,158,11,.48);border-radius:11px;background:rgba(58,41,16,.45)}.initial-pin-panel p{margin:0 0 10px;color:#fcd34d}.initial-pin-output{margin-top:10px;white-space:pre-wrap;font:800 13px/1.55 ui-monospace,SFMono-Regular,Menlo,monospace;color:#fef3c7}.generate-pin{border:1px solid #f59e0b;background:#3a2910;color:#fcd34d}.new-agent-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;align-items:end}.new-agent-form label{display:grid;gap:5px;color:#91aeb7;font-size:9px;font-weight:900;letter-spacing:.08em;text-transform:uppercase}.new-agent-form input,.new-agent-form select{width:100%;padding:9px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:700 12px inherit}
@@ -16,27 +34,98 @@
     @media(max-width:850px){.agent-actions{grid-column:1/-1;grid-template-columns:repeat(2,1fr);width:100%}.agent-actions .save-agent{grid-column:auto}.agent-actions button{min-height:42px}}
     .copy-initial-pin{border:1px solid #38bdf8;background:#0c2f45;color:#bae6fd}.pin-copy-overlay{position:fixed;inset:0;z-index:500;display:grid;place-items:center;padding:20px;background:rgba(2,10,16,.78);backdrop-filter:blur(5px)}.pin-copy-card{width:min(100%,360px);padding:22px;border:1px solid #3b82a0;border-radius:16px;background:#0c2530;box-shadow:0 20px 55px rgba(0,0,0,.5);text-align:center}.pin-copy-card h2{margin:0;color:#e0f2fe;font-size:20px}.pin-copy-name{margin:8px 0 15px;color:#9eb9c1;font-size:13px}.pin-copy-value{margin:0 0 17px;color:#fef3c7;font:900 42px/1 ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.16em}.pin-copy-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.pin-copy-actions button{min-height:42px;border-radius:9px;font-weight:900;cursor:pointer}.pin-copy-confirm{border:1px solid #38bdf8;background:#075985;color:#e0f2fe}.pin-copy-close{border:1px solid #49636d;background:#102d37;color:#d4e8eb}
     html.navisuite-light body.agenti-page{background:#edf5f6!important;color:#17323a!important}html.navisuite-light .hero p,html.navisuite-light .section p,html.navisuite-light .agent-name small,html.navisuite-light .empty{color:#547078!important}html.navisuite-light .status,html.navisuite-light .section{background:#fff!important;border-color:#bdd8dc!important;color:#17323a!important;box-shadow:0 7px 20px rgba(22,56,66,.08)!important}html.navisuite-light .agent-row{background:linear-gradient(100deg,color-mix(in srgb,var(--grade-color,#9ca3af) 14%,#fff),#fff 48%)!important;border-color:color-mix(in srgb,var(--grade-color,#9ca3af) 45%,#bdd8dc)!important;box-shadow:0 3px 10px rgba(22,56,66,.05)!important}html.navisuite-light .agent-row.latest{background:linear-gradient(100deg,color-mix(in srgb,var(--grade-color,#2dd4bf) 20%,#fff),#fff 55%)!important}html.navisuite-light .agent-name strong,html.navisuite-light .access strong{color:#17323a!important}html.navisuite-light .access,html.navisuite-light .agent-row label{color:#547078!important}html.navisuite-light .agent-row select,html.navisuite-light .new-agent-form input,html.navisuite-light .new-agent-form select{background:#f8fcfc!important;color:#17323a!important;border-color:#b6d4d9!important}html.navisuite-light .count{background:#e2f5f2!important;color:#087b6e!important}html.navisuite-light .save-agent{background:#e3f7f3!important;color:#087b6e!important}html.navisuite-light .reset-pin,html.navisuite-light .generate-pin{background:#fff8df!important;color:#9a6200!important}html.navisuite-light .delete-registration,html.navisuite-light .delete-agent{background:#fff3f4!important;color:#b53c4c!important}html.navisuite-light .pin-copy-overlay{background:rgba(225,241,242,.82)!important}html.navisuite-light .pin-copy-card{background:#fff!important;border-color:#a9cbd1!important}html.navisuite-light .pin-copy-card h2,html.navisuite-light .pin-copy-name{color:#17323a!important}
+.residence-move{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:end;gap:8px 10px;padding-top:9px;border-top:1px dashed #28515d}.residence-move .move-info{flex:1 1 220px;color:#bfe2e6;font-size:12px}.residence-move .move-info b{color:#fde68a}.residence-move .move-info small{display:block;margin-top:3px;color:#86aab3}.residence-move label{min-width:130px}.residence-move input[type=date]{padding:8px;border:1px solid #315b66;border-radius:8px;background:#0b2731;color:#fff;font:700 12px inherit}.residence-move button{min-height:36px;padding:7px 10px;border-radius:8px;font-size:10px;font-weight:900;cursor:pointer;border:1px solid #f59e0b;background:#3a2910;color:#fcd34d}.residence-move .cancel-residence-move{border-color:#64748b;background:#1e293b;color:#cbd5e1}html.navisuite-light .residence-move .move-info{color:#17323a}html.navisuite-light .residence-move .move-info b{color:#9a6200}html.navisuite-light .residence-move input[type=date]{background:#f8fcfc;color:#17323a;border-color:#b6d4d9}html.navisuite-light .residence-move button{background:#fff8df;color:#9a6200}html.navisuite-light .residence-move .cancel-residence-move{background:#f1f5f9;color:#334155}
+    @media(max-width:850px){.residence-move label,.residence-move button{flex:1 1 140px}}
+  .ag-giorno{grid-column:1/-1;display:flex;align-items:center;gap:10px;margin:8px 0 2px;color:#9fb8c2;font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}.ag-giorno::after{content:'';flex:1;height:1px;background:color-mix(in srgb,#2dd4bf 35%,#1f4250)}.ag-giorno b{order:2;font:500 11px 'DM Mono',monospace;padding:1px 8px;border-radius:999px;background:#143140;color:#eaf2f4}.ag-giorno.oggi{color:#2dd4bf}.ag-giorno.oggi b{background:#2dd4bf;color:#06231f}.ag-giorno::after{order:3}
+  .agent-row.chiuso{grid-template-columns:1fr!important;padding:10px 12px}.agent-row:not(.chiuso) .ultimo-accesso{display:none}.ultimo-accesso{display:block;margin-top:4px}.agent-row.chiuso>:not(.agent-name),.agent-row.chiuso .initial-pin-output{display:none!important}.agent-row .agent-name{cursor:pointer;position:relative;padding-right:22px}.agent-row .agent-name::after{content:'▾';position:absolute;right:2px;top:2px;color:var(--grade-color,#5eead4);font-size:14px;transition:transform .2s}.agent-row.chiuso .agent-name::after{transform:rotate(-90deg)}.accessi-riepilogo{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:4px}.accessi-riepilogo span{display:grid;gap:2px;padding:10px;border:1px solid rgba(45,212,191,.35);border-radius:10px;background:rgba(45,212,191,.08);text-align:center}.accessi-riepilogo b{font-size:22px;color:var(--accent)}.accessi-riepilogo small{font-size:11px;color:#91aeb7;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+</style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* ===== Stile a riquadri colorati (docs/STILE-NAVISUITE.md) ===== */
+    body{--s-card:#102733;--s-card2:#143140;--s-line:#1f4250;--s-ink:#eaf2f4;--s-muted:#9fb8c2;--s-on:#06231f;--s-teal:#2dd4bf;--s-cyan:#67d7e6;--s-violet:#a78bfa;--s-amber:#fbbf24;--s-orange:#fb923c;--s-rose:#fb7185;--s-pink:#f472b6;--s-wa:#25d366;font-family:Manrope,system-ui,sans-serif!important;background:linear-gradient(160deg,color-mix(in srgb,#2dd4bf 9%,#0b1c26),#0b1c26 40%,color-mix(in srgb,#a78bfa 9%,#0b1c26)) fixed!important}
+    html{background:#0b1c26}
+    .hero h1{font-family:Manrope,system-ui,sans-serif!important;font-weight:800!important;background:linear-gradient(90deg,#2dd4bf,#67d7e6 50%,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+    .eyebrow{letter-spacing:.22em!important}
+    main{display:grid;gap:12px}
+    main>.section,main>.status{margin:0!important}
+    .section{--c:var(--s-teal);padding:12px!important;border-radius:16px!important;background:color-mix(in srgb,var(--c) 10%,var(--s-card))!important;border:1px solid color-mix(in srgb,var(--c) 38%,transparent)!important}
+    .section h2{font:800 15px Manrope,system-ui,sans-serif!important;color:var(--c)!important}
+    .section .section-head{margin-bottom:10px!important}
+    .section.collapsed .section-head{margin-bottom:0!important}
+    .count{background:var(--c)!important;color:var(--s-on)!important}
+    .chevron{color:var(--c)!important}
+    .status{border-radius:14px!important;font-size:13px}
+    /* scheda agente */
+    .agent-row{border-radius:14px!important}
+    .agent-name{position:relative}
+    .agent-name strong{font-family:Manrope,system-ui,sans-serif!important;font-weight:800!important}
+    .ag-gr{--g:#e8f3f6;float:left;display:inline-grid;place-items:center;width:38px;height:38px;margin:0 10px 4px 0;border:3px solid var(--g);border-radius:50%;background:color-mix(in srgb,var(--g) 18%,transparent);color:var(--g);font:900 11px Manrope,system-ui,sans-serif}
+    .grade-badge{border-radius:999px!important}
+    .agent-row label{font-family:Manrope,system-ui,sans-serif}
+    .agent-row select,.agent-row input{border-radius:10px!important}
+    .agent-actions button{border-radius:10px!important;font-family:Manrope,system-ui,sans-serif!important}
+    .delete-registration,.delete-agent{background:transparent!important}
+    .residence-move{border-top:0!important;margin-top:4px;padding:10px!important;border-radius:12px;background:color-mix(in srgb,var(--s-amber) 10%,var(--s-card));border:1px solid color-mix(in srgb,var(--s-amber) 35%,transparent)!important}
+    .residence-move.ff-block{background:color-mix(in srgb,var(--s-violet) 12%,var(--s-card));border-color:color-mix(in srgb,var(--s-violet) 40%,transparent)!important}
+    .residence-move button{border-radius:10px!important}
+    .agent-telefono a{color:var(--s-wa)!important}
+    /* PC: pagina larga, schede agenti in colonne, sezioni piccole affiancate */
+    @media(min-width:1000px){
+      main{max-width:1380px!important;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:16px}
+      main>.hero,main>.status,main>#agent-search-section,main>.section:has(#registered-users),main>.section:has(#other-users),main>.section:has(#latest-user),main>#richieste-accesso,main>#page-access-section{grid-column:1/-1}
+      .agent-list{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))!important;align-items:start}
+      .agent-list>.agent-row:not(.chiuso){grid-column:1/-1}
+    }
   </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
 </head>
 <body class="agenti-page">
   <aside class="app-sidebar" id="admin-sidebar"></aside>
   <main>
     <header class="hero"><div class="eyebrow">NAVISUITE ADMIN</div><h1>Gestione agenti</h1><p>Anagrafica completa, registrazioni e ultimo accesso.</p></header>
+    <section class="section" id="richieste-accesso" hidden><div class="section-head" style="cursor:default"><div><h2>Richieste di accesso</h2><p>Rispondi su WhatsApp: si apre la chat con il messaggio già scritto (con il PIN iniziale, se c'è).</p></div><span id="richieste-count" class="count">0</span></div><div id="richieste-lista" class="agent-list"></div></section>
     <section class="section" id="agent-search-section"><div class="section-head" style="cursor:default"><div><h2>Ricerca agente</h2><p>Scegli un agente dall’elenco per raggiungere subito la sua scheda.</p></div></div><input id="agent-search-input" class="agent-search-input" list="agent-search-options" type="search" autocomplete="off" placeholder="Inizia a digitare nome o ID…" aria-label="Cerca agente"><datalist id="agent-search-options"></datalist></section>
     <div id="status" class="status">Caricamento dati da Firebase…</div>
     <section class="section collapsed"><div class="section-head"><div><h2>Connessi adesso</h2><p>Utenti attivi su NaviSuite negli ultimi due minuti.</p></div><span id="online-count" class="count">0</span><span class="chevron">▾</span></div><div class="section-body"><div id="latest-user" class="agent-list"><div class="empty">Caricamento…</div></div></div></section>
     <section class="section collapsed"><div class="section-head"><div><h2>Agenti registrati</h2><p>Ordinati dall’accesso più recente; chi non ha ancora uno storico compare in fondo.</p></div><span id="registered-count" class="count">0</span><span class="chevron">▾</span></div><div class="section-body"><div id="registered-users" class="agent-list"></div></div></section>
     <section class="section collapsed"><div class="section-head"><div><h2>Altri agenti</h2><p>Presenti nell’anagrafica turni ma non ancora registrati, in ordine di grado e anzianità.</p></div><span id="other-count" class="count">0</span><span class="chevron">▾</span></div><div class="section-body"><div id="other-users" class="agent-list"></div></div></section>
+    <section class="section collapsed" id="backup-section"><div class="section-head"><div><h2>Backup</h2><p>Scarica le distinte di tutti gli agenti: un file .json per ripristinare e un file .csv da aprire con Excel. Comprende anche trasformazioni, profili, turni e variazioni.</p></div><span class="chevron">▾</span></div><div class="section-body"><button id="backup-all" class="save-agent" type="button">⤓ Scarica backup di tutti</button> <a class="save-agent" href="distinte.html" style="display:inline-flex;align-items:center;text-decoration:none">✉ Distinte degli agenti</a><p id="backup-status" class="page-access-status"></p></div></section>
+    <section class="section collapsed" id="page-access-section"><div class="section-head"><div><h2>Accesso alle pagine</h2><p>Spunta per ogni pagina chi la può aprire (gli admin sempre). Chi non è spuntato non la vede nel menu né nella Home. Bordo arancione = diversa dal normale.</p></div><span id="page-access-count" class="count">0</span><span class="chevron">▾</span></div><div class="section-body"><div id="page-access-list" class="page-access-list"><div class="empty">Caricamento…</div></div><p id="page-access-status" class="page-access-status"></p></div></section>
     <section class="section collapsed"><div class="section-head"><div><h2>PIN primo accesso</h2><p>Genera una sola volta i PIN iniziali di quattro cifre. Restano visibili accanto agli agenti non registrati fino al loro primo accesso.</p></div><span class="chevron">▾</span></div><div class="section-body"><div class="initial-pin-panel"><p>Il PIN iniziale obbliga ogni agente a sceglierne uno personale al primo accesso.</p><button id="generate-all-pins" class="save-agent generate-pin" type="button">Genera PIN mancanti</button><div id="initial-pin-output" class="initial-pin-output" aria-live="polite"></div></div></div></section>
-    <section class="section collapsed"><div class="section-head"><div><h2>Nuovo agente</h2><p>Crea un agente nella residenza scelta (o nella residenza Uffici) e genera un PIN iniziale casuale di 4 cifre.</p></div><span class="chevron">▾</span></div><div class="section-body"><div class="new-agent-form"><label>Cognome e nome<input id="new-agent-name" type="text" placeholder="Es. ROSSI M."></label><label>ID agente<input id="new-agent-id" type="text" inputmode="numeric" placeholder="Vuoto = automatico"></label><label>Residenza<select id="new-agent-residence"></select></label><label>Ruolo<select id="new-agent-role"><option value="">Agente standard</option><option value="admin">Amministratore</option></select></label><label id="office-field">Ufficio<select id="new-agent-office"><option value="movimento">Movimento</option><option value="amministrazione">Amministrazione</option><option value="personale">Personale</option><option value="controllo">Controllo</option><option value="direzione">Direzione</option></select></label><label id="grade-field" class="hidden">Grado<select id="new-agent-grade"></select></label><button id="save-new-agent" class="save-agent" type="button">Crea agente</button></div></div></section>
+    <section class="section collapsed"><div class="section-head"><div><h2>Nuovo agente</h2><p>Crea un agente nella residenza scelta (o nella residenza Uffici) e genera un PIN iniziale casuale di 4 cifre.</p></div><span class="chevron">▾</span></div><div class="section-body"><div class="new-agent-form"><label>Cognome e nome<input id="new-agent-name" type="text" placeholder="Es. ROSSI M."></label><label>ID agente<input id="new-agent-id" type="text" inputmode="numeric" placeholder="Vuoto = automatico"></label><label>Residenza<select id="new-agent-residence"></select></label><label>Ruolo<select id="new-agent-role"><option value="">Agente</option><option value="admin">Amministratore</option></select></label><label id="office-field">Ufficio<select id="new-agent-office"><option value="movimento">Movimento</option><option value="amministrazione">Amministrazione</option><option value="personale">Personale</option><option value="controllo">Controllo</option><option value="direzione">Direzione</option></select></label><label id="grade-field" class="hidden">Grado<select id="new-agent-grade"></select></label><button id="save-new-agent" class="save-agent" type="button">Crea agente</button></div></div></section>
   </main>
-  <script src="assets/js/admin-firebase-rest.js?v=38"></script>
-  <script src="assets/js/shared-menu.js?v=1.54"></script>
-  <script src="assets/js/shared-data.js?v=118"></script>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/turni-giorno.js?v=8"></script>
   <script>
+    // Messaggio WhatsApp di benvenuto con PIN iniziale e istruzioni principali
+    window.messaggioBenvenuto=(nomeAgente,pin,sito)=>{const nome=String(nomeAgente||'').toLowerCase().replace(/(^|[\s'.-])\S/g,c=>c.toUpperCase());return [
+`Ciao ${nome}! 👋 Ecco il tuo accesso a *NaviSuite* ⚓`,
+'',
+`👉 ${sito}`,
+`👤 Cognome: *${String(nomeAgente||'').toUpperCase()}*`,
+`🔑 PIN iniziale: *${pin||'____'}*`,
+'',
+'*Primo accesso*',
+'1. Apri il link, scrivi il cognome e scegli il tuo nome dall\'elenco',
+'2. Inserisci il PIN iniziale',
+'3. Scegli un PIN personale (4–8 cifre) e ricordalo',
+'',
+'📲 *Installala come app*',
+'• iPhone: apri con Safari → Condividi ⬆️ → Aggiungi alla schermata Home',
+'• Android: apri con Chrome → menu ⋮ → Installa app',
+'',
+'🔔 Dentro l\'app vai su Impostazioni → Notifiche e attiva le notifiche (cambi turno, ODS, arrivi)',
+'',
+'Dal menu ☰ trovi Distinta, Il mio turno, Turni, Oggi e Scali. Funziona anche con poca rete 🌊',
+'Per problemi scrivimi pure qui. Buon lavoro! 🚢'].join('\n')};
+
   (()=>{
     const profile=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null');
-    const isAdmin=['91','92'].includes(String(profile?.id||''))||String(profile?.role||'').toLowerCase()==='admin';
+    const isAdmin=window.NaviRoles.isAdminAgent(profile);
     if(!profile||!isAdmin){location.replace('index.html');return;}
     const $=id=>document.getElementById(id),esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const time=value=>{
@@ -48,8 +137,9 @@
       return Date.parse(raw)||0;
     };
     const fmt=value=>{const timestamp=time(value);return timestamp?new Intl.DateTimeFormat('it-IT',{dateStyle:'short',timeStyle:'medium'}).format(new Date(timestamp)):'Mai';};
-    const roleOptions=['','agente','superuser','admin','barista'];
-    const roleLabels={'':'Agente standard',agente:'Agente standard',superuser:'Super user · prova NaviDiaria',admin:'Amministratore',barista:'Barista'};
+    // Due soli ruoli: Agente o Amministratore (i vecchi ruoli si mostrano come Agente e si salvano come tale)
+    const roleOptions=['','admin'];
+    const roleLabels={'':'Agente',admin:'Amministratore'};
     const gradeDefaults=['marinaio','motorista','capitano','ufficio','barista'];
     const officeOptions=['movimento','amministrazione','personale','controllo','direzione'];
     const officeLabel=value=>{const v=String(value||'').trim().toLowerCase();return v?v.charAt(0).toLocaleUpperCase('it')+v.slice(1):v;};
@@ -84,29 +174,180 @@
       const close=document.createElement('button');close.type='button';close.className='pin-copy-close';close.textContent='Chiudi';
       const copy=document.createElement('button');copy.type='button';copy.className='pin-copy-confirm';copy.textContent='Copia PIN';
       const dismiss=()=>overlay.remove();close.addEventListener('click',dismiss);overlay.addEventListener('click',event=>{if(event.target===overlay)dismiss();});
-      copy.addEventListener('click',async()=>{try{await copyText(pin);copy.textContent='Copiato ✓';$('status').className='status ok';$('status').textContent=`PIN di ${agentName} copiato negli appunti.`;}catch(error){copy.textContent='Copia non riuscita';$('status').className='status bad';$('status').textContent=error.message||'Impossibile copiare il PIN.';}});
+      copy.addEventListener('click',async()=>{try{const siteUrl=new URL('.',location.href).href;const message=window.messaggioBenvenuto(agentName,pin,siteUrl);await copyText(message);copy.textContent='Copiato ✓';$('status').className='status ok';$('status').textContent=`Messaggio di invito per ${agentName} copiato negli appunti.`;}catch(error){copy.textContent='Copia non riuscita';$('status').className='status bad';$('status').textContent=error.message||'Impossibile copiare il messaggio.';}});
       actions.append(close,copy);card.append(title,name,value,actions);overlay.append(card);document.body.append(overlay);copy.focus();
     }
     const rankOf=agent=>gradeRank[String(agent.qualifica||'marinaio').trim().toLowerCase()]||99;
     const seniorityOf=name=>NaviSharedData.seniorityRank?NaviSharedData.seniorityRank(name):Number.POSITIVE_INFINITY;
-    let directory=[],registry=[],profiles={},presence=[],initialPins={},searchableAgents=[];
+    let directory=[],registry=[],profiles={},presence=[],attivita={},initialPins={},searchableAgents=[];
     const overrideFor=id=>profiles[String(id)]||Object.values(profiles).find(item=>String(item?.id)===String(id))||{};
     const gradeColor=value=>{
       const office={movimento:'#facc15',amministrazione:'#38bdf8',personale:'#fb923c',controllo:'#34d399',direzione:'#f472b6'}[String(value||'').toLowerCase()];
       if(office)return office;
       return ({capitano:'#facc15',comandante:'#facc15','capo timoniere':'#fb923c',capotimoniere:'#fb923c',timoniere:'#22c55e','aiuto motorista':'#3b82f6',aiutomotorista:'#3b82f6',motorista:'#a855f7',marinaio:'#9ca3af',operaio:'#14b8a6',ufficio:'#22d3ee',barista:'#ec4899'}[String(value||'').toLowerCase()]||'#9ca3af');
     };
-    function card(agent,user,online=false){
-      const override=overrideFor(agent.id),role=override.role??agent.role??'',grade=override.qualifica||agent.qualifica||'marinaio';
-      const initialPin=!user?String(initialPins[String(agent.id)]||''):'';
-      const isUffici=String(override.residence||agent.residence||'').trim().toLowerCase()==='uffici';
-      const roles=[...new Set([...roleOptions,role].filter((v,i,a)=>a.indexOf(v)===i))],grades=[...new Set([...gradeDefaults,...directory.map(item=>String(item.qualifica||'').toLowerCase()),String(grade||'').toLowerCase()].filter(Boolean))].sort((a,b)=>(gradeRank[a]||99)-(gradeRank[b]||99)||a.localeCompare(b,'it'));
-      const actions=`<div class="agent-actions"><button class="save-agent" type="button">Salva ruolo/grado</button>${initialPin?`<button class="copy-initial-pin" type="button" data-pin="${esc(initialPin)}">Copia PIN</button>`:''}<button class="generate-pin" type="button">${initialPin?'Rigenera PIN':'Genera PIN iniziale'}</button>${user?`<button class="delete-registration" type="button">Elimina registrazione</button>`:''}<button class="delete-agent" type="button">Elimina agente</button></div>`;
-      return `<article class="agent-row${online?' latest':''}" style="--grade-color:${gradeColor(grade)}" data-agent-id="${esc(agent.id)}" data-residence="${esc(agent.residence||'')}" data-agent-name="${esc(agent.name)}"><div class="agent-name"><strong>${online?'<i class="online-dot"></i>':''}${esc(agent.name)}</strong><small>ID ${esc(agent.id)} · ${esc(agent.residence||'Residenza non indicata')}</small><span class="grade-badge">${esc(isUffici?officeLabel(grade):grade)}</span>${initialPin?`<small class="initial-pin-output">PIN iniziale: ${esc(initialPin)}</small>`:''}</div><div class="access"><span>${online?'Presenza rilevata':'Ultimo accesso'}</span><strong class="${online?'online-time':''}">${esc(fmt(online?user?.onlineAt:user?.lastAccess))}</strong>${user?.registeredAt?`<small>Registrato: ${esc(fmt(user.registeredAt))}</small>`:''}</div><label>Ruolo<select data-role>${roles.map(item=>`<option value="${esc(item)}"${item===role?' selected':''}>${esc(roleLabels[item]||item)}</option>`).join('')}</select></label><label>${isUffici?'Ufficio':'Grado'}<select data-grade>${(isUffici?officeOptions:grades).map(item=>`<option value="${esc(item)}"${String(item).toLowerCase()===String(grade).toLowerCase()?' selected':''}>${esc(isUffici?officeLabel(item):item)}</option>`).join('')}</select></label>${actions}</article>`;
+    const siglaGrado=g=>({capitano:'Cap',comandante:'Cap','capo timoniere':'CT',capotimoniere:'CT',timoniere:'Tim','aiuto motorista':'AM',aiutomotorista:'AM',motorista:'Mot',marinaio:'Mar',barista:'Bar',operaio:'Op'}[String(g||'').toLowerCase()]||String(g||'?').slice(0,3));
+    const itDate=iso=>String(iso||'').slice(0,10).split('-').reverse().join('/');
+    const todayIso=()=>new Date().toLocaleDateString('sv-SE');
+    const noMoveResidences=['uffici','bariste'];
+    const moveResidences=()=>[...new Set(directory.map(item=>String(item.residence||'').trim().toUpperCase()).filter(item=>item&&!noMoveResidences.includes(item.toLowerCase())))].sort((a,b)=>a.localeCompare(b,'it'));
+    // Cambio di residenza: quello salvato da questa pagina ha la precedenza su
+    // quello letto dal PDF del turno.
+    function residenceMoveOf(agent){
+      const override=overrideFor(agent.id);
+      if(override.residenzaNuova&&override.residenzaDal)return {before:override.residenzaPrecedente||'',after:override.residenzaNuova,dal:override.residenzaDal,source:'agenti'};
+      if(agent.residenzaNuova&&agent.residenzaDal)return {before:agent.residenzaPrecedente||'',after:agent.residenzaNuova,dal:agent.residenzaDal,source:'turno'};
+      return null;
     }
+    // FF (facente funzione): grado temporaneo per un periodo, al massimo 6 mesi
+    const FF_GRADI=['capitano','capo timoniere','timoniere','motorista','aiuto motorista','marinaio'];
+    const ffDi=agent=>{const ff=overrideFor(agent.id).ff;return ff&&ff.grado&&ff.dal&&ff.al?ff:null};
+    const ffAttivo=agent=>{const ff=ffDi(agent),t=todayIso();return ff&&ff.dal<=t&&t<=ff.al?ff:null};
+    function ffBlock(agent){
+      if(String(agent.residence||'').trim().toLowerCase()==='uffici')return '';
+      const ff=ffDi(agent),t=todayIso();
+      let info='<b>FF · facente funzione</b><small>Grado temporaneo, al massimo 6 mesi.</small>';
+      if(ff)info+=`<small>${ff.al<t?'Era':ff.dal>t?'Sarà':'È'} FF <b>${esc(ff.grado)}</b> dal ${esc(itDate(ff.dal))} al ${esc(itDate(ff.al))}</small>`;
+      return `<div class="residence-move ff-block"><div class="move-info">${info}</div><label>Grado FF<select data-ff-grado><option value="">Scegli…</option>${FF_GRADI.map(g=>`<option value="${esc(g)}"${ff&&ff.grado===g?' selected':''}>${esc(g)}</option>`).join('')}</select></label><label>Dal<input type="date" data-ff-dal value="${esc(ff?.dal||'')}"></label><label>Al<input type="date" data-ff-al value="${esc(ff?.al||'')}"></label><button class="save-ff" type="button">Salva FF</button>${ff?'<button class="cancel-ff cancel-residence-move" type="button">Togli FF</button>':''}</div>`;
+    }
+    async function saveFF(button){
+      const row=button.closest('[data-agent-id]'),id=row.dataset.agentId;
+      const bad=t=>{$('status').className='status bad';$('status').textContent=t};
+      try{
+        if(button.classList.contains('cancel-ff')){
+          if(!confirm('Togliere il grado FF a questo agente?'))return;
+          await NaviAdminFirebase.saveAgentFF(id,null);
+          const p=profiles[String(id)];if(p)delete p.ff;
+        }else{
+          const grado=row.querySelector('[data-ff-grado]').value,dal=row.querySelector('[data-ff-dal]').value,al=row.querySelector('[data-ff-al]').value;
+          if(!grado)return bad('Scegli il grado FF.');
+          if(!/^\d{4}-\d{2}-\d{2}$/.test(dal)||!/^\d{4}-\d{2}-\d{2}$/.test(al))return bad('Indica le date di inizio e di fine del FF.');
+          if(al<dal)return bad('La data di fine viene prima di quella di inizio.');
+          const max=new Date(dal+'T12:00:00');max.setMonth(max.getMonth()+6);
+          if(al>max.toLocaleDateString('sv-SE'))return bad('Il FF può durare al massimo 6 mesi.');
+          const saved=await NaviAdminFirebase.saveAgentFF(id,{grado,dal,al});
+          profiles[String(id)]={...(profiles[String(id)]||{id}),ff:saved};
+        }
+        NaviSharedData.clear?.();$('status').className='status ok';$('status').textContent='FF salvato su Firebase.';render();
+      }catch(error){bad(`FF non salvato: ${error.message}`)}
+    }
+    const CATEGORIE=[['stabili','Stabili'],['stagionali','Stagionali'],['esterni','Esterni']];
+    function categoriaBlock(agent){
+      const sv=overrideFor(agent.id).servizio||{},cat=sv.categoria||'stabili',termine=cat!=='stabili';
+      const finito=termine&&sv.fine&&todayIso()>sv.fine;
+      const stato=!termine?'Tempo indeterminato.':finito?(sv.accessoForzato?'Servizio terminato · <b>accesso forzato</b>':'Servizio terminato · <b>accesso revocato</b>'):sv.fine?`In servizio fino al ${esc(itDate(sv.fine))}`:'Indica le date del periodo.';
+      return `<div class="residence-move cat-block"><div class="move-info"><b>Categoria</b><small>${stato}</small></div><label>Categoria<select data-cat>${CATEGORIE.map(([v,l])=>`<option value="${v}"${v===cat?' selected':''}>${l}</option>`).join('')}</select></label><label class="cat-date"${termine?'':' hidden'}>Data di inizio<input type="date" data-cat-inizio value="${esc(sv.inizio||'')}"></label><label class="cat-date"${termine?'':' hidden'}>Data di fine<input type="date" data-cat-fine value="${esc(sv.fine||'')}"></label><label class="cat-force cat-date"${termine?'':' hidden'}><input type="checkbox" data-cat-forza${sv.accessoForzato?' checked':''}> Forza accesso consentito</label><button class="save-cat" type="button">Salva categoria</button></div>`;
+    }
+    async function saveCategoria(button){
+      const row=button.closest('[data-agent-id]'),id=row.dataset.agentId;
+      const bad=t=>{$('status').className='status bad';$('status').textContent=t};
+      const categoria=row.querySelector('[data-cat]').value,inizio=row.querySelector('[data-cat-inizio]').value,fine=row.querySelector('[data-cat-fine]').value,accessoForzato=row.querySelector('[data-cat-forza]').checked;
+      if(categoria!=='stabili'){
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(inizio)||!/^\d{4}-\d{2}-\d{2}$/.test(fine))return bad('Indica la data di inizio e la data di fine.');
+        if(fine<inizio)return bad('La data di fine viene prima di quella di inizio.');
+      }
+      try{
+        const saved=await NaviAdminFirebase.saveAgentServizio(id,{categoria,inizio,fine,accessoForzato});
+        profiles[String(id)]={...(profiles[String(id)]||{id}),servizio:saved};
+        NaviSharedData.clear?.();$('status').className='status ok';$('status').textContent='Categoria salvata su Firebase.';render();
+      }catch(error){bad(`Categoria non salvata: ${error.message}`)}
+    }
+    function residenceMoveBlock(agent){
+      const current=String(agent.residence||'').trim();
+      if(!current||noMoveResidences.includes(current.toLowerCase()))return '';
+      const move=residenceMoveOf(agent),today=todayIso();
+      let info=`Residenza attuale: <b>${esc(current.toUpperCase())}</b>`;
+      if(move){
+        const done=today>=move.dal;
+        info+=`<small>${done?'Spostato':'Si sposta'} ${move.before?`da ${esc(move.before)} `:''}a <b>${esc(move.after)}</b> dal ${esc(itDate(move.dal))} · ${move.source==='agenti'?'impostato qui':'dal turno caricato'}</small>`;
+      }
+      const options=moveResidences().filter(item=>item!==current.toUpperCase()||move?.after===item);
+      const selected=move&&today<move.dal?move.after:'';
+      return `<div class="residence-move"><div class="move-info">${info}</div><label>Nuova residenza<select data-move-residence><option value="">Scegli…</option>${options.map(item=>`<option value="${esc(item)}"${item===selected?' selected':''}>${esc(item)}</option>`).join('')}</select></label><label>Dal<input type="date" data-move-date value="${esc(move&&today<move.dal?move.dal:'')}"></label><button class="save-residence-move" type="button">Cambia residenza</button>${move?.source==='agenti'?'<button class="cancel-residence-move" type="button">Annulla cambio</button>':''}</div>`;
+    }
+    // Schede compatte: nome, grado, ID e residenza; toccando il nome si apre il resto (si ricordano le aperte)
+    const agentiAperti=new Set();
+    // Bolle accanto al distintivo (grado, categoria, ruolo): aprono la modifica del profilo
+    const agEdit=new Set(),agSez=new Set();
+    document.addEventListener('click',event=>{const b=event.target.closest('[data-ag-edit]');if(!b)return;event.stopPropagation();const row=b.closest('.agent-row'),id=String(row.dataset.agentId||'');row.classList.remove('chiuso');agentiAperti.add(id);const on=row.classList.toggle('editing');if(on)agEdit.add(id);else agEdit.delete(id);},true);
+    document.addEventListener('toggle',event=>{const k=event.target.dataset?.agSez;if(!k)return;if(event.target.open)agSez.add(k);else agSez.delete(k);},true);
+    document.addEventListener('click',event=>{const head=event.target.closest('.agent-row .agent-name');if(!head)return;const row=head.closest('.agent-row'),id=String(row.dataset.agentId||'');row.classList.toggle('chiuso');if(row.classList.contains('chiuso'))agentiAperti.delete(id);else agentiAperti.add(id);});
+    document.addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches?.('.agent-row .agent-name')){event.preventDefault();event.target.click();}});
+    const nomePagina=f=>{const r=(window.NaviRoles?.PAGINE||[]).find(([file])=>file===f);return r?r[1]:String(f||'').replace(/\.html$/,'').replace(/-/g,' ');};
+    const keyAg=id=>String(id||'').replace(/[.#$\[\]\/]/g,'_');
+    function accessiBlock(agent){const raw=attivita[keyAg(agent.id)]||attivita[String(agent.id)];const lista=(Array.isArray(raw)?raw:Object.values(raw||{})).filter(Boolean).sort((a,b)=>String(b.inizio||'').localeCompare(String(a.inizio||''))).slice(0,10);return `<div class="accessi-block"><b>Ultimi accessi</b>${lista.length?`<ol>${lista.map(a=>`<li><span>${esc(fmt(a.inizio))} · ${esc(a.dispositivo||'')}</span><small>${(a.pagine||[]).map(x=>esc(nomePagina(x.p))).join(' → ')}</small></li>`).join('')}</ol>`:'<small>Nessun accesso registrato.</small>'}</div>`;}
+    // Turno di oggi (stesso calcolo di Il mio turno, turni-giorno.js): bolla verde se l'agente lavora
+    let turniOggi=null;
+    const RIPOSO=/^(R|RIP|RIPOSO|CON|RF|F|FE|FERIE|M|MAL|MALATTIA|L\.?D\.?|=+|-+|LIBERO)$/i;
+    function turnoDiOggi(agent,giorno=todayIso()){
+      if(!turniOggi||!window.NaviTurniGiorno)return '';
+      let t='';try{t=String(NaviTurniGiorno.turnoAgente(turniOggi,{id:agent.id,name:agent.name},giorno)?.turno||'').trim();}catch{t='';}
+      return t&&!RIPOSO.test(t)?t:'';
+    }
+    // colori dei turni: navi come in Orari/Comitive/Scali, servizi a terra come nella Distinta
+    const COLORI_TURNO={DT:'#d4a900',AGB:'#60a5fa',AGB2:'#60a5fa',POND:'#f87171',AGM:'#60a5fa',AGT:'#d4a900',AGT1:'#d4a900',AGT2:'#d4a900',PONM:'#f87171',IE:'#94a3b8',PT:'#94a3b8',BIS2:'#f1ce62',CAR1:'#80b5ff',CAP1:'#b8a2ff',D1:'#58d8c5',D2:'#44b8f1',D3:'#b78cff',D4:'#f1a960',BIS:'#f1ce62',T1:'#75d992',T2:'#b0df64',M1:'#48c7ba',R1:'#e988b2',R2:'#efac73',R3:'#d782ef',R4:'#e67e7e',CAR:'#80b5ff',P1:'#80b5ff',P2:'#82d8ea',P3:'#71cdae',CAP:'#b8a2ff',SR1:'#e6cc75',SR2:'#f0b36b'};
+    const coloreTurno=t=>COLORI_TURNO[String(t).toUpperCase().replace(/\s+/g,'')]||'#9fb8c2';
+    const categoriaTesto=sv=>{const c=sv?.categoria||'stabili';if(c==='stabili')return 'Stabile';return `${c==='esterni'?'Esterno':'Stagionale'}${sv.fine?` · fino al ${itDate(sv.fine).slice(0,5)}`:''}`;};
+    // Sezioni richiudibili con il riassunto a destra (Residenza, FF, Ultimi accessi, PIN e registrazione)
+    function sezioni(agent,user,initialPin,actions){
+      const id=String(agent.id),sez=(k,icona,titolo,riassunto,colore,html)=>html?`<details class="ag-sez" data-ag-sez="${id}|${k}" style="--c:${colore}"${agSez.has(`${id}|${k}`)?' open':''}><summary><span>${icona} ${titolo}</span><i>${riassunto}</i></summary><div class="ag-sez-body">${html}</div></details>`:'';
+      const move=residenceMoveOf(agent),ff=ffDi(agent);
+      const raw=attivita[keyAg(agent.id)]||attivita[id],acc=(Array.isArray(raw)?raw:Object.values(raw||{})).filter(Boolean).sort((a,b)=>String(b.inizio||'').localeCompare(String(a.inizio||'')));
+      return sez('res','🏠','Residenza',`${esc(String(agent.residence||'—').toUpperCase())}${move?` · ${move.before?`da ${esc(move.before)} `:''}${esc(itDate(move.dal).slice(0,5))}`:''}`,'#fbbf24',residenceMoveBlock(agent))
+        +sez('ff','⭐','FF',ff?`${esc(ff.grado)} · fino al ${esc(itDate(ff.al).slice(0,5))}`:'nessuno','#a78bfa',ffBlock(agent))
+        +sez('acc','🕑','Ultimi accessi',acc.length?`${acc.length} · ultimo ${esc(new Intl.DateTimeFormat('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}).format(new Date(acc[0].inizio)).replace(',',''))}`:'nessuno','#2dd4bf',accessiBlock(agent))
+        +sez('pin','🔑','PIN e registrazione',initialPin?'PIN iniziale da comunicare':user?'registrato':'non registrato','#fb7185',actions);
+    }
+    function card(agent,user,online=false){
+      const override=overrideFor(agent.id),role=String(override.role??agent.role??'').toLowerCase()==='admin'?'admin':'',grade=override.qualifica||agent.qualifica||'marinaio';
+      // PIN iniziale da comunicare: per i non registrati e per chi ha appena
+      // ricevuto un PIN nuovo (reset), finche' non sceglie quello personale.
+      const initialPin=String(initialPins[String(agent.id)]||'');
+      // turno del giorno dell'ultimo accesso (oggi per chi e' entrato oggi o e' online)
+      const ultimo=online?user?.onlineAt:user?.lastAccess,giornoAcc=ultimo&&!Number.isNaN(Date.parse(ultimo))?new Date(ultimo).toLocaleDateString('sv-SE'):todayIso();
+      const isUffici=String(override.residence||agent.residence||'').trim().toLowerCase()==='uffici';
+      const roles=roleOptions,grades=[...new Set([...gradeDefaults,...directory.map(item=>String(item.qualifica||'').toLowerCase()),String(grade||'').toLowerCase()].filter(Boolean))].sort((a,b)=>(gradeRank[a]||99)-(gradeRank[b]||99)||a.localeCompare(b,'it'));
+      const actions=`<div class="agent-actions">${initialPin?`<button class="copy-initial-pin" type="button" data-pin="${esc(initialPin)}">Copia PIN</button>`:''}<button class="generate-pin" type="button">${initialPin?'Rigenera PIN':'Genera PIN iniziale'}</button>${user?`<button class="delete-registration" type="button">Elimina registrazione</button>`:''}<button class="delete-agent" type="button">Elimina agente</button></div>`;
+      return `<article class="agent-row${online?' latest':''}${agentiAperti.has(String(agent.id))?'':' chiuso'}${agEdit.has(String(agent.id))?' editing':''}" style="--grade-color:${gradeColor(grade)}" data-agent-id="${esc(agent.id)}" data-residence="${esc(agent.residence||'')}" data-agent-name="${esc(agent.name)}"><div class="agent-name" role="button" tabindex="0" title="Tocca per aprire o chiudere">${isUffici?'':`<span class="ag-gr" style="--g:${gradeColor(grade)}">${esc(siglaGrado(grade))}</span>`}<strong>${online?'<i class="online-dot"></i>':''}${esc(agent.name)}</strong>${turnoDiOggi(agent,giornoAcc)?`<span class="ag-turno" title="Turno ${giornoAcc===todayIso()?'di oggi':`del ${esc(itDate(giornoAcc))}`}" style="--t:${coloreTurno(turnoDiOggi(agent,giornoAcc))}">${esc(turnoDiOggi(agent,giornoAcc))}</span>`:''}<small>ID ${esc(agent.id)} · ${esc(agent.residence||'Residenza non indicata')}</small>${override.telefono?`<small class="agent-telefono">📞 <a href="https://wa.me/${esc(String(override.telefono).replace(/[^\d]/g,'').replace(/^00/,'').replace(/^(?!39)(\d{6,10})$/,'39$1'))}" target="_blank" rel="noopener" onclick="event.stopPropagation()" style="color:#25d366">${esc(override.telefono)}</a></small>`:''}<span class="ag-bolle"><button type="button" class="grade-badge ag-b" data-ag-edit title="Cambia grado e ruolo">${esc(isUffici?officeLabel(grade):grade)} ✎</button><button type="button" class="grade-badge ag-b ag-cat" data-ag-edit title="Cambia categoria">${esc(categoriaTesto(override.servizio))}</button>${role==='admin'?'<button type="button" class="grade-badge ag-b ag-adm" data-ag-edit>ADMIN</button>':''}</span>${NaviAdminFirebase.servizioTerminato?.(override.servizio)?'<span class="grade-badge cat-off" title="Periodo di servizio terminato: accesso revocato">Fuori servizio</span>':''}${ffAttivo(agent)?`<span class="grade-badge ff-badge" title="Facente funzione fino al ${esc(itDate(ffAttivo(agent).al))}">FF ${esc(ffAttivo(agent).grado)}</span>`:''}${user&&(user.lastAccess||user.onlineAt)?`<small class="ultimo-accesso">${online?'Online':'Ultimo accesso'}: ${esc(fmt(online?user.onlineAt:user.lastAccess))}${user.lastPage?` · ${esc(user.lastPage)}`:''}</small>`:''}${initialPin?`<small class="initial-pin-output">PIN iniziale: ${esc(initialPin)}</small>`:''}</div><div class="ag-edit"><label>Ruolo<select data-role>${roles.map(item=>`<option value="${esc(item)}"${item===role?' selected':''}>${esc(roleLabels[item]||item)}</option>`).join('')}</select></label><label>${isUffici?'Ufficio':'Grado'}<select data-grade>${(isUffici?officeOptions:grades).map(item=>`<option value="${esc(item)}"${String(item).toLowerCase()===String(grade).toLowerCase()?' selected':''}>${esc(isUffici?officeLabel(item):item)}</option>`).join('')}</select></label><button class="save-agent" type="button">Salva ruolo/grado</button>${categoriaBlock(agent)}</div><div class="ag-sezioni">${sezioni(agent,user,initialPin,actions)}</div></article>`;
+    }
+    // PIN e registrazioni aggiornati quando si torna sulla pagina (es. un altro admin ha appena generato un PIN)
+    let ricaricoAdmin=0;
+    async function ricaricaDatiAdmin(){
+      if(Date.now()-ricaricoAdmin<5000||!window.NaviAdminFirebase||document.activeElement?.matches?.('input,select,textarea'))return;
+      ricaricoAdmin=Date.now();
+      try{const data=await NaviAdminFirebase.getAgentAdminData();registry=data.users||[];profiles=data.profiles||{};refreshInitialPins(data.auth||{});render();}catch(error){console.warn('Dati agenti non aggiornati',error);}
+    }
+    // Richieste di accesso dalla pagina di login: risposta su WhatsApp con il messaggio pronto.
+    async function caricaRichiesteAccesso(){
+      const box=document.getElementById('richieste-accesso'),lista=document.getElementById('richieste-lista');
+      if(!box||!window.NaviAdminFirebase?.listRichiesteAccesso)return;
+      let richieste=[];try{await NaviAdminFirebase.ready;richieste=await NaviAdminFirebase.listRichiesteAccesso();}catch(error){console.warn('Richieste di accesso non lette',error);return;}
+      box.hidden=!richieste.length;document.getElementById('richieste-count').textContent=richieste.length;
+      const esc=v=>String(v??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+      const sito=location.href.replace(/[^/]*$/,'');
+      lista.innerHTML=richieste.map(r=>{
+        let num=String(r.telefono||'').replace(/[^\d+]/g,'');if(num.startsWith('+'))num=num.slice(1);else if(num.startsWith('00'))num=num.slice(2);else if(!num.startsWith('39')||num.length<=10)num='39'+num;
+        const pin=(typeof initialPins!=='undefined'&&initialPins[String(r.agentId)])||'';
+        const nome=String(r.nome||'').toLowerCase().replace(/(^|[\s'.-])\S/g,c=>c.toUpperCase());
+        const testo=window.messaggioBenvenuto(r.nome,pin,sito);
+        const quando=r.createdAt?new Date(r.createdAt).toLocaleString('it-IT',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+        return `<div class="agent-card" style="display:grid;gap:8px;padding:12px"><div><strong>${esc(r.nome)}</strong> <small>· tel. ${esc(r.telefono)} · ${esc(quando)}</small>${r.nota?`<p style="margin:4px 0 0">${esc(r.nota)}</p>`:''}${pin?'':'<p style="margin:4px 0 0;color:#fbbf24">Nessun PIN iniziale: generalo in “PIN primo accesso” prima di rispondere.</p>'}</div><div style="display:flex;gap:8px;flex-wrap:wrap"><a class="save-agent" style="display:inline-flex;align-items:center;text-decoration:none;background:#25d366;color:#05230f" target="_blank" rel="noopener" href="https://wa.me/${num}?text=${encodeURIComponent(testo)}">WhatsApp</a><button class="save-agent" type="button" data-richiesta-fatta="${esc(r.id)}">Fatto, togli</button></div></div>`;
+      }).join('');
+    }
+    document.getElementById('richieste-lista')?.addEventListener('click',async event=>{
+      const id=event.target.closest('[data-richiesta-fatta]')?.dataset.richiestaFatta;if(!id)return;
+      try{await NaviAdminFirebase.deleteRichiestaAccesso(id);}catch(error){alert(`Non tolta: ${error.message}`);}
+      caricaRichiesteAccesso();
+    });
+    setTimeout(caricaRichiesteAccesso,1200);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')caricaRichiesteAccesso();});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')ricaricaDatiAdmin();});
+    window.addEventListener('focus',ricaricaDatiAdmin);
+    setInterval(()=>{if(document.visibilityState==='visible')ricaricaDatiAdmin();},60000);
     function refreshInitialPins(authRecords={}){
-      const registeredIds=new Set(registry.map(item=>String(item.id)));
-      const rows=directory.filter(agent=>!registeredIds.has(String(agent.id))).map(agent=>{
+      const ids=new Map(directory.map(agent=>[String(agent.id),agent]));
+      registry.forEach(user=>{if(!ids.has(String(user.id)))ids.set(String(user.id),{id:String(user.id)})});
+      const rows=[...ids.values()].map(agent=>{
         const auth=authRecords[String(agent.id)]||Object.values(authRecords).find(item=>String(item?.id)===String(agent.id))||null;
         const pin=auth?.mustChangePin&&/^\d{4}$/.test(String(auth.initialPin||''))?String(auth.initialPin):'';
         return [String(agent.id),pin];
@@ -137,7 +378,18 @@
       });
       const online=presence.map(item=>{const agent=byId.get(String(item.id))||{id:item.id,name:item.name||item.id,residence:'',qualifica:'marinaio',role:''};const user=registry.find(entry=>String(entry.id)===String(item.id))||{id:item.id,name:item.name};return {agent,user:{...user,onlineAt:item.lastSeen}};});
       $('latest-user').innerHTML=online.length?online.map(item=>card(item.agent,item.user,true)).join(''):'<div class="empty">Nessun utente connesso in questo momento.</div>';
-      $('registered-users').innerHTML=registered.length?registered.map(item=>card(item.agent,item.user)).join(''):'<div class="empty">Nessun agente registrato.</div>';
+      // riepilogo accessi: oggi (dalla mezzanotte) e negli ultimi 7 giorni
+      const mezzanotte=new Date();mezzanotte.setHours(0,0,0,0);const setteGiorni=Date.now()-7*864e5;
+      const accesso=item=>time(item.user?.lastAccess);
+      const oggiN=registered.filter(item=>accesso(item)>=mezzanotte.getTime()).length,settN=registered.filter(item=>accesso(item)>=setteGiorni).length;
+      const riepilogo=registered.length?`<div class="accessi-riepilogo"><span><b>${oggiN}</b><small>accessi oggi</small></span><span><b>${settN}</b><small>ultimi 7 giorni</small></span><span><b>${registered.length}</b><small>registrati</small></span></div>`:'';
+      // una riga per giorno di ultimo accesso, col numero di agenti di quel giorno
+      const giornoDi=item=>{const t=accesso(item);if(!t)return '';const d=new Date(t);d.setHours(0,0,0,0);return d.getTime();};
+      const nomeGiorno=g=>{if(g==='')return 'Nessun accesso';const diff=Math.round((mezzanotte.getTime()-g)/864e5);return diff<=0?'Oggi':diff===1?'Ieri':new Date(g).toLocaleDateString('it-IT',{weekday:'short',day:'numeric',month:'short'});};
+      const perGiorno=new Map();registered.forEach(item=>{const g=giornoDi(item);perGiorno.set(g,(perGiorno.get(g)||0)+1);});
+      let ultimoGiorno=null;
+      const conGiorni=registered.map(item=>{const g=giornoDi(item);const riga=g===ultimoGiorno?'':`<div class="ag-giorno${g===mezzanotte.getTime()?' oggi':''}"><span>${nomeGiorno(g)}</span><b>${perGiorno.get(g)}</b></div>`;ultimoGiorno=g;return riga+card(item.agent,item.user);}).join('');
+      $('registered-users').innerHTML=registered.length?riepilogo+conGiorni:'<div class="empty">Nessun agente registrato.</div>';
       $('other-users').innerHTML=others.length?others.map(agent=>card(agent,null)).join(''):'<div class="empty">Tutti gli agenti risultano registrati.</div>';
       $('online-count').textContent=online.length;$('registered-count').textContent=registered.length;$('other-count').textContent=others.length;
       const search=$('agent-search-input'),options=$('agent-search-options'),previous=search.value,allAgents=[...byId.values()].sort((a,b)=>String(a.name||'').localeCompare(String(b.name||''),'it')||String(a.id||'').localeCompare(String(b.id||''),'it'));
@@ -149,9 +401,10 @@
       const target=[...document.querySelectorAll('.agent-row[data-agent-id]')].find(row=>String(row.dataset.agentId)===String(agentId)&&row.closest('#registered-users,#other-users'));
       if(!target)return;
       const section=target.closest('.section');if(section)section.classList.remove('collapsed');
-      requestAnimationFrame(()=>{target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('search-target');setTimeout(()=>target.classList.remove('search-target'),2200);});
+      target.classList.remove('chiuso');agentiAperti.add(String(target.dataset.agentId||''));requestAnimationFrame(()=>{target.scrollIntoView({behavior:'smooth',block:'center'});target.classList.add('search-target');setTimeout(()=>target.classList.remove('search-target'),2200);});
     }
     document.getElementById('agent-search-input').addEventListener('change',event=>{const value=String(event.target.value||'').trim().toLocaleLowerCase('it');const match=searchableAgents.find(agent=>agent.searchLabel.toLocaleLowerCase('it')===value);if(match)focusAgent(match.id);});
+    document.addEventListener('change',event=>{const cat=event.target.closest('[data-cat]');if(!cat)return;cat.closest('.cat-block').querySelectorAll('.cat-date').forEach(el=>{el.hidden=cat.value==='stabili';});});
     document.addEventListener('change',event=>{const select=event.target.closest('[data-grade]');if(!select)return;const row=select.closest('.agent-row');row.style.setProperty('--grade-color',gradeColor(select.value));row.querySelector('.grade-badge').textContent=officeOptions.includes(String(select.value).toLowerCase())?officeLabel(select.value):select.value;});
     document.addEventListener('click',event=>{
       const head=event.target.closest('.section-head');
@@ -162,6 +415,10 @@
     document.addEventListener('click',async event=>{
       const copyButton=event.target.closest('.copy-initial-pin');
       if(copyButton){const row=copyButton.closest('[data-agent-id]');openPinCopyPopup(row.dataset.agentName,copyButton.dataset.pin);return;}
+      const moveButton=event.target.closest('.save-residence-move,.cancel-residence-move');
+      if(moveButton&&!moveButton.classList.contains('cancel-ff')){await saveResidenceMove(moveButton);return;}
+      const catButton=event.target.closest('.save-cat');if(catButton){catButton.disabled=true;try{await saveCategoria(catButton)}finally{catButton.disabled=false}return;}
+      const ffButton=event.target.closest('.save-ff,.cancel-ff');if(ffButton){ffButton.disabled=true;try{await saveFF(ffButton)}finally{ffButton.disabled=false}return;}
       const button=event.target.closest('.save-agent,.generate-pin,.delete-registration,.delete-agent');if(!button)return;const row=button.closest('[data-agent-id]'),targetAgentId=row.dataset.agentId,user=registry.find(item=>String(item.id)===String(targetAgentId));button.disabled=true;
       try{
         if(button.classList.contains('save-agent')){
@@ -201,6 +458,39 @@
         $('status').className='status ok';
       }catch(error){        $('status').className='status bad';$('status').textContent=error.message||'Operazione non riuscita.';}finally{button.disabled=false;}
     });
+    async function saveResidenceMove(button){
+      const row=button.closest('[data-agent-id]'),id=row.dataset.agentId,name=row.dataset.agentName;
+      const agent=directory.find(item=>String(item.id)===String(id))||{id,name,residence:row.dataset.residence};
+      const cancel=button.classList.contains('cancel-residence-move');
+      let values={};
+      if(!cancel){
+        const after=row.querySelector('[data-move-residence]').value,dal=row.querySelector('[data-move-date]').value;
+        if(!after){$('status').className='status bad';$('status').textContent='Scegli la nuova residenza.';return;}
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(dal)){$('status').className='status bad';$('status').textContent='Indica da che giorno vale la nuova residenza.';return;}
+        // Residenza di partenza: quella attuale; se l'agente e' gia' nella
+        // residenza scelta (cambio gia' in vigore) quella di prima.
+        const current=String(agent.residence||'').trim().toUpperCase(),move=residenceMoveOf(agent);
+        const before=current===after?String(move?.before||'').toUpperCase():current;
+        if(!before||before===after){$('status').className='status bad';$('status').textContent=`${name} è già in residenza ${after}.`;return;}
+        if(!confirm(`${name}: residenza ${before} → ${after} dal ${itDate(dal)}?`))return;
+        values={name,residenzaPrecedente:before,residenzaNuova:after,residenzaDal:dal};
+      }else if(!confirm(`Annullare il cambio di residenza di ${name}?`))return;
+      button.disabled=true;
+      try{
+        const saved=await NaviAdminFirebase.saveAgentResidenceMove(id,values);
+        const key=Object.keys(profiles).find(item=>String(profiles[item]?.id)===String(id))||String(id);
+        const merged={...(profiles[key]||{}),...saved};
+        if(cancel){delete merged.residenzaNuova;delete merged.residenzaDal;delete merged.residenzaPrecedente;}
+        profiles[key]=merged;
+        NaviSharedData.clear();
+        await NaviSharedData.load('',{force:true}).catch(()=>{});
+        directory=NaviSharedData.directory()||directory;
+        render();
+        $('status').className='status ok';
+        $('status').textContent=cancel?`Cambio di residenza di ${name} annullato.`:`${name} passa a ${values.residenzaNuova} dal ${itDate(values.residenzaDal)}. Da quel giorno NaviTurni e Cambi gli aprono la nuova residenza; il foglio Google si aggiorna entro 5 minuti.`;
+      }catch(error){$('status').className='status bad';$('status').textContent=error.message||'Salvataggio non riuscito.';}
+      finally{button.disabled=false;}
+    }
     document.getElementById('generate-all-pins').addEventListener('click',async()=>{
       const button=$('generate-all-pins'),output=$('initial-pin-output');
       button.disabled=true;output.textContent='Verifica PIN iniziali…';
@@ -243,10 +533,21 @@
       }catch(error){$('status').className='status bad';$('status').textContent=error.message||'Operazione non riuscita.';}
       finally{button.disabled=false;}
     });
-    (async()=>{await NaviAdminFirebase.ready;await NaviAdminFirebase.touchUserPresence(profile);await NaviSharedData.load('',{force:true});directory=NaviSharedData.directory()||[];const data=await NaviAdminFirebase.getAgentAdminData();registry=data.users||[];profiles=data.profiles||{};refreshInitialPins(data.auth||{});presence=await NaviAdminFirebase.listUserPresence();const residenceSelect=$('new-agent-residence');const residenceOptions=[...new Set(['Uffici',...directory.map(item=>String(item.residence||'').trim()),...Object.values(profiles).map(item=>String(item.residence||'').trim())].filter(Boolean))];residenceSelect.innerHTML=residenceOptions.map(item=>`<option value="${esc(item)}">${esc(item)}</option>`).join('');const gradeOptions=[...new Set([...gradeDefaults,...directory.map(item=>String(item.qualifica||'').toLowerCase()),...Object.values(profiles).map(item=>String(item.qualifica||'').toLowerCase())].filter(Boolean))].sort((a,b)=>(gradeRank[a]||99)-(gradeRank[b]||99)||a.localeCompare(b,'it'));$('new-agent-grade').innerHTML=gradeOptions.map(item=>`<option value="${esc(item)}">${esc(item)}</option>`).join('');const syncNewAgentFields=()=>{const isUffici=String(residenceSelect.value||'').toLowerCase()==='uffici';$('office-field').classList.toggle('hidden',!isUffici);$('grade-field').classList.toggle('hidden',isUffici);};residenceSelect.addEventListener('change',syncNewAgentFields);syncNewAgentFields();render();setInterval(async()=>{try{await NaviAdminFirebase.touchUserPresence(profile);presence=await NaviAdminFirebase.listUserPresence();render();}catch{}},30000);$('status').className='status ok';$('status').textContent=`Firebase connesso · ${directory.length} agenti in anagrafica · ${registry.length} registrati.`;})().catch(error=>{$('status').className='status bad';$('status').textContent=`Errore: ${error.message}`;});
+    (async()=>{await NaviAdminFirebase.ready;await NaviAdminFirebase.touchUserPresence(profile);turniOggi=await NaviSharedData.load('',{force:true}).catch(()=>null);directory=NaviSharedData.directory()||[];const data=await NaviAdminFirebase.getAgentAdminData();registry=data.users||[];profiles=data.profiles||{};refreshInitialPins(data.auth||{});presence=await NaviAdminFirebase.listUserPresence();attivita=await NaviAdminFirebase.getAttivita().catch(()=>({}));const residenceSelect=$('new-agent-residence');const residenceOptions=[...new Set(['Uffici',...directory.map(item=>String(item.residence||'').trim()),...Object.values(profiles).map(item=>String(item.residence||'').trim())].filter(Boolean))];residenceSelect.innerHTML=residenceOptions.map(item=>`<option value="${esc(item)}">${esc(item)}</option>`).join('');const gradeOptions=[...new Set([...gradeDefaults,...directory.map(item=>String(item.qualifica||'').toLowerCase()),...Object.values(profiles).map(item=>String(item.qualifica||'').toLowerCase())].filter(Boolean))].sort((a,b)=>(gradeRank[a]||99)-(gradeRank[b]||99)||a.localeCompare(b,'it'));$('new-agent-grade').innerHTML=gradeOptions.map(item=>`<option value="${esc(item)}">${esc(item)}</option>`).join('');const syncNewAgentFields=()=>{const isUffici=String(residenceSelect.value||'').toLowerCase()==='uffici';$('office-field').classList.toggle('hidden',!isUffici);$('grade-field').classList.toggle('hidden',isUffici);};residenceSelect.addEventListener('change',syncNewAgentFields);syncNewAgentFields();render();setInterval(async()=>{try{await NaviAdminFirebase.touchUserPresence(profile);presence=await NaviAdminFirebase.listUserPresence();render();}catch{}},30000);$('status').className='status ok';$('status').textContent=`Firebase connesso · ${directory.length} agenti in anagrafica · ${registry.length} registrati.`;})().catch(error=>{$('status').className='status bad';$('status').textContent=`Errore: ${error.message}`;});
   })();
   </script>
 
-  <script src="assets/js/announcements-recovered.js?v=1"></script>
+  <script src="assets/js/shift-competence.js?v=4"></script>
+  <script src="assets/js/diaria-backup.js?v=9"></script>
+  <script src="assets/js/backup-admin.js?v=2"></script>
+  <script src="assets/js/page-access-admin.js?v=2"></script>
+  <script src="assets/js/announcements-recovered.js?v=11"></script>
+  <script>
+  // Colore di ogni sezione secondo l'argomento (stile a riquadri)
+  (function(){
+    const colori={'Richieste di accesso':'--s-wa','Ricerca agente':'--s-cyan','Connessi adesso':'--s-wa','Agenti registrati':'--s-teal','Altri agenti':'--s-cyan','Backup':'--s-orange','Accesso alle pagine':'--s-violet','PIN primo accesso':'--s-amber','Nuovo agente':'--s-pink'};
+    document.querySelectorAll('main>.section').forEach(sez=>{const t=sez.querySelector('h2')?.textContent.trim();if(colori[t])sez.style.setProperty('--c',`var(${colori[t]})`);});
+  })();
+  </script>
 </body>
 </html>

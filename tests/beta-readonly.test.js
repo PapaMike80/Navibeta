@@ -1,0 +1,20 @@
+const assert = require('assert');
+const calls = [];
+global.window = global; global.location = { href: 'https://papamike80.github.io/Navibeta/index.html' };
+global.document = { getElementById: () => null, body: null };
+global.localStorage = { getItem: () => null };
+Object.defineProperty(global, 'navigator', { value: { sendBeacon: () => true }, configurable: true });
+global.XMLHttpRequest = function () {}; XMLHttpRequest.prototype.open = function () {}; XMLHttpRequest.prototype.send = function () { calls.push('xhr'); };
+global.fetch = async (u, o) => { calls.push((o && o.method) || 'GET'); return { status: 200 }; };
+require('../assets/js/beta-readonly.js');
+(async () => {
+  const fb = 'https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app/public/x.json';
+  assert.strictEqual((await fetch(fb)).status, 200);
+  for (const m of ['PUT', 'POST', 'PATCH', 'DELETE']) assert.strictEqual((await fetch(fb, { method: m })).status, 403);
+  assert.strictEqual((await fetch(fb + '?x-http-method-override=PUT')).status, 403);
+  assert.strictEqual((await fetch('https://truenas-scale.tail805e51.ts.net:8443/api/collections/a/records', { method: 'POST' })).status, 403);
+  assert.strictEqual((await fetch('https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=k', { method: 'POST' })).status, 200);
+  assert.strictEqual(navigator.sendBeacon(fb, 'x'), false);
+  assert.deepStrictEqual(calls, ['GET', 'POST']);
+  console.log('ok');
+})();

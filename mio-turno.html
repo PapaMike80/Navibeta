@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="NaviBeta">
+  <meta name="theme-color" content="#002b5e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <title>NaviSuite Il mio turno</title>
+  <link rel="stylesheet" href="assets/css/navi-shared.css">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
+  <link rel="stylesheet" href="assets/css/servizi-terra.css?v=17">
+  <link rel="stylesheet" href="assets/css/orario.css?v=42">
+  <link rel="stylesheet" href="assets/css/mio-turno.css?v=17">
+  <style>
+    /* coincidenze sotto lo scalo (Il mio turno) */
+    .navi-list .dove:has(.mt-coinc){flex-wrap:wrap}
+    .mt-coinc{flex:1 0 100%;width:100%;min-width:0;display:flex;flex-direction:column;gap:2px;margin-top:4px;font-size:11.5px;color:#cfe3ea;font-weight:600}
+    .mt-coinc>span{display:block;line-height:1.35}
+    .mt-coinc small{display:block;font-weight:500;color:#9fb8c2;font-size:10.5px}
+    .mt-regola{margin:10px 2px 0;font-size:11.5px;line-height:1.4;color:#fbbf24}
+    .mt-comit>span{color:#67d7e6}.mt-comit b{color:#eaf2f4}
+    .mt-coinc>span.cp{color:#9fb8c2;font-weight:500}
+    .mt-co-tu{display:inline-block;font:900 9px Manrope,system-ui,sans-serif;padding:0 5px;margin-right:3px;border-radius:999px;color:#06231f;vertical-align:1px}
+  </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
+</head>
+<body class="servizi-terra-page mio-turno-page">
+  <aside class="app-sidebar" id="mio-turno-sidebar"></aside>
+
+  <header class="page-header">
+    <p class="terra-label">IL MIO TURNO</p>
+    <a class="mt-distinta" id="turno-distinta" href="navidiaria.html" aria-label="Apri la giornata nella Distinta">≈ Distinta</a>
+    <h1 class="terra-title" id="turno-title">Il mio turno</h1>
+    <p class="terra-context" id="turno-context">Caricamento…</p>
+    <p class="mt-servizio" id="turno-servizio" hidden></p>
+  </header>
+
+  <main id="mio-turno">
+    <div class="terra-bar">
+      <span class="terra-day">
+        <button type="button" class="terra-day-nav" id="turno-day-prev" aria-label="Giorno precedente">‹</button>
+        <span class="terra-day-current"><span class="terra-day-label" id="turno-day-label"></span>
+          <input type="date" class="terra-day-input" id="turno-day-input" aria-label="Scegli la giornata"></span>
+        <button type="button" class="terra-day-nav" id="turno-day-next" aria-label="Giorno successivo">›</button>
+        <button type="button" class="terra-day-today" id="turno-day-today" hidden>Oggi</button>
+      </span>
+      <label class="mt-test" title="Per provare la pagina con un altro turno (non cambia i dati)">
+        <span>Prova turno</span>
+        <select id="turno-test" aria-label="Prova con un altro turno"></select>
+      </label>
+    </div>
+    <div class="mt-mod-bar" id="turno-modified-bar" hidden>
+      <span class="mt-badge-mod" id="turno-modified-badge">Modificato da: <strong id="turno-modified-by"></strong></span>
+      <button type="button" class="mt-restore-btn" id="turno-restore-btn" disabled>Ripristina turno originale</button>
+    </div>
+    <div class="terra-notice" id="turno-notice" hidden></div>
+    <div class="terra-grid" id="turno-content"></div>
+    <!-- La pagina Scali incorporata (assets/js/orario-page.js): a terra tutta la vista Lago del mio
+         scalo, in linea la mappa con la mia corsa -->
+    <section id="turno-scali" hidden>
+      <details class="terra-card" id="turno-map" data-mt-section="mappa">
+        <summary class="terra-card-head"><h2>Mappa</h2></summary>
+        <div class="terra-card-body">
+          <div class="terra-notice" id="orario-notice" hidden></div>
+          <div id="orario-content"></div>
+        </div>
+      </details>
+    </section>
+    <div class="terra-grid" id="turno-after"></div>
+  </main>
+
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/firebase-auth.js?v=2"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/turni-giorno.js?v=8"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/orario-corse.js?v=1"></script>
+  <script src="assets/js/orario-giorno.js?v=7"></script>
+  <script src="assets/js/orario-corse-estate.js?v=1"></script>
+  <script src="assets/js/coincidenze-ufficiali.js?v=1"></script>
+  <script src="assets/js/orari-stagioni.js?v=9"></script>
+  <script src="assets/js/orario-lago.js?v=2"></script>
+  <script>window.NaviOrarioEmbed = true;</script>
+  <script src="assets/js/orario-page.js?v=80"></script>
+  <script src="assets/js/shift-competence.js?v=4"></script>
+  <script src="assets/js/admin-pocketbase-rest.js?v=6"></script>
+  <script src="assets/js/comitive-ods.js?v=1"></script>
+  <script src="assets/js/comitive.js?v=8"></script>
+  <script src="assets/js/mio-turno.js?v=43"></script>
+  <script src="assets/js/push-arrivi.js?v=9"></script>
+  <script src="assets/js/arrivi-avvisi.js?v=1"></script>
+</body>
+</html>

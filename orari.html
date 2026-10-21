@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1c26">
+  <title>NaviSuite · Orari</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* Orari per stagione (Primavera, Estate, Autunno, Inverno) nello stile a riquadri (docs/STILE-NAVISUITE.md). */
+    :root{color-scheme:dark;--bg:#071923;--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--cyan:#67d7e6;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--mono:'DM Mono',ui-monospace,monospace}
+    *{box-sizing:border-box}
+    html{background:var(--surface)}
+    body.orari-page{margin:0;min-height:100vh;color:var(--ink);font:500 14px/1.45 Manrope,system-ui,sans-serif;background:linear-gradient(160deg,color-mix(in srgb,var(--teal) 9%,var(--surface)),var(--surface) 40%,color-mix(in srgb,var(--violet) 9%,var(--surface)));padding-bottom:env(safe-area-inset-bottom,0px)}
+    .orari-page .app-sidebar{display:none}
+    .orari-page>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:calc(18px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+    .orari-page>header small{display:block;color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.22em}
+    .orari-page>header h1{margin:4px 0 0;font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--teal),var(--cyan) 50%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .orari-page>header #navisuite-header-menu{position:static!important;flex-shrink:0;width:48px!important;height:48px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--card)!important;color:var(--teal)!important;font-size:22px!important}
+    main{width:min(720px,calc(100% - 32px));margin:4px auto 40px;display:grid;gap:12px}
+    .stagioni{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+    .stagione{--c:var(--teal);display:grid;justify-items:center;gap:1px;padding:8px 4px;border-radius:14px;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 8%,var(--card));color:var(--ink);font:800 12px Manrope,system-ui,sans-serif;cursor:pointer}
+    .stagione span{font-size:20px}
+    .stagione small{font:500 9.5px var(--mono);color:var(--muted);text-align:center;line-height:1.25}
+    .stagione[aria-pressed="true"]{background:var(--c);color:var(--on);border-color:var(--c)}
+    .stagione[aria-pressed="true"] small{color:var(--on)}
+    .stagione.ora::after{content:'ORA';font:900 8px Manrope;letter-spacing:.1em;padding:1px 5px;border-radius:999px;background:var(--on);color:var(--c);margin-top:2px}
+    .stagione[aria-pressed="true"].ora::after{background:var(--on);color:var(--c)}
+    .sez{--c:var(--cyan);display:grid;gap:8px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+    .sez h2{margin:0;font-size:15px;font-weight:800;color:var(--c);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+    .sez h2 small{font:500 11px var(--mono);color:var(--muted)}
+    .sez p{margin:0;font-size:12px;color:var(--muted)}
+    .scelte{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;align-items:end}
+    .scelte label{display:grid;gap:3px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+    input[type=date]{-webkit-appearance:none;appearance:none;min-height:42px}
+    select,input{width:100%;min-width:0;font:600 14px Manrope,system-ui,sans-serif;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+    .a4{display:inline-flex;align-items:center;padding:9px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:800 12px Manrope,system-ui,sans-serif;text-decoration:none;white-space:nowrap}
+    .a4[hidden]{display:none}
+    .dep{display:grid;grid-template-columns:62px 1fr;gap:8px;align-items:start;padding:8px 10px;border-radius:12px;background:#0d2230;border-left:4px solid var(--c)}
+    .dep:nth-child(even of .dep){background:#10304a}
+    .dep.passata{opacity:.45}
+    .dep.prossima{outline:2px solid var(--teal)}
+    .dep .t{font:500 18px var(--mono);font-variant-numeric:tabular-nums;line-height:1.2}
+    .dep .t small{display:block;font:500 9.5px var(--mono);color:var(--muted)}
+    .dep .s{font-size:12.5px;line-height:1.55;min-width:0;overflow-wrap:anywhere}
+    .dep .s b{font-weight:800}.dep .s span{font-family:var(--mono);color:var(--muted)}
+    .dep{border-left-color:var(--tc,var(--c))}
+    .dep .t{color:var(--tc,var(--ink))}
+    .dep .tu{display:table;margin:2px 0 1px;font:900 9px Manrope,system-ui,sans-serif;padding:0 5px;border-radius:999px;background:var(--tc);color:var(--on)}
+    .dep .cambio{grid-column:2;display:block;margin-top:-4px;font-size:11.5px;color:#fde68a;font-weight:600}
+    .dep .cambio.cp{color:#9fb8c2;font-weight:500}
+    .dep .cambio.cp b{color:#cfe3ea}
+    .dep .cambio .tu{display:inline-block;margin:0 2px}
+    .dep.sr{background:color-mix(in srgb,var(--amber) 10%,#0d2230)}
+    .tag{font:900 9px Manrope;padding:1px 6px;border-radius:999px;background:var(--amber);color:var(--on);margin-right:5px;vertical-align:1px}
+    .tag.tr{background:var(--violet)}
+    .vuoto{padding:18px;text-align:center;color:var(--muted)}
+    .dirs{display:flex;gap:6px;flex-wrap:wrap}
+    .dirs button{padding:6px 10px;border-radius:999px;border:1px solid color-mix(in srgb,var(--c) 40%,transparent);background:var(--card);color:var(--ink);font:800 11.5px Manrope,system-ui,sans-serif;cursor:pointer}
+    .dirs button[aria-pressed="true"]{background:var(--c);color:var(--on);border-color:var(--c)}
+    .uff-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--line);max-width:100%}
+    .uff{border-collapse:separate;border-spacing:0;font:500 12px var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+    .uff th,.uff td{padding:4px 7px;border-bottom:1px solid #18394a;text-align:center}
+    .uff thead th{position:sticky;top:0;background:#0c2532;color:var(--muted);font:800 11px Manrope,system-ui,sans-serif}
+    .uff thead th.sr{background:color-mix(in srgb,var(--amber) 30%,#0c2532);color:var(--amber)}
+    .uff th.sc{position:sticky;left:0;z-index:1;text-align:left;background:#0c2532;color:var(--ink);font:800 11.5px Manrope,system-ui,sans-serif;border-right:1px solid var(--line)}
+    .uff tbody tr:nth-child(even) td,.uff tbody tr:nth-child(even) th.sc{background:#10304a}
+    .uff tbody tr.mio td,.uff tbody tr.mio th.sc{background:color-mix(in srgb,var(--c) 28%,#0c2532);color:var(--ink);font-weight:500}
+    .uff td.v{color:#4b6a78}
+    .uff thead th.tu{background:var(--t);color:var(--on);font:900 10.5px Manrope,system-ui,sans-serif;border-right:1px solid #0c2532;top:0}
+    .uff thead tr:nth-child(2) th{top:22px}
+    .uff .srb{font:900 8.5px Manrope;padding:0 4px;border-radius:999px;background:var(--amber);color:var(--on)}
+    .uff tbody tr.mio td{font-weight:500;filter:brightness(1.25)}
+    .uff td.sr{background:color-mix(in srgb,var(--amber) 9%,transparent)}
+    .graf-wrap{overflow:hidden;border-radius:12px;border:1px solid var(--line);background:#081d27;max-width:100%}
+    .graf-wrap svg{display:block}
+    .graf-wrap .c{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round;opacity:.9;cursor:pointer}
+    .graf-wrap .c:hover,.graf-wrap .c.sel{stroke-width:3.4;opacity:1}
+    .graf-wrap .c.sr{stroke-dasharray:5 3}
+    .lin{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+    .lin.tr{background:repeating-linear-gradient(90deg,var(--amber) 0 5px,transparent 5px 8px)}
+    .graf-wrap .c{transition:opacity .15s}
+    .graf-wrap.focus .c{opacity:.07}
+    .graf-wrap.focus .c.legata{opacity:.45}
+    .graf-wrap.focus .c.sel{opacity:1;stroke-width:3.6}
+    .graf-wrap .coinc{display:none}
+    .graf-wrap.con-coinc .coinc{display:inline}
+    .graf-wrap .coinc line{stroke:#fff;stroke-width:3;stroke-linecap:round;opacity:.75}
+    .graf-wrap .coinc circle{fill:#fff;opacity:.85}
+    .graf-wrap.focus .coinc{display:inline}
+    .graf-wrap.focus .coinc [data-k]{display:none}
+    .graf-wrap.focus .coinc [data-k].mia{display:inline}
+    .graf-pop{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:50;width:min(440px,calc(100% - 24px));max-height:45vh;overflow:auto;display:grid;gap:6px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--violet) 14%,#0b1c26);border:1px solid color-mix(in srgb,var(--violet) 50%,transparent);box-shadow:0 12px 40px #000a;font-size:12.5px}
+    .graf-pop[hidden]{display:none}
+    .graf-pop .pop-h{display:flex;justify-content:space-between;align-items:center;gap:8px;font:800 15px Manrope,system-ui,sans-serif}
+    .graf-pop .pop-h button{width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:15px;cursor:pointer}
+    .graf-pop small{color:var(--muted)}
+    .graf-pop .tu{display:inline-block;font:900 10px Manrope,system-ui,sans-serif;padding:1px 6px;border-radius:999px;color:var(--on);margin-right:3px;vertical-align:1px}
+    .pop-scali{margin:0;padding:0;list-style:none;display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:2px 10px}
+    .pop-scali li{display:flex;gap:6px}.pop-scali li span{font-family:var(--mono);color:var(--muted);min-width:38px}
+    .pop-scali li.mio{color:var(--teal);font-weight:800}
+    .pop-c{display:grid;gap:3px;padding-top:6px;border-top:1px solid var(--line)}
+    .pop-cp{color:#9fb8c2}
+    .pop-regola{font-size:11px;color:var(--amber);padding-top:4px;border-top:1px solid var(--line)}
+    .pop-c i{color:var(--muted);font-style:normal;font-family:var(--mono)}
+    main>*{min-width:0;max-width:100%}
+    .adm{min-width:0;overflow:hidden;--c:var(--teal);border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+    .adm>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px;cursor:pointer;font-weight:800;font-size:15px;color:var(--c)}
+    .adm>summary::-webkit-details-marker{display:none}.adm>summary span{flex:1}
+    .adm>summary::after{content:'▾';color:var(--muted)}.adm[open]>summary::after{content:'▴'}
+    .adm>:not(summary){margin:0 12px 10px}
+    .cnt{font:500 11px var(--mono);padding:2px 9px;border-radius:999px;background:var(--c);color:var(--on)}
+    .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .kpi div{--k:var(--teal);border-radius:12px;padding:7px 9px;background:color-mix(in srgb,var(--k) 18%,var(--card));border:1px solid color-mix(in srgb,var(--k) 40%,transparent)}
+    .kpi small{display:block;font-size:9px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--k)}
+    .kpi b{font:500 18px var(--mono);font-variant-numeric:tabular-nums}
+    .kpi div.pieno{background:var(--k);color:var(--on)}.kpi div.pieno small{color:var(--on)}
+    .leg{display:flex;flex-wrap:wrap;gap:10px;font-size:11px;color:var(--muted)}
+  </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
+</head>
+<body class="orari-page">
+  <aside class="app-sidebar" id="orari-sidebar"></aside>
+  <header class="page-header"><div><small>NAVISUITE</small><h1>Orari</h1></div></header>
+  <main>
+    <div class="stagioni" id="stagioni" role="group" aria-label="Stagione"></div>
+    <section class="sez" id="info" style="--c:var(--teal)"></section>
+    <section class="sez" id="partenze-box" style="--c:var(--cyan)">
+      <div class="scelte">
+        <label>Scalo<select id="scalo"></select></label>
+        <label>Giorno<input id="giorno" type="date"></label>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px"><h2 id="titolo" style="flex:1;min-width:0"></h2><a class="a4" id="a4" href="stampa-partenze.html">🖨 A4</a></div>
+      <div id="lista" style="display:grid;gap:6px"></div>
+      <div class="leg"><span><span class="tag">SR</span>rapido con supplemento</span><span><span class="tag tr">TR</span>traghetto Maderno – Torri</span></div>
+    </section>
+    <details class="adm" id="graf-box" style="--c:var(--violet)">
+      <summary><span>📈 Orario grafico</span><b class="cnt" id="graf-info"></b></summary>
+      <div class="dirs"><button type="button" id="graf-coinc" aria-pressed="false">🔗 Coincidenze</button></div>
+      <div class="graf-wrap" id="graf"></div>
+      <div class="graf-pop" id="graf-pop" hidden></div>
+      <div class="leg"><span><i class="lin" style="background:var(--teal)"></i>verso Riva</span><span><i class="lin" style="background:#fb923c"></i>verso Desenzano / Peschiera</span><span><i class="lin tr"></i>SR</span><span><i class="lin" style="background:var(--violet)"></i>traghetto</span><span><i class="lin" style="background:#fff"></i>coincidenza</span></div>
+      <p>Ogni linea è una corsa: in orizzontale l’ora, in verticale gli scali. Più la linea è ripida, più la nave è veloce; i tratti orizzontali sono le soste. Tocca una linea per vedere la corsa e le sue coincidenze: solo quelle ai fini tariffari dell’O.d.S. (dentro Alto lago e Basso lago non ci sono coincidenze); tocca fuori per tornare a tutte le corse.</p>
+    </details>
+    <details class="adm" id="uff-box" style="--c:var(--teal)">
+      <summary><span>📋 Orario ufficiale</span><b class="cnt" id="uff-ods"></b></summary>
+      <div class="dirs" id="uff-dirs" role="group" aria-label="Direzione"></div>
+      <div class="uff-wrap" id="uff"></div>
+      <p>Una colonna per corsa con il suo turno (D1, D2…), nei colori dei turni; in evidenza lo scalo scelto. Scorri di lato per vedere tutte le corse.</p>
+    </details>
+  </main>
+
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/orario-corse.js?v=1"></script>
+  <script src="assets/js/orario-corse-estate.js?v=1"></script>
+  <script src="assets/js/orario-giorno.js?v=7"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/coincidenze-ufficiali.js?v=1"></script>
+  <script src="assets/js/orari-stagioni.js?v=9"></script>
+  <script>
+  (function () {
+    'use strict';
+    const S = window.NaviOrariStagioni;
+    const $ = id => document.getElementById(id);
+    const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+    const pad = n => String(n).padStart(2, '0');
+    const iso = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    const oggi = iso(new Date());
+    const ora = t => { const [h, m] = String(t).replace(':', '.').split('.'); return `${Number(h)}:${m}`; };
+    const data = v => { const [y, m, d] = v.split('-'); return `${Number(d)}/${Number(m)}/${y}`; };
+    const breve = v => { const [, m, d] = v.split('-'); return `${Number(d)}/${Number(m)}`; };
+    const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+
+    let profilo = null; try { profilo = JSON.parse(localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch (_) {}
+    const q = new URLSearchParams(location.search);
+    const attuale = S.stagioneDel(oggi);
+    let stagione = S.STAGIONI.find(s => s.id === q.get('stagione')) || attuale || S.STAGIONI[2];
+    let giorno = /^\d{4}-\d{2}-\d{2}$/.test(q.get('giorno') || '') && S.stagioneDel(q.get('giorno')) ? q.get('giorno') : (stagione === attuale ? oggi : stagione.periodi[0][0]);
+    if (!q.get('stagione')) stagione = S.stagioneDel(giorno) || stagione; // dalla pagina Scali arriva solo il giorno
+    let scalo = q.get('scalo') || (() => { try { return localStorage.getItem('navisuite.orari.scalo'); } catch (_) { return ''; } })() || ({ desenzano: 'Desenzano', maderno: 'Maderno', riva: 'Riva', peschiera: 'Peschiera' })[String(profilo?.residence || '').toLowerCase()] || 'Maderno';
+
+    function disegnaStagioni() {
+      $('stagioni').innerHTML = S.STAGIONI.map(s => `<button type="button" class="stagione${s === attuale ? ' ora' : ''}" style="--c:${s.colore}" data-id="${s.id}" aria-pressed="${s === stagione}"><span>${s.icona}</span>${esc(s.nome)}<small>${s.periodi.map(([a, b]) => `${breve(a)}–${breve(b)}`).join(' · ')}</small></button>`).join('');
+    }
+    // Orario grafico: x = ora, y = scali nell'ordine dell'orario ufficiale (Desenzano in alto, Riva in basso)
+    // Orario grafico: x = ora, y = scali nell'ordine dell'orario ufficiale (Desenzano in alto, Riva in basso)
+    let grafCorse = [], grafCoinc = [];
+    let mostraCoinc = (() => { try { return localStorage.getItem('navisuite.orari.coincidenze') === '1'; } catch (_) { return false; } })();
+    // Coincidenze: solo quelle ai fini tariffari dell'O.d.S. (orari-stagioni.js); indici delle corse del grafico
+    function coincidenze(corse) {
+      const idx = n => corse.findIndex(c => String(c.numero) === String(n));
+      return S.coincidenze(giorno).map(k => ({ ...k, a: idx(k.a), b: idx(k.b) })).filter(k => k.a >= 0 && k.b >= 0 && k.arriva);
+    }
+    function disegnaGrafico() {
+      const tab = S.tabelle(giorno), trag = S.traghetto(giorno);
+      const corse = [];
+      tab.forEach((t, i) => t.corse.forEach(c => corse.push({ numero: c.numero, turno: c.turno, coloreTurno: c.colore, sr: c.sr, direzione: t.titolo, colore: i === 0 ? '#2dd4bf' : '#fb923c', punti: t.scali.filter(n => c.ore[n]).map(n => [n, c.ore[n]]) })));
+      trag.forEach(r => corse.push({ numero: r.numero, turno: r.turno, coloreTurno: S.COLORI[r.turno] || '#a78bfa', sr: false, direzione: 'Traghetto Maderno – Torri', colore: '#a78bfa', punti: [[r.da, r.parte], [r.a, r.arriva]] }));
+      grafCorse = corse; grafCoinc = coincidenze(corse);
+      $('graf-info').textContent = `${corse.length} corse`; totali.corse = corse.length;
+      chiudiPop();
+      if (!corse.length) { $('graf').innerHTML = '<div class="vuoto">Nessuna corsa in orario.</div>'; return; }
+      const usati = new Set(corse.flatMap(c => c.punti.map(p => p[0])));
+      const righe = S.RIGHE_ANDATA.filter(n => usati.has(n));
+      const tutti = corse.flatMap(c => c.punti.map(p => S.minuti(p[1])));
+      const t0 = Math.floor(Math.min(...tutti) / 60) * 60, t1 = Math.ceil(Math.max(...tutti) / 60) * 60;
+      const L = 86, PX = 2.4, H = 22, T = 26, W = (t1 - t0) * PX + 44, Ht = T + righe.length * H + 8;
+      const x = m => 22 + (m - t0) * PX, y = n => T + righe.indexOf(n) * H + H / 2;
+      let svg = `<svg width="${W}" height="${Ht}" viewBox="0 0 ${W} ${Ht}" font-family="Manrope,system-ui,sans-serif">`;
+      const fondo = (n, i) => n === scalo ? 'rgba(45,212,191,.16)' : i % 2 ? '#0b2430' : 'transparent';
+      let nomi = `<svg width="${L}" height="${Ht}" font-family="Manrope,system-ui,sans-serif">`;
+      righe.forEach((n, i) => { svg += `<rect class="sfondo" x="0" y="${T + i * H}" width="${W}" height="${H}" fill="${fondo(n, i)}"/>`; nomi += `<rect x="0" y="${T + i * H}" width="${L}" height="${H}" fill="${fondo(n, i)}"/><text x="6" y="${y(n) + 4}" font-size="11" font-weight="${n === scalo ? 800 : 600}" fill="${n === scalo ? '#eaf2f4' : '#9fb8c2'}">${esc(n)}</text>`; });
+      nomi += '</svg>';
+      for (let m = t0; m <= t1; m += 30) svg += `<line x1="${x(m)}" x2="${x(m)}" y1="${T - 4}" y2="${Ht - 8}" stroke="${m % 60 ? '#12303d' : '#1f4250'}"/>` + (m % 60 ? '' : `<text x="${x(m)}" y="16" font-size="10.5" font-weight="700" fill="#9fb8c2" text-anchor="middle">${m / 60}:00</text>`);
+      if (giorno === oggi) { const n = new Date().getHours() * 60 + new Date().getMinutes(); if (n >= t0 && n <= t1) svg += `<line x1="${x(n)}" x2="${x(n)}" y1="${T - 4}" y2="${Ht - 8}" stroke="#fb7185" stroke-width="1.5"/>`; }
+      corse.forEach((c, i) => {
+        const pts = c.punti.map(([n, t]) => `${x(S.minuti(t)).toFixed(1)},${y(n)}`).join(' ');
+        svg += `<polyline class="c${c.sr ? ' sr' : ''}" data-i="${i}" stroke="${c.sr ? '#fbbf24' : c.colore}" points="${pts}"/>`;
+      });
+      // coincidenze: tratto bianco allo scalo fra l'arrivo di una corsa e la partenza dell'altra
+      svg += '<g class="coinc">' + grafCoinc.map((k, i) => `<g data-k="${i}" data-a="${k.a}" data-b="${k.b}"><line x1="${x(S.minuti(k.arriva))}" x2="${x(S.minuti(k.parte)) + .01}" y1="${y(k.scalo)}" y2="${y(k.scalo)}"/><circle cx="${x(S.minuti(k.arriva))}" cy="${y(k.scalo)}" r="2.6"/><circle cx="${x(S.minuti(k.parte))}" cy="${y(k.scalo)}" r="2.6"/></g>`).join('') + '</g>';
+      svg += '</svg>';
+      $('graf').innerHTML = `<div style="display:flex"><div style="flex:0 0 ${L}px;border-right:1px solid #1f4250">${nomi}</div><div class="graf-scorri" style="overflow-x:auto;flex:1;min-width:0">${svg}</div></div>`;
+      $('graf').classList.toggle('con-coinc', mostraCoinc);
+      $('graf-coinc').setAttribute('aria-pressed', String(mostraCoinc));
+      $('graf-coinc').textContent = `🔗 Coincidenze · ${grafCoinc.length}`;
+      // il grafico parte dall'ora attuale
+      if (giorno === oggi) { const n = new Date().getHours() * 60; $('graf').querySelector('.graf-scorri').scrollLeft = Math.max(0, x(n - 60)); }
+    }
+    // tocco su una corsa: le altre diventano trasparenti e si apre la scheda con i dettagli
+    function apriCorsa(i) {
+      const c = grafCorse[i]; if (!c) return;
+      const svg = $('graf').querySelector('svg:last-of-type');
+      $('graf').classList.add('focus');
+      const legate = new Set();
+      $('graf').querySelectorAll('.coinc [data-k]').forEach(g => {
+        const mia = Number(g.dataset.a) === i || Number(g.dataset.b) === i;
+        g.classList.toggle('mia', mia);
+        if (mia) { legate.add(Number(g.dataset.a)); legate.add(Number(g.dataset.b)); }
+      });
+      $('graf').querySelectorAll('polyline').forEach(l => { const n = Number(l.dataset.i); l.classList.toggle('sel', n === i); l.classList.toggle('legata', n !== i && legate.has(n)); });
+      const arrivi = grafCoinc.filter(k => k.a === i), partenze = grafCoinc.filter(k => k.b === i);
+      const nome = k => { const d = grafCorse[k]; return `<b class="tu" style="background:${d.coloreTurno}">${esc(d.turno || '–')}</b> c. ${esc(d.numero)}${d.sr ? ' SR' : ''}`; };
+      $('graf-pop').innerHTML = `<div class="pop-h"><span><b class="tu" style="background:${c.coloreTurno}">${esc(c.turno || '–')}</b> Corsa ${esc(c.numero)}${c.sr ? ' <span class="tag">SR</span>' : ''}</span><button type="button" data-chiudi aria-label="Chiudi">✕</button></div>
+        <small>${esc(c.direzione)} · ${esc(c.punti[0][0])} ${ora(c.punti[0][1])} → ${esc(c.punti[c.punti.length - 1][0])} ${ora(c.punti[c.punti.length - 1][1])}</small>
+        <ol class="pop-scali">${c.punti.map(([n, t]) => `<li class="${n === scalo ? 'mio' : ''}"><span>${ora(t)}</span>${esc(n)}</li>`).join('')}</ol>
+        ${arrivi.length || partenze.length ? `<div class="pop-c"><b>🔗 Coincidenze</b>${arrivi.map(k => `<div>a <b>${esc(k.scalo)}</b> ${ora(k.arriva)} → ${nome(k.b)} alle ${ora(k.parte)} per ${esc(k.verso)}<br><i>solo per chi viene da ${esc(k.da)}</i></div>`).join('')}${partenze.map(k => `<div>a <b>${esc(k.scalo)}</b> da ${nome(k.a)} (arr. ${ora(k.arriva)}) → parte ${ora(k.parte)}<br><i>passeggeri da ${esc(k.da)}</i></div>`).join('')}</div>` : '<div class="pop-c"><i>Nessuna coincidenza ai fini tariffari.</i></div>'}${cambiCorsa(c)}<div class="pop-regola">↪ Coincidenze solo tra Alto e Basso lago (O.d.S., punti 4–5): dentro l’Alto o il Basso lago si fa un biglietto per ogni nave.</div>`;
+      $('graf-pop').hidden = false;
+    }
+    // cambi possibili della corsa che non sono coincidenze dell'O.d.S. (biglietto per ogni nave)
+    function cambiCorsa(c) {
+      const uff = S.coincidenze(giorno), num = String(c.numero);
+      const lista = S.cambi(giorno).filter(k => (k.a === num || k.b === num) && !uff.some(u => u.a === k.a && u.b === k.b && u.scalo === k.scalo));
+      if (!lista.length) return '';
+      return `<div class="pop-c pop-cp"><b>⇄ Cambi possibili</b> <small>(non sono coincidenze: biglietto per ogni nave)</small>${lista.map(k => k.a === num
+        ? `<div>a <b>${esc(k.scalo)}</b> ${ora(k.arriva)} → c. ${esc(k.b)}${k.srB ? ' SR' : ''} ${ora(k.parte)} per ${esc(k.verso)}</div>`
+        : `<div>a <b>${esc(k.scalo)}</b> da c. ${esc(k.a)}${k.srA ? ' SR' : ''} (arr. ${ora(k.arriva)}) → parte ${ora(k.parte)}</div>`).join('')}</div>`;
+    }
+    function chiudiPop() {
+      $('graf-pop').hidden = true;
+      $('graf').classList.remove('focus');
+      $('graf').querySelectorAll('.sel,.legata,.mia').forEach(x => x.classList.remove('sel', 'legata', 'mia'));
+    }
+    // aperto il riquadro, il grafico si porta sull'ora attuale
+    $('graf-box').addEventListener('toggle', () => { if ($('graf-box').open) disegnaGrafico(); });
+    $('graf').addEventListener('click', e => {
+      const l = e.target.closest('polyline');
+      if (l) apriCorsa(Number(l.dataset.i)); else if ($('graf').classList.contains('focus')) chiudiPop();
+    });
+    $('graf-pop').addEventListener('click', e => { if (e.target.closest('[data-chiudi]')) chiudiPop(); });
+    $('graf-coinc').addEventListener('click', () => {
+      mostraCoinc = !mostraCoinc;
+      try { localStorage.setItem('navisuite.orari.coincidenze', mostraCoinc ? '1' : '0'); } catch (_) {}
+      $('graf').classList.toggle('con-coinc', mostraCoinc);
+      $('graf-coinc').setAttribute('aria-pressed', String(mostraCoinc));
+    });
+    const totali = { corse: 0 };
+    let direzione = 0;
+    function disegnaUfficiale() {
+      $('uff-ods').textContent = stagione.ods;
+      const tab = S.tabelle(giorno), trag = S.traghetto(giorno);
+      const voci = [...tab.map(t => t.titolo), ...(trag.length ? ['Traghetto Maderno – Torri'] : [])];
+      if (direzione >= voci.length) direzione = 0;
+      $('uff-dirs').innerHTML = voci.map((v, i) => `<button type="button" data-dir="${i}" aria-pressed="${i === direzione}">${esc(v)}</button>`).join('');
+      if (!voci.length) { $('uff').innerHTML = '<div class="vuoto">Nessuna corsa in orario.</div>'; return; }
+      if (direzione < tab.length) {
+        const t = tab[direzione];
+        $('uff').innerHTML = `<table class="uff"><thead><tr><th class="sc">Turno</th>${t.corse.map(c => `<th class="tu" style="--t:${c.colore}">${esc(c.turno || '–')}</th>`).join('')}</tr><tr><th class="sc">Corsa</th>${t.corse.map(c => `<th style="color:${c.colore}">${esc(c.numero)}${c.sr ? '<br><span class="srb">SR</span>' : ''}</th>`).join('')}</tr></thead><tbody>${t.scali.map(n => `<tr class="${n === scalo ? 'mio' : ''}"><th class="sc">${esc(n)}</th>${t.corse.map(c => c.ore[n] ? `<td style="color:${c.colore}">${ora(c.ore[n])}</td>` : `<td class="v">|</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+      } else {
+        const righe = ['Maderno', 'Torri'].map(da => trag.filter(r => r.da === da));
+        const col = x => S.COLORI[x.turno] || '#a78bfa';
+        $('uff').innerHTML = righe.map(r => `<table class="uff" style="margin-bottom:6px"><thead><tr><th class="sc">Turno</th>${r.map(x => `<th class="tu" style="--t:${col(x)}">${esc(x.turno || '–')}</th>`).join('')}</tr><tr><th class="sc">Corsa</th>${r.map(x => `<th style="color:${col(x)}">${esc(x.numero)}</th>`).join('')}</tr></thead><tbody><tr class="${r[0]?.da === scalo ? 'mio' : ''}"><th class="sc">${esc(r[0]?.da || '')}</th>${r.map(x => `<td style="color:${col(x)}">${ora(x.parte)}</td>`).join('')}</tr><tr class="${r[0]?.a === scalo ? 'mio' : ''}"><th class="sc">${esc(r[0]?.a || '')}</th>${r.map(x => `<td style="color:${col(x)}">${ora(x.arriva)}</td>`).join('')}</tr></tbody></table>`).join('');
+      }
+    }
+    $('uff-dirs').addEventListener('click', e => { const b = e.target.closest('[data-dir]'); if (!b) return; direzione = Number(b.dataset.dir); disegnaUfficiale(); });
+    function disegna() {
+      disegnaStagioni();
+      const [a, b] = [stagione.periodi[0][0], stagione.periodi[stagione.periodi.length - 1][1]];
+      $('info').innerHTML = `<h2>${stagione.icona} Orario ${esc(stagione.nome.toLowerCase())}<small>${esc(stagione.ods)}</small></h2><p>Dal ${data(a)} al ${data(b)}. ${esc(stagione.nota)}</p><div class="kpi" id="kpi"></div>`;
+      disegnaUfficiale();
+      disegnaGrafico();
+      $('giorno').min = a; $('giorno').max = b; $('giorno').value = giorno;
+      const elenco = S.scali(giorno);
+      if (!elenco.includes(scalo)) scalo = elenco.includes('Maderno') ? 'Maderno' : elenco[0];
+      $('scalo').innerHTML = elenco.map(s => `<option${s === scalo ? ' selected' : ''}>${esc(s)}</option>`).join('');
+      const lista = S.partenze(scalo, giorno);
+      const [y, m, d] = giorno.split('-').map(Number);
+      $('titolo').innerHTML = `Partenze da ${esc(scalo)}<small>${GIORNI[new Date(y, m - 1, d).getDay()]} ${breve(giorno)} · ${lista.length}</small>`;
+      const adesso = giorno === oggi ? new Date().getHours() * 60 + new Date().getMinutes() : -1;
+      let prossima = adesso >= 0 ? lista.find(p => S.minuti(p.ora) >= adesso) : null;
+      // coincidenze dell'O.d.S. valide per chi parte da questo scalo (es. Peschiera c. 2 -> a Riva c. 57 per Torbole)
+      const coinc = S.coincidenze(giorno);
+      const coincPer = p => coinc.filter(k => k.a === String(p.numero) && k.provenienti.includes(scalo));
+      // cambi possibili non in coincidenza: la nave arriva allo scalo dopo questo e un'altra riparte (biglietti separati)
+      const tuttiCambi = S.cambi(giorno);
+      const cambiPer = p => tuttiCambi.filter(k => k.a === String(p.numero) && k.prima.includes(scalo) && !coincPer(p).some(c => c.b === k.b && c.scalo === k.scalo));
+      const colT = t => S.COLORI[t] || '#9fb8c2';
+      $('lista').innerHTML = lista.length ? lista.map(p => {
+        const cls = [p.sr ? 'sr' : '', p.traghetto ? 'trag' : '', adesso >= 0 && S.minuti(p.ora) < adesso ? 'passata' : '', p === prossima ? 'prossima' : ''].filter(Boolean).join(' ');
+        return `<div class="dep ${cls}" style="--tc:${p.colore}"><span class="t">${ora(p.ora)}<small>${p.turno ? `<b class="tu">${esc(p.turno)}</b>` : ''}c. ${esc(p.numero)}</small></span><span class="s">${p.sr ? '<span class="tag">SR</span>' : ''}${p.traghetto ? '<span class="tag tr">TR</span>' : ''}${p.dest.map(([s, t]) => `<b>${esc(s)}</b> <span>${ora(t)}</span>`).join(' · ')}</span>${coincPer(p).map(k => `<span class="cambio">🔗 <b>Coincidenza</b> a <b>${esc(k.scalo)}</b>${k.arriva ? ` ${ora(k.arriva)}` : ''} con <b class="tu" style="--tc:${colT(k.turnoB)}">${esc(k.turnoB || '')}</b> c. ${esc(k.b)}${k.srB ? ' SR' : ''} ${ora(k.parte)} per ${esc(k.verso)} · un solo biglietto</span>`).join('')}${cambiPer(p).map(k => `<span class="cambio cp">⇄ <b>Cambio possibile</b> a <b>${esc(k.scalo)}</b> ${ora(k.arriva)} con <b class="tu" style="--tc:${colT(k.turnoB)}">${esc(k.turnoB || '')}</b> c. ${esc(k.b)}${k.srB ? ' SR' : ''} ${ora(k.parte)} per ${esc(k.verso)} · <u>non è una coincidenza: biglietto per ogni nave</u></span>`).join('')}</div>`;
+      }).join('') : '<div class="vuoto">Nessuna partenza da questo scalo nel giorno scelto.</div>';
+      // totali in alto: corse del giorno, partenze dallo scalo, prossima partenza
+      $('kpi').innerHTML = `<div><small>Corse del giorno</small><b>${totali.corse}</b></div><div style="--k:var(--cyan)"><small>Da ${esc(scalo)}</small><b>${lista.length}</b></div><div class="pieno"><small>${adesso >= 0 ? 'Prossima' : 'Prima'}</small><b>${adesso >= 0 ? (prossima ? ora(prossima.ora) : '—') : (lista[0] ? ora(lista[0].ora) : '—')}</b></div>`;
+      // foglio A4 delle corse di linea (d'inverno c'e' solo il traghetto)
+      $('a4').hidden = stagione.fonte === 'traghetto';
+      $('a4').href = `stampa-partenze.html?scalo=${encodeURIComponent(scalo)}&data=${giorno}`;
+      const url = new URL(location.href); url.search = `?stagione=${stagione.id}&scalo=${encodeURIComponent(scalo)}&giorno=${giorno}`; history.replaceState(null, '', url);
+      prossima && document.querySelector('.dep.prossima')?.scrollIntoView?.({ block: 'nearest' });
+    }
+    $('stagioni').addEventListener('click', e => {
+      const b = e.target.closest('[data-id]'); if (!b) return;
+      stagione = S.STAGIONI.find(s => s.id === b.dataset.id);
+      giorno = stagione === attuale ? oggi : stagione.periodi[0][0];
+      disegna();
+    });
+    $('scalo').addEventListener('change', () => { scalo = $('scalo').value; try { localStorage.setItem('navisuite.orari.scalo', scalo); } catch (_) {} disegna(); });
+    $('giorno').addEventListener('change', () => { const v = $('giorno').value; const s = v && S.stagioneDel(v); if (s) { giorno = v; stagione = s; } disegna(); });
+    disegna();
+  })();
+  </script>
+</body>
+</html>

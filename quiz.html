@@ -61,12 +61,13 @@
     @media(max-width:600px){header{padding-top:25px}.dash-inner{grid-template-columns:auto 1fr;gap:10px}.reset{grid-column:1/-1;width:100%}.card{padding:17px}.answer{padding:11px}.qhead{gap:9px}.stats-grid{grid-template-columns:1fr 1fr}}
     @media print{body{background:#fff;color:#111}.dashboard,.reset{display:none}.card{break-inside:avoid;background:#fff;border-color:#aaa;box-shadow:none}.answer{background:#fff;border-color:#bbb}.feedback{display:block!important;background:#f7f7f7}.ref,.intro{color:#333}}
   </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
 </head>
 <body>
   <header class="wrap">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="NaviDiaria">
+  <meta name="apple-mobile-web-app-title" content="NaviBeta">
   <meta name="theme-color" content="#002b5e">
   <link rel="manifest" href="manifest.json">
   <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
@@ -103,8 +104,10 @@
       <div class="correction-actions"><span class="correction-status" id="correctionStatus"></span><button type="button" class="primary" id="saveCorrections">Salva su Firebase</button></div>
     </section>
   </div>
+<script src="assets/js/shared-roles.js?v=9"></script>
 <script src="assets/js/admin-firebase-rest.js"></script>
-<script src="assets/js/shared-menu.js?v=1.47"></script>
+<script src="assets/js/shared-menu.js?v=1.83"></script>
+<script src="assets/js/offline.js?v=2"></script>
 <script>
 const sources={
   rd148:["R.D. 8 gennaio 1931, n. 148, Allegato A","https://www.normattiva.it/uri-res/N2Ls?urn:nir:stato:regio.decreto:1931-01-08;148="],
@@ -572,7 +575,7 @@ const correctIndex=(questionIndex,testIndex=activeTest)=>{
 function readQuizProfile(){
   try{return JSON.parse(localStorage.getItem("naviturni_logged_agent")||localStorage.getItem("navidiaria.activeAgent")||"null")}catch(_){return null}
 }
-function isQuizAdmin(profile){return ["91","92"].includes(String(profile?.id||""))||String(profile?.role||"").toLowerCase()==="admin"}
+function isQuizAdmin(profile){return window.NaviRoles.isAdminAgent(profile)}
 const topicInfo={
  rd148:["R.D. 148/1931","Ripassa gerarchia, periodo di prova, dimissioni e sistema disciplinare."],
  dpr631:["Regolamento navigazione interna","Ripassa libretto, titoli professionali e manovre periodiche di sicurezza."],

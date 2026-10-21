@@ -2,11 +2,11 @@
 
 const CONFIG = {
   owner: 'PapaMike80',
-  repo: 'NaviDiaria',
+  repo: 'NaviSuite',
   branch: 'main',
-  folders: ['turni', 'ods'],
-  metadataFile: 'assets/js/documenti.json',
-  version: 'v1.07'
+  folders: ['turni', 'ods', 'stampe'],
+  metadataFile: 'documenti.json',
+  version: 'v1.15'
 };
 
 const state = {
@@ -16,6 +16,8 @@ const state = {
 
 const elements = {
   turniGrid: document.getElementById('turniGrid'),
+  terraGrid: document.getElementById('terraGrid'),
+  terraCount: document.getElementById('terraCount'),
   odsGrid: document.getElementById('odsGrid'),
   turniCount: document.getElementById('turniCount'),
   odsCount: document.getElementById('odsCount'),
@@ -40,9 +42,7 @@ function isAdminUser() {
       localStorage.getItem('naviturni_logged_agent') ||
       'null'
     );
-    if (!agent) return false;
-    return ['91', '92'].includes(String(agent.id || '')) ||
-      String(agent.role || '').toLowerCase() === 'admin';
+    return window.NaviRoles.isAdminAgent(agent);
   } catch {
     return false;
   }
@@ -148,7 +148,10 @@ function titleFromFilename(filename, type, number) {
     .trim();
 
   if (type === 'ods') {
-    return `Ordine di servizio n. ${number || cleanName}`;
+    // Orario stagionale nel nome del file (es. "O.d.S. n. 39-2026 INVERNO.pdf"): "— Inverno".
+    const season = /\b(estate|inverno)\b/i.exec(cleanName)?.[1];
+    const suffix = season ? ` — ${season[0].toUpperCase()}${season.slice(1).toLowerCase()}` : '';
+    return `Ordine di servizio n. ${number || cleanName}${suffix}`;
   }
 
   return cleanName
@@ -201,7 +204,38 @@ function pagesPdfUrl(path) {
   return encodeURI(path);
 }
 
+// Stampe generate da tools/stampe (cartella stampe/): titolo leggibile dal nome del file.
+const STAMPE_TITOLI = [
+  [/^Desenzano_pontile_tascabile_rifornimenti/i, 'Desenzano · tascabile del pontilista con i rifornimenti fissi'],
+  [/^Desenzano_pontile_tascabile/i, 'Desenzano · tascabile del pontilista (4 cartoncini fronte/retro)'],
+  [/^Desenzano_pontile/i, 'Servizi a terra Desenzano · pontile e AgB'],
+  [/^Maderno_servizio_terra/i, 'Servizi a terra Maderno · AgM e AgT'],
+  [/_passeggeri_/i, 'Partenze e ritorni per i passeggeri'],
+  [/_traghetto_Torri/i, 'Traghetto Maderno – Torri (passeggeri)'],
+  [/^Cover_/i, 'Cover iPhone 15 da ritagliare'],
+  [/^Schemi_corse_invernali/i, 'Schemi corse invernali · incroci, coincidenze, durata e diaria (D1, D2, P1, P2, SR1, SR2, M1, R1, R2, R3) · A4 fronte-retro da piegare a metà']
+];
+
+function stampaDocument(file) {
+  const filename = file.name;
+  const residence = /(Desenzano|Maderno)/i.exec(filename)?.[1] || '';
+  const title = STAMPE_TITOLI.find(([pattern]) => pattern.test(filename))?.[1] || titleFromFilename(filename, 'stampa');
+  const servizio = /^(Desenzano_pontile|Maderno_servizio_terra)/i.test(filename);
+  return {
+    id: file.sha || file.path,
+    tipo: 'stampa',
+    servizio,
+    residenza: residence.toUpperCase(),
+    titolo: residence && !title.includes(residence) ? `${residence} · ${title}` : title,
+    file: pagesPdfUrl(file.path || `stampe/${filename}`),
+    path: file.path || `stampe/${filename}`,
+    filename,
+    source: 'github'
+  };
+}
+
 function fileToDocument(file, folder) {
+  if (folder === 'stampe') return stampaDocument(file);
   const filename = file.name;
   const path = file.path || `${folder}/${filename}`;
   const metadata = metadataFor(path, filename);
@@ -232,7 +266,15 @@ function fileToDocument(file, folder) {
 async function scanGitHub() {
   const folderResults = await Promise.all(
     CONFIG.folders.map(async folder => {
-      const entries = await fetchJson(githubApiUrl(folder));
+      // Una cartella vuota o rimossa (es. turni/ dopo la pulizia) risponde
+      // 404: vale come cartella senza documenti, non come errore di lettura.
+      let entries;
+      try {
+        entries = await fetchJson(githubApiUrl(folder));
+      } catch (error) {
+        if (/^404\b/.test(error.message)) return [];
+        throw error;
+      }
 
       if (!Array.isArray(entries)) return [];
 
@@ -350,6 +392,31 @@ function turnCard(documentItem) {
   `;
 }
 
+function isHtmlDocument(documentItem) {
+  return /html/i.test(documentItem?.mimeType || '') || /\.html?$/i.test(documentItem?.filename || '');
+}
+
+function terraCard(documentItem) {
+  const weekly = documentItem.tipo === 'servizi_terra';
+  const label = weekly
+    ? (documentItem.settimana ? `SERVIZI A TERRA · SETTIMANA ${documentItem.settimana}` : 'SERVIZI A TERRA · ORARIO INVERNALE')
+    : documentItem.servizio ? 'SERVIZI A TERRA · PDF DA STAMPARE' : 'STAMPA · PDF';
+  const description = weekly
+    ? `Generato il ${formatDate(documentItem.data) || '—'} da Aggiornamenti · si apre anche dalla pagina <a href="orario.html?scalo=${String(documentItem.residenza || '').toUpperCase() === 'MADERNO' ? 'Maderno' : 'Desenzano'}">Scali</a>`
+    : 'Rigenerato automaticamente a ogni nuovo ODS';
+  return `
+    <article class="document${weekly ? ' published-document' : ''}" data-document-id="${escapeHtml(documentItem.id)}">
+      <span class="pdf-icon">${isHtmlDocument(documentItem) ? 'A4' : 'PDF'}</span>
+      <div>
+        <small>${label}</small>
+        <strong>${escapeHtml(documentItem.titolo)}</strong>
+        <p>${description}</p>
+      </div>
+      ${documentActions(documentItem)}
+    </article>
+  `;
+}
+
 function odsCard(documentItem) {
   return `
     <article class="document" data-document-id="${escapeHtml(documentItem.id)}">
@@ -403,12 +470,38 @@ async function openDocument(documentId) {
   const cachedUrl = documentContentCache.get(String(documentItem.id));
   const url = cachedUrl || await documentUrl(documentItem);
   if (!url) throw new Error('Contenuto del documento non disponibile');
+  // Fogli A4 in HTML: visore con "✕" e "Stampa / PDF" che stampa anche su iPhone
+  if (isHtmlDocument(documentItem) && window.NaviServiziTerra?.mostra) {
+    const blob = dataUrlBlob(url);
+    const html = blob ? await blob.text() : await (await fetch(url, { cache: 'no-store' })).text();
+    window.NaviServiziTerra.mostra(html, documentItem.titolo || documentItem.filename);
+    return;
+  }
   elements.viewerTitle.textContent = documentItem.titolo || documentItem.filename || 'Documento';
   elements.viewerDownload.dataset.documentId = String(documentItem.id);
   elements.viewer.hidden = false;
   document.body.classList.add('document-viewer-open');
   elements.viewerClose?.focus();
+  if (isHtmlDocument(documentItem)) {
+    await renderHtmlDocument(url);
+    return;
+  }
   await renderPdfDocument(url);
+}
+
+// Fogli A4 in HTML (Servizi a terra generati da Aggiornamenti): si adattano da soli alla larghezza.
+async function renderHtmlDocument(url) {
+  viewerRenderToken += 1;
+  const blob = dataUrlBlob(url);
+  const html = blob ? await blob.text() : await (await fetch(url, { cache: 'no-store' })).text();
+  if (elements.viewerPages) {
+    elements.viewerPages.replaceChildren();
+    elements.viewerPages.style.display = 'none';
+  }
+  if (elements.viewerFrame) {
+    elements.viewerFrame.style.display = 'block';
+    elements.viewerFrame.srcdoc = html;
+  }
 }
 
 async function renderPdfDocument(url) {
@@ -491,14 +584,18 @@ async function downloadDocument(documentId) {
     if (!response.ok) throw new Error(`Download non disponibile (${response.status})`);
     sourceBlob = await response.blob();
   }
-  const blob = sourceBlob.type === 'application/pdf'
+  const html = isHtmlDocument(documentItem);
+  const type = html ? 'text/html' : 'application/pdf';
+  const blob = sourceBlob.type === type
     ? sourceBlob
-    : new Blob([sourceBlob], { type: 'application/pdf' });
+    : new Blob([sourceBlob], { type });
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement('a');
-  const rawFilename = documentItem.filename || documentItem.titolo || 'documento.pdf';
+  const rawFilename = documentItem.filename || documentItem.titolo || (html ? 'documento.html' : 'documento.pdf');
   link.href = objectUrl;
-  link.download = /\.pdf$/i.test(rawFilename) ? rawFilename : `${rawFilename}.pdf`;
+  link.download = html
+    ? (/\.html?$/i.test(rawFilename) ? rawFilename : `${rawFilename}.html`)
+    : (/\.pdf$/i.test(rawFilename) ? rawFilename : `${rawFilename}.pdf`);
   link.hidden = true;
   document.body.appendChild(link);
   link.click();
@@ -527,6 +624,7 @@ function closeDocument() {
     elements.viewerPages.style.display = '';
   }
   if (elements.viewerFrame) {
+    elements.viewerFrame.removeAttribute('srcdoc');
     elements.viewerFrame.src = 'about:blank';
     elements.viewerFrame.style.display = 'none';
   }
@@ -548,10 +646,34 @@ function countLabel(number) {
   return `${number} document${number === 1 ? 'o' : 'i'}`;
 }
 
+// Residenza dell'agente collegato: i suoi Servizi a terra compaiono per primi.
+function ownResidence() {
+  try {
+    const agent = JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null');
+    return String(agent?.residence || agent?.residenza || '').trim().toUpperCase();
+  } catch {
+    return '';
+  }
+}
+
+function terraScore(documentItem) {
+  const own = documentItem.residenza && documentItem.residenza === ownResidence() ? 0 : 1;
+  const kind = documentItem.tipo === 'servizi_terra' ? 0 : documentItem.servizio ? 1 : 2;
+  return [kind, own, String(documentItem.titolo || '')];
+}
+
 function renderDocuments() {
+  const isTerra = item => item.tipo === 'servizi_terra' || item.tipo === 'stampa';
   const turni = state.documents
-    .filter(item => item.tipo !== 'ods')
+    .filter(item => item.tipo !== 'ods' && !isTerra(item))
     .sort((a, b) => documentScore(b) - documentScore(a));
+
+  const terra = state.documents
+    .filter(isTerra)
+    .sort((a, b) => {
+      const x = terraScore(a), y = terraScore(b);
+      return x[0] - y[0] || x[1] - y[1] || x[2].localeCompare(y[2], 'it');
+    });
 
   const ods = state.documents
     .filter(item => item.tipo === 'ods')
@@ -564,8 +686,16 @@ function renderDocuments() {
     elements.turniGrid.innerHTML = turni.map(turnCard).join('');
   }
 
+  if (elements.terraGrid) {
+    elements.terraGrid.innerHTML = terra.map(terraCard).join('');
+  }
+
   if (elements.odsGrid) {
     elements.odsGrid.innerHTML = ods.map(odsCard).join('');
+  }
+
+  if (elements.terraCount) {
+    elements.terraCount.textContent = countLabel(terra.length);
   }
 
   if (elements.turniCount) {
@@ -609,7 +739,7 @@ function renderDocuments() {
   });
   document.querySelectorAll('[data-document-id]').forEach(card => {
     card.addEventListener('click', event => {
-      if (event.target.closest('.document-actions')) return;
+      if (event.target.closest('.document-actions') || event.target.closest('a[href]')) return;
       openDocument(card.dataset.documentId).catch(error => {
         if(elements.notice){elements.notice.hidden=false;elements.notice.textContent=`Non riesco ad aprire il documento: ${error.message}`}
       });
@@ -644,7 +774,7 @@ async function loadDocuments() {
       elements.notice.hidden = false;
       elements.notice.textContent =
         `Non riesco a leggere ora le cartelle GitHub (${error.message}). ` +
-        'Mostro i documenti registrati in assets/js/documenti.json.';
+        'Mostro i documenti registrati in documenti.json.';
     }
   }
 
@@ -663,6 +793,58 @@ async function loadDocuments() {
 
   if (elements.refreshButton) elements.refreshButton.disabled = false;
 }
+
+// Sezioni Turni, ODS e Servizi a terra: chiuse all'apertura, si aprono toccando il titolo
+// (o dal menu, che porta all'ancora della sezione).
+const SECTIONS = [['turni-docs', 'turniGrid'], ['ods-docs', 'odsGrid'], ['terra-docs', 'terraGrid']];
+
+function setSectionOpen(headingId, open) {
+  const pair = SECTIONS.find(([id]) => id === headingId);
+  const heading = pair && document.getElementById(pair[0]);
+  const grid = pair && document.getElementById(pair[1]);
+  if (!heading || !grid) return;
+  heading.classList.toggle('is-collapsed', !open);
+  heading.setAttribute('aria-expanded', String(open));
+  grid.classList.toggle('is-collapsed', !open);
+}
+
+function installCollapsibleSections() {
+  SECTIONS.forEach(([headingId]) => {
+    const heading = document.getElementById(headingId);
+    if (!heading || heading.classList.contains('collapsible')) return;
+    heading.classList.add('collapsible');
+    heading.setAttribute('role', 'button');
+    heading.setAttribute('tabindex', '0');
+    const chevron = document.createElement('span');
+    chevron.className = 'section-chevron';
+    chevron.setAttribute('aria-hidden', 'true');
+    chevron.textContent = '⌄';
+    const toggle = document.createElement('span');
+    toggle.className = 'section-toggle';
+    const count = heading.querySelector('.count');
+    if (count) toggle.appendChild(count);
+    toggle.appendChild(chevron);
+    heading.appendChild(toggle);
+    const flip = () => setSectionOpen(headingId, heading.classList.contains('is-collapsed'));
+    heading.addEventListener('click', flip);
+    heading.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); flip(); }
+    });
+    setSectionOpen(headingId, false);
+  });
+}
+
+function openSectionFromHash() {
+  const id = decodeURIComponent(location.hash.slice(1));
+  if (SECTIONS.some(([headingId]) => headingId === id)) setSectionOpen(id, true);
+}
+
+installCollapsibleSections();
+window.addEventListener('hashchange', openSectionFromHash);
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (link) setTimeout(openSectionFromHash, 0);
+});
 
 if (elements.refreshButton) {
   elements.refreshButton.addEventListener('click', loadDocuments);

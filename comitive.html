@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0b1c26">
+  <title>NaviSuite · Comitive</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* Comitive dell'O.d.S. giorno per giorno, nello stile a riquadri (docs/STILE-NAVISUITE.md). Solo admin e Ufficio Movimento. */
+    :root{color-scheme:dark;--bg:#071923;--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--cyan:#67d7e6;--violet:#a78bfa;--amber:#fbbf24;--orange:#fb923c;--rose:#fb7185;--green:#52c879;--mono:'DM Mono',ui-monospace,monospace}
+    *{box-sizing:border-box}
+    html{background:var(--surface)}
+    body.comitive-page{margin:0;min-height:100vh;color:var(--ink);font:500 14px/1.45 Manrope,system-ui,sans-serif;background:linear-gradient(160deg,color-mix(in srgb,var(--teal) 9%,var(--surface)),var(--surface) 40%,color-mix(in srgb,var(--violet) 9%,var(--surface)));padding-bottom:env(safe-area-inset-bottom,0px)}
+    .comitive-page .app-sidebar{display:none}
+    .comitive-page>header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:calc(18px + env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+    .comitive-page>header small{display:block;color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.22em}
+    .comitive-page>header h1{margin:4px 0 0;font-size:24px;font-weight:800;background:linear-gradient(90deg,var(--teal),var(--cyan) 50%,var(--violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+    .comitive-page>header #navisuite-header-menu{position:static!important;flex-shrink:0;width:48px!important;height:48px!important;border:1px solid var(--line)!important;border-radius:14px!important;background:var(--card)!important;color:var(--teal)!important;font-size:22px!important}
+    main{width:min(460px,calc(100% - 32px));margin:4px auto 40px;display:grid;gap:12px}
+    .mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+    .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    .bar p{flex:1 1 180px;margin:0;font-size:12px;color:var(--muted)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:8px 14px;border:0;border-radius:12px;background:linear-gradient(90deg,var(--teal),var(--cyan));color:var(--on);font:800 13px Manrope,system-ui,sans-serif;cursor:pointer}
+    .btn.out{background:transparent;border:1px solid color-mix(in srgb,var(--rose) 55%,transparent);color:var(--rose);min-height:30px;padding:4px 10px;font-size:11px}
+    .kpi{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+    .kpi div{display:grid;gap:2px;padding:8px 10px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+    .kpi small{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--teal)}
+    .kpi b{font:500 20px var(--mono)}
+    .sez{--c:var(--teal);display:grid;gap:8px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+    .sez h3{margin:0;font-size:14px;font-weight:800;color:var(--c);display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+    .sez h3 small{font:500 11px var(--mono);color:var(--muted)}
+    .giorno>summary{list-style:none;cursor:pointer}.giorno>summary::-webkit-details-marker{display:none}
+    .giorno>summary h3::before{content:'▸';margin-right:6px;color:var(--muted)}.giorno[open]>summary h3::before{content:'▾'}
+    .giorno>summary h3{justify-content:flex-start}.giorno>summary h3 small{margin-left:auto}
+    .sez.oggi{box-shadow:0 0 0 2px var(--c)}
+    /* tabella delle comitive: colonne come l'allegato dell'O.d.S., con i colori di NaviSuite */
+    .tab{display:grid;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+    .tr{display:grid;grid-template-columns:minmax(150px,1.3fr) minmax(170px,1.6fr) minmax(110px,1fr) 44px 64px 86px minmax(120px,1fr);gap:8px;align-items:center;min-width:820px;padding:6px 10px;border-radius:10px;background:var(--card);border-left:4px solid var(--g,var(--cyan));font-size:12.5px}
+    .tr.th{background:transparent;border-left-color:transparent;padding-top:0;padding-bottom:2px;font-size:9.5px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--c)}
+    .tr .c{text-align:center;justify-self:center}
+    .tr:not(.th){cursor:pointer}.tr.edit{outline:2px solid var(--cyan)}
+    .btn[hidden]{display:none}
+    .tappe{display:grid;gap:6px}.tappe .lbl{font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+    #f-tappe{display:grid;gap:6px}
+    .tp{display:grid;grid-template-columns:26px minmax(0,1fr) auto;gap:8px;align-items:end}
+    .tp-n{display:grid;place-items:center;width:26px;height:26px;margin-bottom:8px;border-radius:50%;background:var(--c);color:var(--on);font:800 12px Manrope,system-ui,sans-serif}
+    .tp label{display:grid;gap:3px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}.tp label i{font-style:normal;text-transform:none;letter-spacing:0;font-weight:600}
+    .tp-x{height:40px;width:40px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--muted);cursor:pointer}
+    .tp-add{justify-self:start;min-height:40px;padding:0 16px;border-radius:12px;border:1px dashed var(--c);background:color-mix(in srgb,var(--c) 10%,transparent);color:var(--c);font:800 13px Manrope,system-ui,sans-serif;cursor:pointer}
+    .annulla{background:transparent;border:1px solid var(--line);color:var(--muted)}
+    .sugg{display:grid;gap:6px}.sugg:empty{display:none}
+    .sugg .leg{display:grid;gap:4px;padding:8px;border-radius:12px;background:var(--card);border:1px solid var(--line)}
+    .sugg .leg>b{font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--cyan)}
+    .sugg .opz{display:flex;flex-wrap:wrap;gap:4px}
+    .sugg button{display:inline-flex;align-items:center;gap:5px;padding:4px 8px;border-radius:999px;border:1px solid color-mix(in srgb,var(--t) 60%,transparent);background:transparent;color:var(--ink);font:500 12px var(--mono);cursor:pointer}
+    .sugg button b{padding:0 6px;border-radius:999px;background:var(--t);color:var(--on);font:800 10px Manrope,system-ui,sans-serif}
+    .sugg button[aria-pressed="true"]{background:color-mix(in srgb,var(--t) 30%,transparent);outline:2px solid var(--t)}
+    .sugg p{margin:0;font-size:11px;color:var(--muted)}
+    .sugg .cmb{flex-wrap:wrap;border-radius:12px;text-align:left}.sugg .cmb i{font-style:normal;color:var(--amber);font:800 11px Manrope,system-ui,sans-serif}
+    .tr .perc{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+    .tr .cli b{font-weight:800;overflow-wrap:anywhere}
+    .tr .cit{color:var(--muted);text-align:center}
+    .gr{display:inline-grid;place-items:center;min-width:38px;height:28px;padding:0 6px;border:2px solid var(--g);border-radius:999px;background:color-mix(in srgb,var(--g) 18%,transparent);color:var(--g);font:500 12px var(--mono);white-space:nowrap}
+    .pg{padding:2px 8px;border-radius:999px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;background:color-mix(in srgb,var(--p) 20%,transparent);color:var(--p);border:1px solid color-mix(in srgb,var(--p) 45%,transparent)}
+    .nuova{font-size:9px;font-weight:900;color:var(--violet);font-style:normal}
+    .tr.th span:nth-child(3){text-align:center}
+    .naz-tel{display:none;font-style:normal}@media(max-width:720px){.naz-tel{display:inline}}
+    /* telefono: stesse informazioni su due righe (percorso e corse; cliente, città, naz.), pax e pagamento a destra */
+    @media(max-width:720px){
+      .tab{overflow:visible}
+      .tr{min-width:0;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"perc pax" "cli pag" "cit cit" "tc tc";gap:3px 8px}
+      .tr.th{display:none}
+      .tr .perc{grid-area:perc;font-weight:500}.tr .cli{grid-area:cli}.tr .tc{grid-area:tc}
+      .tr .cit{grid-area:cit;text-align:left;font-size:11px}
+      .tr>span:nth-child(4){display:none}
+      .tr>span:nth-child(5){grid-area:pax;justify-self:end}.tr>span:nth-child(6){grid-area:pag;justify-self:end}
+    }
+    .tc{display:flex;flex-wrap:wrap;gap:4px}.ct{display:inline-flex;align-items:center;gap:4px;padding:1px 2px 1px 7px;border-radius:999px;border:1px solid color-mix(in srgb,var(--t) 55%,transparent);font-size:11px;color:var(--ink)}.ct i{font-style:normal}.ct b{padding:0 6px;border-radius:999px;background:var(--t);color:var(--on);font:800 10px Manrope,system-ui,sans-serif}
+    select,input{width:100%;min-width:0;font:600 14px Manrope,system-ui,sans-serif;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink)}
+    input[type=date]{-webkit-appearance:none;appearance:none;min-height:42px}
+    .adm{--c:var(--cyan);border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+    .adm>summary{list-style:none;display:flex;align-items:center;gap:8px;padding:12px;cursor:pointer;font-size:14px;font-weight:800;color:var(--c)}
+    .adm>summary::-webkit-details-marker{display:none}
+    .adm>summary span{flex:1}
+    .adm>summary::after{content:'▾';color:var(--muted)}
+    .adm[open]>summary::after{content:'▴'}
+    .cnt{padding:2px 9px;border-radius:999px;background:var(--c);color:var(--on);font:500 11px var(--mono)}
+    .form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 12px 12px}
+    .form label{display:grid;gap:3px;font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--c)}
+    .form .w{grid-column:1/-1}
+    .msg{grid-column:1/-1;margin:0;font-size:12px;color:var(--muted)}.msg.bad{color:var(--rose)}.msg.ok{color:var(--green)}
+    .cc-col{display:contents}
+    .vuoto{margin:0;font-size:12px;color:var(--muted)}
+    @media(min-width:1000px){
+      main{width:min(1380px,calc(100% - 48px))}
+      .cc-col{display:grid;gap:12px}
+    }
+    /* ---------- Stampa: tabella come l'allegato «Comitive O.d.S.», fondo bianco ---------- */
+    .passati{width:100%;padding:9px;border:1px dashed var(--line);border-radius:12px;background:transparent;color:var(--muted);font:700 13px Manrope,system-ui,sans-serif;cursor:pointer}
+    .sett{width:auto;min-width:0;flex:0 1 auto;padding:8px 10px;font:600 13px Manrope,system-ui,sans-serif}
+    /* ---------- Stampa: come l'allegato «Comitive O.d.S.» (Arial, celle riquadrate, una settimana da sabato a venerdì) ---------- */
+    #stampa{display:none}
+    @media print{
+      @page{size:A4 portrait;margin:10mm 8mm}
+      html,body.comitive-page{background:#fff!important;color:#000;padding:0}
+      body.comitive-page>*:not(#stampa){display:none!important}
+      #stampa{display:block;font:7.5pt/1.15 Arial,Helvetica,sans-serif;color:#000}
+      #stampa h1{margin:0 0 5mm;font:bold 11pt Arial,Helvetica,sans-serif;text-align:center}
+      #stampa table{width:100%;border-collapse:separate;border-spacing:1.1mm .5mm;table-layout:fixed}
+      #stampa th{font-weight:bold;text-align:center;padding:0 .8mm .6mm;border-bottom:.6pt solid #000}
+      #stampa th.l{text-align:left}
+      #stampa td{border:.5pt solid #000;padding:.3mm .8mm;text-align:center;white-space:nowrap;overflow:hidden}
+      #stampa td.l{text-align:left}
+      #stampa tr.giorno td{border:0;padding:1.6mm 0 .2mm;text-align:left;font-weight:bold;text-decoration:underline}
+      #stampa tr.giorno{break-after:avoid;page-break-after:avoid}
+      #stampa tr{break-inside:avoid;page-break-inside:avoid}
+      #stampa thead{display:table-header-group}
+    }
+  </style>
+<script src="assets/js/beta-readonly.js?v=1"></script>
+</head>
+<body class="comitive-page">
+  <aside class="app-sidebar" id="comitive-sidebar"></aside>
+  <header class="page-header"><div><small>MOVIMENTO</small><h1>Comitive</h1></div></header>
+  <main id="pagina" hidden>
+    <div class="bar"><p id="fonte"></p><select class="sett" id="settimana" aria-label="Settimana da stampare"></select><button class="btn" id="stampa-btn" type="button">🖨 Stampa OdS Comitive</button></div>
+    <div class="kpi" id="kpi"></div>
+    <details class="adm" id="nuova-box" style="--c:var(--cyan)">
+      <summary><span id="form-titolo">＋ Nuova comitiva</span><b class="cnt" id="nuove-cnt">0</b></summary>
+      <form class="form" id="nuova-form" autocomplete="off">
+        <label>Data<input type="date" id="f-data" required></label>
+        <label>Pax<input type="text" id="f-pax" inputmode="numeric" placeholder="40" required></label>
+        <label class="w">Cliente<input type="text" id="f-cliente" list="dl-clienti" placeholder="Ag. Michelangelo (230154)" required></label><datalist id="dl-clienti"></datalist>
+        <label>Città<input type="text" id="f-citta" placeholder="Riva del Garda"></label>
+        <label>Naz.<input type="text" id="f-naz" placeholder="I" maxlength="3"></label>
+        <div class="w tappe"><span class="lbl">Percorso</span><input type="hidden" id="f-percorso"><div id="f-tappe"></div><datalist id="dl-scali"></datalist></div>
+        <div class="w sugg" id="f-sugg"></div>
+        <label>Corse<input type="text" id="f-corse" placeholder="62-57" required></label>
+        <label>Pagamento<select id="f-pagamento"><option value="voucher">voucher</option><option value="diretto">diretto</option></select></label>
+        <button class="btn w" type="submit" id="f-salva">Salva comitiva</button>
+        <button class="btn w annulla" type="button" id="f-annulla" hidden>Annulla modifica</button>
+        <p class="msg" id="f-msg"></p>
+      </form>
+    </details>
+    <div class="cc-col" id="giorni"></div>
+  </main>
+  <div id="stampa"></div>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/admin-pocketbase-rest.js?v=6"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/orario-corse.js?v=1"></script>
+  <script src="assets/js/orario-corse-estate.js?v=1"></script>
+  <script src="assets/js/orario-giorno.js?v=7"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/coincidenze-ufficiali.js?v=1"></script>
+  <script src="assets/js/orari-stagioni.js?v=9"></script>
+  <script src="assets/js/comitive-ods.js?v=1"></script>
+  <script src="assets/js/comitive.js?v=8"></script>
+  <script>
+  (function(){
+    const $=id=>document.getElementById(id);
+    const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    let agent=null;try{agent=JSON.parse(localStorage.getItem('naviturni_logged_agent')||localStorage.getItem('navidiaria.activeAgent')||'null')}catch{}
+    // Solo amministratori e Ufficio Movimento
+    const ammesso=a=>!!a&&(window.NaviRoles?.isAdminAgent?.(a)||String(a.qualifica||'').toLowerCase()==='movimento');
+    if(!ammesso(agent)){location.replace('index.html');return;}
+    $('pagina').hidden=false;
+
+    const C=window.NaviComitive,ODS=window.NaviComitiveOds||{ods:'',comitive:[]};
+    const autore=String(agent?.name||agent?.id||'');
+    const state={lista:[],pb:false};
+    const giornoLungo=d=>new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'}).format(new Date(`${d}T12:00:00`));
+    const giornoCorto=d=>new Intl.DateTimeFormat('it-IT',{weekday:'short',day:'numeric',month:'short'}).format(new Date(`${d}T12:00:00`));
+    const oggi=new Date().toLocaleDateString('sv-SE');
+    const paxN=p=>parseInt(String(p),10)||0;
+    const tutte=()=>state.lista.slice().sort((a,b)=>a.data.localeCompare(b.data)||a.percorso.localeCompare(b.percorso,'it')||a.cliente.localeCompare(b.cliente,'it'));
+    const COLORI=window.NaviOrariStagioni?.COLORI||{};
+    const COL_PAG={voucher:'var(--violet)',diretto:'var(--amber)'};
+    const trova=k=>state.lista.find(c=>c.chiave===k);
+
+    // Una riga per comitiva, con le colonne dell'allegato O.d.S.: percorso, cliente, città, naz., n. pax, pagamento, corse (con il turno)
+    const TESTA='<div class="tr th"><span>percorso</span><span>cliente</span><span>città</span><span class="c">naz.</span><span class="c">n. pax</span><span class="c">pagamento</span><span>corse</span></div>';
+    function riga(c){
+      const col=COL_PAG[c.pagamento]||'var(--cyan)';
+      return `<div class="tr" style="--g:${col}" data-k="${esc(c.chiave)}" role="button" tabindex="0" title="Tocca per modificare"><span class="perc">${esc(c.percorso)}</span><span class="cli"><b>${esc(c.cliente)}</b>${c.fonte==='manuale'?' <i class="nuova">NUOVA</i>':''}${c.fonte==='manuale'&&c.id?` <button class="btn out" type="button" data-togli="${esc(c.id)}">Togli</button>`:''}</span>`
+        +`<span class="cit">${esc(c.citta||'---')}<i class="naz-tel">${c.naz?` · ${esc(c.naz)}`:''}</i></span><span class="c mono">${esc(c.naz||'-')}</span><span class="c"><span class="gr">${esc(c.pax)}</span></span><span class="c"><span class="pg" style="--p:${col}">${esc(c.pagamento)}</span></span>`
+        +`<span class="tc">${C.turniCorse(c).map(x=>`<span class="ct" style="--t:${COLORI[x.turno]||'var(--muted)'}"><i class="mono">${esc(x.numero)}</i>${x.turno?`<b>${esc(x.turno)}</b>`:'<b title="Corsa non trovata nell\'orario del giorno">?</b>'}</span>`).join('')}</span></div>`;
+    }
+
+    // Settimane da sabato a venerdi'
+    const piuGiorni=(d,n)=>{const x=new Date(`${d}T12:00:00`);x.setDate(x.getDate()+n);return x.toLocaleDateString('sv-SE');};
+    const sabato=d=>piuGiorni(d,-((new Date(`${d}T12:00:00`).getDay()+1)%7));
+    const titoloSettimana=s=>{const f=piuGiorni(s,6),fmt=(d,o)=>new Intl.DateTimeFormat('it-IT',o).format(new Date(`${d}T12:00:00`));return s.slice(0,7)===f.slice(0,7)?`dal ${fmt(s,{weekday:'long',day:'numeric'})} al ${fmt(f,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`:`dal ${fmt(s,{weekday:'long',day:'numeric',month:'long'})} al ${fmt(f,{weekday:'long',day:'numeric',month:'long',year:'numeric'})}`;};
+    state.mostraPassati=false;
+    // giorni chiusi all'apertura (resta aperto quello che si apre a mano, anche dopo un aggiornamento)
+    state.aperti=new Set();
+    document.addEventListener('toggle',e=>{const d=e.target.dataset?.giorno;if(d){if(e.target.open)state.aperti.add(d);else state.aperti.delete(d);}},true);
+    function render(){
+      const lista=tutte(),tuttiGiorni=[...new Set(lista.map(c=>c.data))];
+      const passati=tuttiGiorni.filter(d=>d<oggi),giorni=state.mostraPassati?tuttiGiorni:tuttiGiorni.filter(d=>d>=oggi);
+      const settimane=[...new Set(tuttiGiorni.map(sabato))],scelta=$('settimana').value;
+      const proposta=settimane.find(s=>piuGiorni(s,6)>=oggi)||settimane[settimane.length-1]||'';
+      $('settimana').innerHTML=settimane.map(s=>`<option value="${s}">${esc(giornoCorto(s))} – ${esc(giornoCorto(piuGiorni(s,6)))}</option>`).join('');
+      $('settimana').value=settimane.includes(scelta)?scelta:proposta;
+      $('settimana').hidden=settimane.length<2;
+      $('fonte').textContent=`${tuttiGiorni.length} giorni${state.pb?'':' · archivio non raggiungibile: le nuove comitive non si possono salvare'}`;
+      $('kpi').innerHTML=`<div><small>Comitive</small><b>${lista.length}</b></div><div><small>Passeggeri</small><b>${lista.reduce((t,c)=>t+paxN(c.pax),0)}</b></div><div><small>Corse</small><b>${new Set(lista.flatMap(c=>C.numeri(c.corse).map(n=>c.data+n))).size}</b></div>`;
+      $('nuove-cnt').textContent=lista.filter(c=>c.fonte==='manuale').length;
+      $('giorni').innerHTML=giorni.length?giorni.map(d=>{const del=lista.filter(c=>c.data===d);return `<details class="sez giorno${d===oggi?' oggi':''}" data-giorno="${d}" style="--c:var(--teal)"${state.aperti.has(d)?' open':''}><summary><h3>${esc(giornoCorto(d))}${d===oggi?' · oggi':''}<small>${del.length} comitive · ${del.reduce((t,c)=>t+paxN(c.pax),0)} pax</small></h3></summary><div class="tab">${TESTA}${del.map(riga).join('')}</div></details>`}).join(''):'<p class="vuoto">Nessuna comitiva da oggi in poi.</p>';
+      if(passati.length)$('giorni').insertAdjacentHTML('afterbegin',`<button type="button" class="passati" data-passati>${state.mostraPassati?'▴ Nascondi i giorni passati':`▾ Mostra i giorni passati (${passati.length})`}</button>`);
+    }
+
+    // Stampa: tabella dell'allegato «Comitive O.d.S.» su fondo bianco
+    function stampa(){
+      const s0=$('settimana').value,s1=piuGiorni(s0,6);
+      const lista=tutte().filter(c=>c.data>=s0&&c.data<=s1),giorni=[...new Set(lista.map(c=>c.data))];
+      const vuoto=v=>esc(v||'');
+      $('stampa').innerHTML=`<h1>Comitive ${esc(titoloSettimana(s0))}</h1><table><colgroup><col style="width:21.5%"><col style="width:25%"><col style="width:15%"><col style="width:4%"><col style="width:8%"><col style="width:8%"><col style="width:3%"><col style="width:8%"></colgroup>`
+        +`<thead><tr><th class="l">percorso</th><th>cliente</th><th>città</th><th>naz.</th><th>n. pax</th><th>pagamento</th><th>pranzo</th><th>corse</th></tr></thead><tbody>`
+        +giorni.map(d=>`<tr class="giorno"><td colspan="8">${esc(giornoLungo(d))}</td></tr>`+lista.filter(c=>c.data===d).map(c=>`<tr><td class="l">${esc(c.percorso)}</td><td class="l">${esc(c.cliente)}</td><td>${c.citta?esc(c.citta):'---'}</td><td>${c.naz?esc(c.naz):'-'}</td><td>${esc(c.pax)}</td><td>${esc(c.pagamento)}</td><td></td><td>${esc(c.corse)}</td></tr>`).join('')).join('')
+        +'</tbody></table>';
+      window.print();
+    }
+    $('stampa-btn').addEventListener('click',stampa);
+
+    document.addEventListener('click',async e=>{
+      if(e.target.closest('[data-passati]')){state.mostraPassati=!state.mostraPassati;render();return;}
+      const b=e.target.closest('[data-togli]');if(!b)return;
+      if(!confirm('Togliere questa comitiva?'))return;
+      try{await C.togli(b.dataset.togli);state.lista=state.lista.filter(c=>c.id!==b.dataset.togli);render();}catch(err){alert(`Non tolta: ${err.message}`)}
+    });
+    // ---------- Modulo: nuova comitiva o modifica (tocco su una riga) ----------
+    const F=['data','cliente','percorso','pax','corse','pagamento','citta','naz'];
+    const v=id=>$(id).value.trim();
+    state.clienti=[];state.edit=null;
+    function suggerimenti(){
+      // clienti: anagrafica + clienti delle comitive (nome senza numero di prenotazione)
+      const nomi=new Map();
+      tutte().forEach(c=>{const n=C.nomeBase(c.cliente);if(n)nomi.set(n,{nome:n,citta:c.citta,naz:c.naz,pagamento:c.pagamento});});
+      state.clienti.forEach(c=>nomi.set(c.nome,c));
+      state.anagrafica=nomi;
+      $('dl-clienti').innerHTML=[...nomi.values()].sort((a,b)=>a.nome.localeCompare(b.nome,'it')).map(c=>`<option value="${esc(c.nome)}">${esc([c.citta,c.naz].filter(Boolean).join(' · '))}</option>`).join('');
+      let sc=[];try{sc=window.NaviOrariStagioni?.scali?.(v('f-data')||oggi)||[];}catch{sc=[];}
+      $('dl-scali').innerHTML=sc.map(n=>`<option value="${esc(n)}">`).join('');
+    }
+    // cliente gia' in anagrafica: completa citta', nazione e pagamento
+    $('f-cliente').addEventListener('change',()=>{
+      const c=state.anagrafica?.get(C.nomeBase(v('f-cliente')));
+      if(!c)return;
+      if(!v('f-citta'))$('f-citta').value=c.citta||'';
+      if(!v('f-naz'))$('f-naz').value=c.naz||'';
+      if(c.pagamento)$('f-pagamento').value=c.pagamento;
+    });
+    // corse possibili per ogni tratto del percorso, dall'orario del giorno scelto
+    function corsePossibili(){
+      const box=$('f-sugg'),data=v('f-data'),scali=v('f-percorso').split('+')[0].split('-').map(x=>x.trim()).filter(Boolean);
+      if(!data||scali.length<2){box.innerHTML='';return;}
+      const scelte=C.numeri(v('f-corse'));
+      box.innerHTML=scali.slice(1).map((a,k)=>{
+        const da=scali[k],opz=C.corsePerTratta(data,da,a);
+        const pill=o=>`${esc(o.parte)}→${esc(o.arriva)} · c. ${esc(o.numero)}${o.sr?' SR':''} <b style="background:${COLORI[o.turno]||'var(--muted)'}">${esc(o.turno||'?')}</b>`;
+        if(opz.length)return `<div class="leg"><b>${esc(da)} → ${esc(a)}</b><div class="opz">${opz.map(o=>`<button type="button" data-tratto="${k}" data-corsa="${esc(o.numero)}" aria-pressed="${scelte[k]===o.numero}" style="--t:${COLORI[o.turno]||'var(--muted)'}">${pill(o)}</button>`).join('')}</div></div>`;
+        // nessuna corsa diretta: soluzioni con un cambio (il cambio entra nel percorso)
+        const cambi=C.corseConCambio(data,da,a);
+        return `<div class="leg"><b>${esc(da)} → ${esc(a)} · con cambio</b>${cambi.length?`<div class="opz cambi">${cambi.map(o=>`<button type="button" class="cmb" data-tratto="${k}" data-corsa="${esc(o.prima.numero)}" data-corsa2="${esc(o.poi.numero)}" data-cambio="${esc(o.cambio)}" style="--t:var(--amber)">${pill(o.prima)}<i>⇄ ${esc(o.cambio)}</i>${pill(o.poi)}</button>`).join('')}</div><p>Un tocco aggiunge al percorso lo scalo del cambio.</p>`:'<p>Nessuna soluzione con un cambio nell\'orario del giorno.</p>'}</div>`;
+      }).join('');
+    }
+    ['f-data','f-percorso','f-corse'].forEach(id=>$(id).addEventListener('input',corsePossibili));
+    $('f-sugg').addEventListener('click',e=>{
+      const b=e.target.closest('[data-tratto]');if(!b)return;
+      if(b.dataset.cambio){
+        // tratto con cambio: Da-X-A nel percorso e le due corse al posto di una
+        const parti=v('f-percorso').split('+'),scali=parti[0].split('-').map(x=>x.trim()).filter(Boolean),k=+b.dataset.tratto,corse=C.numeri(v('f-corse'));
+        while(corse.length<scali.length-1)corse.push('?');
+        scali.splice(k+1,0,b.dataset.cambio);corse.splice(k,1,b.dataset.corsa,b.dataset.corsa2);
+        $('f-percorso').value=[scali.join('-'),...parti.slice(1)].join('+');tappeDaPercorso();
+        $('f-corse').value=corse.join('-').replace(/(-\?)+$/,'');
+        corsePossibili();return;
+      }
+      const n=v('f-percorso').split('+')[0].split('-').filter(x=>x.trim()).length-1,corse=C.numeri(v('f-corse'));
+      while(corse.length<n)corse.push('');
+      corse[+b.dataset.tratto]=b.dataset.corsa;
+      $('f-corse').value=corse.map(x=>x||'?').join('-').replace(/(-\?)+$/,'');
+      corsePossibili();
+    });
+    // Percorso a tappe: «＋ Partenza», poi Destinazione, poi altre destinazioni facoltative (scalo scritto o dall'elenco)
+    state.tappe=[];state.partenza=false;
+    const tappeDaPercorso=()=>{state.tappe=v('f-percorso').split(/[-+]/).map(x=>x.trim()).filter(Boolean);state.partenza=state.tappe.length>0;renderTappe();};
+    function scriviPercorso(){$('f-percorso').value=state.tappe.join('-');corsePossibili();}
+    function renderTappe(){
+      const box=$('f-tappe');
+      if(!state.partenza){box.innerHTML='<button type="button" class="tp-add" data-tp-start>＋ Partenza</button>';return;}
+      const nome=i=>i===0?'Partenza':i===1?'Destinazione':'Altra destinazione';
+      const campi=[...state.tappe,''];
+      box.innerHTML=campi.map((t,i)=>`<div class="tp"><span class="tp-n">${i+1}</span><label>${nome(i)}${i>1&&!t?' <i>(facoltativa)</i>':''}<input type="text" list="dl-scali" data-tp="${i}" value="${esc(t)}" placeholder="Scrivi o scegli uno scalo"></label>${t?`<button type="button" class="tp-x" data-tp-x="${i}" aria-label="Togli ${esc(t)}">✕</button>`:''}</div>`).join('');
+    }
+    $('f-tappe').addEventListener('click',e=>{
+      if(e.target.closest('[data-tp-start]')){state.partenza=true;renderTappe();$('f-tappe').querySelector('input')?.focus();return;}
+      const x=e.target.closest('[data-tp-x]');if(!x)return;
+      state.tappe.splice(+x.dataset.tpX,1);if(!state.tappe.length)state.partenza=false;scriviPercorso();renderTappe();
+    });
+    $('f-tappe').addEventListener('change',e=>{
+      const i=e.target.dataset?.tp;if(i===undefined)return;
+      const val=e.target.value.trim();
+      if(val)state.tappe[+i]=val;else state.tappe.splice(+i,1);
+      scriviPercorso();renderTappe();
+      $('f-tappe').querySelector(`[data-tp="${state.tappe.length}"]`)?.focus();
+    });
+    function modulo(c){
+      state.edit=c||null;
+      F.forEach(k=>{$(`f-${k}`).value=c?(c[k]||''):(k==='pagamento'?'voucher':'');});
+      tappeDaPercorso();
+      $('form-titolo').textContent=c?`✎ Modifica · ${c.cliente}`:'＋ Nuova comitiva';
+      $('f-salva').textContent=c?'Salva modifiche':'Salva comitiva';
+      $('f-annulla').hidden=!c;$('f-msg').textContent='';
+      document.querySelectorAll('.tr.edit').forEach(x=>x.classList.remove('edit'));
+      corsePossibili();
+    }
+    $('f-annulla').addEventListener('click',()=>modulo(null));
+    $('giorni').addEventListener('click',e=>{
+      if(e.target.closest('button'))return;
+      const r=e.target.closest('.tr[data-k]');if(!r)return;
+      const c=trova(r.dataset.k);if(!c)return;
+      modulo(c);r.classList.add('edit');
+      $('nuova-box').open=true;$('nuova-box').scrollIntoView({behavior:'smooth',block:'start'});
+    });
+    $('nuova-form').addEventListener('submit',async e=>{
+      e.preventDefault();
+      const msg=$('f-msg');
+      const campi=Object.fromEntries(F.map(k=>[k,v(`f-${k}`)]));campi.naz=campi.naz.toUpperCase();
+      if(state.tappe.length<2){msg.className='msg bad';msg.textContent='Indica almeno la partenza e una destinazione.';return;}
+      if(!campi.data||!campi.cliente||!campi.percorso||!campi.pax||!campi.corse){msg.className='msg bad';msg.textContent='Compila data, cliente, percorso, pax e corse.';return;}
+      msg.className='msg';msg.textContent='Salvataggio…';
+      try{
+        const prima=state.edit,salvata=await C.salva(prima?{...prima,...campi}:{...campi,fonte:'manuale'},autore);
+        if(prima)state.lista=state.lista.map(c=>c===prima?salvata:c);else state.lista.push(salvata);
+        C.salvaCliente(salvata).then(()=>C.caricaClienti()).then(l=>{state.clienti=l;suggerimenti();}).catch(err=>console.warn('Cliente non salvato',err));
+        modulo(null);msg.className='msg ok';msg.textContent=prima?'Modifiche salvate.':'Comitiva salvata.';render();suggerimenti();
+      }catch(err){msg.className='msg bad';msg.textContent=`Non salvata: ${err.message}`;}
+    });
+
+    (async()=>{
+      renderTappe();
+      const r=await C.carica();state.lista=r.lista;state.pb=r.pb;render();suggerimenti();
+      if(r.pb)C.caricaClienti().then(l=>{state.clienti=l;suggerimenti();});
+      // le comitive dell'O.d.S. non ancora in archivio vengono copiate una volta
+      if(r.pb&&state.lista.some(c=>!c.id&&c.fonte==='ods')){try{await C.copiaOds(state.lista,autore);render();}catch(err){console.warn('Comitive O.d.S. non copiate',err)}}
+    })();
+  })();
+  </script>
+</body>
+</html>

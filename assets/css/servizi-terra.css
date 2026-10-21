@@ -1,0 +1,166 @@
+/* Pagina Servizi a terra: stesso aspetto scuro di NaviTurni (schede, chip colorati dei turni). */
+body.servizi-terra-page{min-height:100vh;margin:0;background:radial-gradient(900px 420px at 15% -10%,#123846 0,transparent 62%),#071820;color:#e8f7f7;font-family:"DM Sans",Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+.servizi-terra-page .page-header{position:relative;padding:20px 70px 16px 22px;border-bottom:1px solid rgba(45,212,191,.22);background:radial-gradient(520px 220px at 12% -30%,rgba(45,212,191,.10),transparent 60%),rgba(11,28,38,.94)}
+.terra-label{margin:0 0 4px;color:#2dd4bf;font-size:12px;font-weight:800;letter-spacing:.2em}
+.terra-title{margin:0;font:800 26px/1.1 Manrope,system-ui,sans-serif}
+.terra-context{margin:5px 0 0;color:#9bc8d5;font-size:13px}
+#servizi-terra{max-width:1120px;margin:0 auto;padding:14px 14px 30px;box-sizing:border-box}
+.terra-bar{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.terra-print{margin-left:auto;min-height:36px;padding:0 14px;border:1px solid #2dd4bf;border-radius:11px;background:#103a3d;color:#a7fff0;font:800 13px DM Sans,sans-serif;cursor:pointer}
+.terra-notice{margin:12px 0 0;padding:10px 14px;border:1px solid #90641f;border-radius:12px;background:#2c2415;color:#ffd48a;font-size:13px}
+.terra-notice[hidden]{display:none}
+
+/* Pulsantini tondi delle residenze, come in NaviTurni (naviturni-page.css) */
+.quick-residence-selector{display:flex;align-items:center;gap:7px;min-height:36px}
+.quick-residence-btn{display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid var(--quick-res-color);border-radius:999px;background:color-mix(in srgb,var(--quick-res-color) 17%,#0c2934);color:color-mix(in srgb,var(--quick-res-color) 88%,#f3ffff);font:900 14px/1 Manrope,sans-serif;cursor:pointer;touch-action:manipulation}
+.quick-residence-btn:hover,.quick-residence-btn:focus-visible{outline:none;filter:brightness(1.18)}
+.quick-residence-btn.active{background:color-mix(in srgb,var(--quick-res-color) 58%,#0c2934);border-color:var(--quick-res-color);color:#fff;box-shadow:0 0 0 2px color-mix(in srgb,var(--quick-res-color) 30%,transparent),0 3px 10px color-mix(in srgb,var(--quick-res-color) 36%,transparent)}
+.quick-residence-btn[data-res="DESENZANO"]{--quick-res-color:#24b7f2}.quick-residence-btn[data-res="MADERNO"]{--quick-res-color:#f59e0b}
+
+/* Schede */
+.terra-grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:14px;margin-top:14px;align-items:start}
+.terra-col{display:grid;gap:14px;min-width:0}
+.terra-card{min-width:0;border:1px solid #244653;border-radius:16px;background:linear-gradient(160deg,#0d2530,#0a1d26);box-shadow:0 12px 30px rgba(0,0,0,.22);overflow:hidden}
+.terra-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:13px 16px 10px;border-bottom:1px solid rgba(124,173,189,.16)}
+.terra-card-head h2{margin:0;font:800 16px Manrope,sans-serif;letter-spacing:.02em}
+.terra-card-head small{color:#86a5af;font-size:11px;font-weight:700}
+.terra-card-body{padding:10px 12px 12px}
+
+/* Chip dei turni (colori del menu di NaviTurni) */
+.chip{--c:#94a3b8;display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:4px 8px;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);font:900 12px/1 Manrope,sans-serif;letter-spacing:.03em;box-sizing:border-box}
+.chip[data-code="D1"],.chip[data-code="R1"],.chip[data-code="P1"],.chip[data-code="T1"]{--c:#5b8cff}
+.chip[data-code="D2"],.chip[data-code="R2"],.chip[data-code="P2"],.chip[data-code="T2"]{--c:#46c98a}
+.chip[data-code="D3"],.chip[data-code="M1"]{--c:#f59a52}
+.chip[data-code="D4"]{--c:#dc74d2}
+.chip[data-code="BIS"]{--c:#67d7e6}
+.chip[data-code="SR1"],.chip[data-code="SR2"]{--c:#a78bfa}
+.chip[data-code="AgB"],.chip[data-code="AgM"],.chip[data-code="AgT"],.chip[data-code="AgT2"]{--c:#6eb1ff}
+.chip[data-code="PonD"]{--c:#fb9292}
+
+/* Servizi a terra */
+.servizi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.servizio{display:grid;grid-template-columns:auto 1fr;gap:4px 10px;align-items:center;padding:11px 12px;border:1px solid #244653;border-radius:13px;background:rgba(255,255,255,.025)}
+.servizio .chip{font-size:14px;padding:6px 10px}
+.servizio .ore{text-align:right;font:800 15px/1.35 Manrope,sans-serif}
+.servizio small{grid-column:1/-1;color:#86a5af;font-size:11px}
+.servizio.now{border-color:#2dd4bf;box-shadow:0 0 0 1px rgba(45,212,191,.35)}
+.servizio .stato{grid-column:1/-1;color:#2dd4bf;font-size:11px;font-weight:800;letter-spacing:.06em}
+
+/* Navi */
+.navi-list{display:grid;gap:5px}
+.nave{display:grid;grid-template-columns:54px 84px 50px 1fr;align-items:center;gap:8px;min-height:40px;padding:5px 9px;border:1px solid transparent;border-radius:11px;background:rgba(255,255,255,.025)}
+.nave .ora{font:900 17px Manrope,sans-serif;text-align:right}
+.nave .tipo{font-size:10px;font-weight:900;letter-spacing:.08em}
+.nave .tipo small{display:block;margin-top:2px;color:#86a5af;font-size:10px;font-weight:700;letter-spacing:0}
+.nave .tipo.P{color:#2dd4bf}.nave .tipo.A{color:#7cc4ff}.nave .tipo.S{color:#fbbf24}
+.nave .dove{min-width:0;display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:14px}
+.nave .dove span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nave .dove .ship{display:block;margin-top:2px;overflow:hidden;color:#9bc8d5;font-size:11px;font-weight:800;letter-spacing:.04em;text-overflow:ellipsis}
+.ferry h3 .ferry-ship{color:#e8f7f7;letter-spacing:.04em}
+.bolgetta{flex:none;padding:3px 7px;border-radius:7px;background:#f59e0b;color:#1d1300;font-size:9.5px;font-weight:900;letter-spacing:.04em;white-space:nowrap}
+.ormeggio{flex:none;padding:4px 8px;border:1px solid #2dd4bf;border-radius:8px;background:rgba(45,212,191,.16);color:#a7fff0;font-size:11px;font-weight:900;letter-spacing:.04em;white-space:nowrap}
+.nave.split{margin-top:7px}
+.nave.past{opacity:.42}
+.nave.sospesa .ora,.nave.sospesa .tipo{text-decoration:line-through;opacity:.6}
+.ship-line .bis{margin-right:6px;padding:2px 6px;border-radius:6px;background:rgba(103,215,230,.18);color:#67d7e6;font-size:10px;font-weight:900}
+.ship-line .sospesa{margin-right:6px;padding:2px 6px;border-radius:6px;background:#9f3044;color:#fff;font-size:10px;font-weight:900;letter-spacing:.04em}
+.nave.next{border-color:#2dd4bf;background:rgba(45,212,191,.10);box-shadow:0 0 0 1px rgba(45,212,191,.25)}
+.nave.next .ora:after{content:"PROSSIMA";display:block;margin-top:1px;color:#2dd4bf;font-size:8px;letter-spacing:.08em;text-align:right}
+.legend{margin:8px 2px 0;color:#86a5af;font-size:11px}
+
+/* Note */
+.note-list{margin:0;padding:0;list-style:none;display:grid;gap:7px;font-size:13px;line-height:1.4;color:#c6d7db}
+.note-list li{padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.025)}
+.note-list li.bold{border-left:3px solid #f59e0b;color:#fff;font-weight:700}
+.note-list li.rif{border-left:3px solid #f59e0b}
+.note-list li.rif b{display:block;margin-bottom:3px;color:#fff}
+.validita{margin:10px 2px 0;color:#86a5af;font-size:11px}
+
+@media(max-width:860px){
+  .terra-grid{grid-template-columns:1fr}
+}
+@media(max-width:520px){
+  .servizi-terra-page .page-header{padding:16px 66px 14px 16px}
+  .terra-title{font-size:23px}
+  #servizi-terra{padding:12px 10px 26px}
+  .servizi{grid-template-columns:1fr}
+  .nave{grid-template-columns:50px 70px 44px 1fr;gap:6px;padding:5px 7px}
+  .nave .ora{font-size:16px}
+  .nave .dove{font-size:13px}
+  .nave .dove{flex-direction:column;align-items:flex-start;gap:3px}
+  .nave .dove span{white-space:normal}
+  .bolgetta{font-size:8.5px;padding:3px 5px}
+  .ormeggio{font-size:10px;padding:3px 6px}
+}
+
+/* Badge di ormeggio, rifornimento e bolgetta; navi gia' partite; popup equipaggio come NaviTurni */
+.nave .badges{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+.rifornimento{flex:none;padding:4px 8px;border:1px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,.16);color:#fcd34d;font-size:11px;font-weight:900;letter-spacing:.04em;white-space:nowrap}
+.nave[data-crew]{cursor:pointer}
+.nave[data-crew]:focus-visible{outline:2px solid #2dd4bf;outline-offset:1px}
+.past-toggle{display:block;width:100%;margin:0 0 7px;padding:8px 10px;border:1px dashed #2d6570;border-radius:11px;background:rgba(255,255,255,.02);color:#9bc8d5;font:800 12px DM Sans,sans-serif;cursor:pointer;text-align:left}
+.past-toggle:hover{border-color:#2dd4bf;color:#a7fff0}
+.servizio .agenti{grid-column:1/-1;color:#fff;font-size:13px;font-weight:800}
+.servizio .agenti.muted{color:#86a5af;font-weight:600}
+.crew-hover-tooltip{position:fixed;z-index:99999;min-width:150px;max-width:280px;padding:8px 12px;border:1px solid rgba(45,212,191,.45);border-radius:10px;background:#0d1f27;color:#e8f3f6;box-shadow:0 14px 35px rgba(0,0,0,.5);font-size:12px;line-height:1.55;pointer-events:none}
+.crew-hover-tooltip .crew-hover-head{margin-bottom:3px;color:#2dd4bf;font-size:11px;font-weight:900;letter-spacing:.06em}
+.crew-hover-tooltip .crew-hover-name{display:flex;justify-content:space-between;gap:10px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.crew-hover-tooltip .crew-hover-name small{color:#86a5af;font-size:10px}
+.crew-hover-tooltip .crew-hover-name.is-logged{font-weight:800}
+.crew-hover-tooltip .crew-hover-name.muted{color:#86a5af}
+@media(max-width:520px){
+  .nave .badges{justify-content:flex-start}
+  .rifornimento{font-size:10px;padding:3px 6px}
+}
+.nave .dove>span:first-child{white-space:normal}
+.nave .ora .arr{display:block;margin-bottom:1px;color:#86a5af;font-size:10px;font-weight:800;letter-spacing:0}
+.nave .ship-line{font-weight:800;letter-spacing:.03em}
+.nave .ship-line .muted{color:#57737d;font-weight:600;font-size:12px;letter-spacing:0}
+/* Traghetto Torri: sfondo diverso per distinguerlo subito dalle navi di linea */
+.nave.ferry{background:rgba(70,130,220,.13);border-left:3px solid rgba(91,140,255,.65)}
+.nave.ferry.next{background:rgba(45,212,191,.12)}
+.crew-hover-tooltip .crew-hover-where{margin:-2px 0 4px;color:#9bc8d5;font-size:11px}
+/* Selettore del pontile (Desenzano): ancora + numero, come un badge */
+.pontile-sel{display:inline-flex;align-items:center;gap:2px;padding:2px 5px 2px 8px;border:1px solid #2dd4bf;border-radius:8px;background:rgba(45,212,191,.16);color:#a7fff0;font-size:12px;font-weight:900;cursor:pointer}
+.pontile-sel select{appearance:none;-webkit-appearance:none;min-width:18px;padding:2px 3px;border:0;border-radius:6px;background:transparent;color:#fff;font:900 14px Manrope,sans-serif;text-align:center;text-align-last:center;cursor:pointer}
+.pontile-sel select:focus-visible{outline:2px solid #2dd4bf}
+.pontile-sel select option{background:#0d1f27;color:#e8f3f6}
+.pontile-sel.empty{border-style:dashed;border-color:#2d6570;background:transparent;color:#57737d}
+.pontile-sel.empty select{color:#86a5af}
+.pontile-sel.ods{box-shadow:0 0 0 1px rgba(45,212,191,.35)}
+.rifornimento{min-width:22px;padding:4px 7px;text-align:center;font-size:13px}
+/* R e B: quadratini a sinistra del pontile; pontili allineati a destra anche sul telefono */
+.nave .bolgetta{min-width:22px;padding:4px 7px;border-radius:8px;text-align:center;font-size:13px;letter-spacing:0}
+.nave .badges{flex-wrap:nowrap;align-items:center;justify-content:flex-end;margin-left:auto}
+@media(max-width:520px){
+  .nave .dove{flex-direction:row;align-items:center;gap:6px}
+  .nave .dove .ship-line{flex:1;min-width:0}
+  .nave .badges{flex:none;justify-content:flex-end}
+}
+.nave .ship-line .ship-name,.nave .ship-line .cte{white-space:nowrap}
+.nave .ship-line .ship-name+.cte::before{content:" · "}
+@media(max-width:520px){
+  .nave .ship-line .ship-name,.nave .ship-line .cte{display:block;overflow:hidden;text-overflow:ellipsis}
+  .nave .ship-line .ship-name+.cte::before{content:none}
+  .nave .ship-line .cte{color:#9bc8d5;font-size:11px}
+}
+@media(max-width:520px){
+  .nave{grid-template-columns:46px 58px 38px 1fr;gap:5px;padding:5px 6px}
+  .nave .tipo{font-size:9px;letter-spacing:.04em}
+  .nave .chip{min-width:34px;padding:4px 5px;font-size:11px}
+  .nave .rifornimento,.nave .bolgetta{min-width:20px;padding:4px 5px;font-size:12px}
+  .pontile-sel{padding:2px 4px 2px 6px}
+  .nave .ship-line .ship-name{font-size:13px}
+}
+/* Scorrimento dei giorni, come nella pagina Oggi */
+.terra-day{display:inline-flex;align-items:center;gap:6px;min-width:0}
+.terra-day-nav{position:relative;z-index:2;touch-action:manipulation;-webkit-tap-highlight-color:transparent;flex:0 0 auto;width:32px;height:32px;display:grid;place-items:center;border:1px solid #2f5661;border-radius:9px;background:#0d202b;color:#8fd7cb;font-size:19px;font-weight:900;line-height:1;cursor:pointer}
+.terra-day-nav:active{background:#12303a}
+.terra-day-current{position:relative;overflow:hidden;display:inline-flex;align-items:center;min-height:32px;padding:0 10px;border:1px solid #2f5661;border-radius:9px;background:#0d202b}
+.terra-day-label{color:#cfe6e9;font-size:12px;font-weight:850;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
+.terra-day-input{position:absolute;inset:0;z-index:1;display:block;box-sizing:border-box;width:100%;min-width:0;max-width:100%;height:100%;margin:0;padding:0;border:0;opacity:0;font-size:16px;-webkit-appearance:none;appearance:none;cursor:pointer}
+.terra-day-today{flex:0 0 auto;min-height:32px;padding:0 10px;border:1px solid #47cbb9;border-radius:9px;background:#123c3c;color:#a4fff1;font-size:11px;font-weight:850;cursor:pointer}
+.terra-day-today[hidden]{display:none}
+.badges .bis{padding:2px 6px;border-radius:6px;background:rgba(103,215,230,.18);color:#67d7e6;font-size:10px;font-weight:900}
+.nave .ora .rit{display:block;width:max-content;margin-top:2px;padding:1px 5px;border-radius:5px;background:rgba(245,158,11,.18);color:#fbbf24;font-size:10px;font-weight:900;letter-spacing:0}
+.mio-turno-page .terra-grid:has(>.terra-col:only-child){grid-template-columns:1fr}

@@ -72,3 +72,52 @@ th{background:#0d222d;color:var(--ink-dim)}th,td{border-color:var(--line)}td{col
 .icon-only-button{display:inline-grid;place-items:center;width:32px;height:32px;padding:0;border-radius:50%;font-size:15px}.table-wrap th:last-child,.table-wrap td:last-child{width:48px;padding-left:8px;padding-right:8px}
 #registroBody th:not(:last-child),#registroBody td:not(:last-child){width:132px;min-width:132px;max-width:132px;padding-left:10px;padding-right:10px}#registroBody .header-pill{width:130px;min-width:130px;padding-left:6px;padding-right:6px}
 .sidebar .app-switch-link{margin:5px 0 9px;border:1px solid rgba(45,212,191,.45);background:rgba(45,212,191,.08);color:var(--accent)}.sidebar .app-switch-link:hover{border-color:var(--accent);background:rgba(45,212,191,.15);color:#fff}
+.hero-convert{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:0 0 12px;max-width:760px;border:1px solid rgba(126,243,226,.28);border-radius:12px;overflow:hidden;grid-column:1/-1}
+.hero-convert .hc-row{display:flex;flex-direction:column;gap:5px;padding:10px 12px;background:rgba(7,23,32,.22)}
+.hero-convert small{color:#9fb8c2;font-size:9px;font-weight:900;letter-spacing:.09em;text-transform:uppercase}
+.hero-convert b{color:#fff;font-size:15px}
+.hero-convert input{width:100%;max-width:110px;padding:4px 8px;border:1px solid #2dd4bf;border-radius:8px;background:rgba(45,212,191,.12);color:#fff;font:800 15px Manrope,sans-serif}
+@media(max-width:720px){.hero-convert{grid-template-columns:repeat(2,minmax(0,1fr))}.hero-convert b,.hero-convert input{font-size:13px}}
+.hero-convert{margin:14px 0 0}
+.hero-convert .hc-note{grid-column:1/-1;padding:12px 14px;background:rgba(7,23,32,.35);color:#cfe3e8;font-size:13px;line-height:1.45}
+.hero-convert .hc-note p{margin:6px 0}
+.hero-convert .hc-note a{color:#5eead4}
+.hero-convert .hc-scadenza{color:#fbbf24;font-weight:800}
+.hero-convert .hc-testo{font-style:italic;color:#fff}
+.hero-convert .hc-azioni{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.hero-convert .hc-mail,.hero-convert .hc-copia{display:inline-flex;align-items:center;padding:8px 14px;border:1px solid #2dd4bf;border-radius:10px;background:rgba(45,212,191,.16);color:#e6fffb;font:800 13px Manrope,sans-serif;text-decoration:none;cursor:pointer}
+.hero-convert .hc-mail.off,.hero-convert .hc-copia:disabled{opacity:.45;cursor:default}
+.hero-convert .hc-note b{font-size:inherit;color:#fff}
+.hero-convert .hc-campo{display:flex;gap:6px;align-items:center}
+.hero-convert .hc-trasforma,.hero-convert .hc-perc button{padding:4px 10px;border:1px solid #f59e0b;border-radius:8px;background:rgba(245,158,11,.16);color:#fde68a;font:800 12px Manrope,sans-serif;cursor:pointer}
+.hero-convert .hc-perc{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.hero-convert .hc-perc[hidden]{display:none}
+.hero-convert .hc-perc input{max-width:64px}
+.hero-convert .hc-anno{grid-column:1/-1;display:flex;flex-wrap:wrap;align-items:center;gap:6px 16px;padding:10px 14px;background:rgba(94,234,212,.08)}
+.hero-convert .hc-anno span{display:flex;flex-direction:column;gap:4px}
+.hero-convert .hc-anno b{color:#5eead4;font-size:18px}
+.hero-convert .hc-anno p{margin:0;color:#fbbf24;font-size:13px;font-weight:700}
+.hero-convert .hc-testo{white-space:pre-line}
+/* Avvisi in basso: sopra a tutto (anche alla tabella), centrati e a capo, leggibili sul telefono */
+.toast{z-index:100100;left:50%;right:auto;bottom:calc(24px + env(safe-area-inset-bottom));max-width:min(92vw,460px);width:max-content;transform:translate(-50%,15px);white-space:normal;text-align:center;line-height:1.35;font-size:15px;box-shadow:0 12px 34px rgba(0,0,0,.55)}
+.toast.show{transform:translate(-50%,0)}
+/* Riepilogo dell'anno (Distinta) */
+.diaria-anno{margin:14px 0 0;border:1px solid rgba(126,243,226,.28);border-radius:12px;background:rgba(7,23,32,.22)}
+.diaria-anno summary{padding:12px 14px;color:#5eead4;font:800 15px Manrope,sans-serif;cursor:pointer}
+.diaria-anno .anno-nota{margin:0 14px 8px;color:#9fb8c2;font-size:12px}
+.diaria-anno .anno-wrap{overflow:auto;margin:0 8px 10px;border:1px solid rgba(126,243,226,.18);border-radius:10px}
+.diaria-anno table{width:100%;border-collapse:collapse;font-size:13px;color:#e6f3f5}
+.diaria-anno th,.diaria-anno td{padding:7px 9px;border-bottom:1px solid rgba(126,243,226,.12);text-align:left;white-space:nowrap}
+.diaria-anno th{background:#0f303c;color:#9fb8c2;font:800 10.5px Manrope,sans-serif;letter-spacing:.05em;text-transform:uppercase}
+.diaria-anno .fisso{position:sticky;left:0;z-index:1;background:#0b2731;font-weight:800;text-transform:capitalize}
+.diaria-anno th.fisso{background:#0f303c}
+.diaria-anno td.forte{color:#fde68a;font-weight:800}
+.diaria-anno tr.vuoto td{color:#57737d}
+.diaria-anno tr.tot td{background:#123a40;font-weight:800}
+.diaria-anno tr.mese{cursor:pointer}
+.diaria-anno tr.mese:hover td,.diaria-anno tr.mese.aperto td{background:#123540}
+.diaria-anno tr.giorno td{font-size:12.5px;background:#071b24}
+.diaria-anno tr.giorno td.fisso{padding-left:22px;font-weight:400}
+.diaria-anno tr.giorno.rip td{color:#57737d}
+.diaria-anno tr.sett td{background:#1d2a1f;color:#fde68a;font-size:12.5px}
+.diaria-anno tr.sett b{color:#fff}

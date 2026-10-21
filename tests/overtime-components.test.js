@@ -3,7 +3,10 @@ const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
 
-const context={window:{}};
+// overtime-components.js contiene anche un IIFE che, solo su navidiaria.html,
+// carica ticket-personalization.js: gli serve un minimo di ambiente DOM inerte.
+const context={window:{},setTimeout:()=>{},document:{readyState:'complete',body:{classList:{contains:()=>false}},querySelector:()=>null,createElement:()=>({}),head:{appendChild:()=>{}},addEventListener:()=>{}}};
+context.window.addEventListener=()=>{};
 vm.runInNewContext(fs.readFileSync('assets/js/overtime-components.js','utf8'),context);
 const overtime=context.window.NaviOvertimeComponents;
 const day={delay:0,changeMinutes:0,serviceMinutes:13*60};
@@ -30,7 +33,8 @@ assert.equal(overtime.total(shortenedDay),0);
 overtime.sync(shortenedDay,shortenedDay.serviceMinutes);
 assert.equal(shortenedDay.workedMinutes,8*60);
 overtime.setChanges(shortenedDay,60,shortenedDay.serviceMinutes);
-assert.equal(shortenedDay.workedMinutes,8*60);
+// cambio e sentine aumentano sempre le ore lavorate, anche se corrette a mano
+assert.equal(shortenedDay.workedMinutes,8*60+60);
 assert.equal(overtime.total(shortenedDay),60);
 
 const changedService={shift:'PonD',serviceMinutes:565,delay:0,changeMinutes:0,bank:30,mealUsed:true,allowanceRate:24,embark:true,overnight40:true};
