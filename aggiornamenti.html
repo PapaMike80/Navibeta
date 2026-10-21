@@ -6,7 +6,7 @@
   <title>NaviSuite Aggiornamenti</title>
   <link rel="stylesheet" href="assets/css/navi-shared.css">
   <link rel="stylesheet" href="assets/css/navi-layout.css">
-  <link rel="stylesheet" href="assets/css/shared-menu.css">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
   <style>
     :root{--bg:#061821;--panel:#0c2530;--card:#102f3a;--line:#28515d;--ink:#edfafa;--muted:#9eb9c1;--accent:#2dd4bf;--yellow:#facc15;--red:#fb7185}
     *{box-sizing:border-box}body{margin:0;background:radial-gradient(900px 420px at 18% -10%,#123e4b,transparent 60%),var(--bg);color:var(--ink);font-family:Inter,Manrope,Arial,sans-serif}
@@ -17,7 +17,7 @@
     button,.button{border:1px solid #34717d;border-radius:9px;background:#123b46;color:#eaffff;padding:10px 12px;font:800 12px inherit;cursor:pointer;text-decoration:none}button.primary{background:var(--accent);border-color:var(--accent);color:#05221e}button.danger{border-color:#a73b4d;color:#fecdd3;background:#351923}button:disabled{opacity:.45;cursor:wait}
     .actions{display:flex;gap:8px;flex-wrap:wrap}.form-grid{display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:10px}.field{display:grid;gap:5px}.field.full{grid-column:1/-1}.field label{color:#9db8c0;font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.field input,.field select,.field textarea{width:100%;border:1px solid #315b66;border-radius:9px;background:#071b24;color:#fff;padding:10px;font:700 13px inherit}.field textarea{min-height:70px;resize:vertical}
     .current{padding:10px;border-radius:9px;background:#071b24;border:1px solid #315b66;color:#fde047;font-weight:900}.table-wrap{overflow:auto;border:1px solid #244956;border-radius:11px}table{border-collapse:collapse;width:100%;min-width:720px}th,td{padding:10px;border-bottom:1px solid #244956;text-align:left;font-size:12px}th{background:#143744;color:#bfe2e6;font-size:10px;text-transform:uppercase;letter-spacing:.06em}td strong{color:#fff}.empty{padding:20px;color:#829fa8;text-align:center}
-    .owner{font-family:"DM Mono",monospace;font-size:10px;word-break:break-all;color:#80d9cc}.preview{max-height:230px;overflow:auto;margin:12px 0;border:1px solid #244956;border-radius:10px;padding:8px;background:#071b24;font-size:11px}.preview div{padding:5px;border-bottom:1px solid rgba(80,120,130,.18)}.preview div:last-child{border:0}
+    .owner{font-family:"DM Mono",monospace;font-size:10px;word-break:break-all;color:#80d9cc}.preview{max-height:230px;overflow:auto;margin:12px 0;border:1px solid #244956;border-radius:10px;padding:8px;background:#071b24;font-size:11px}.preview div{padding:5px;border-bottom:1px solid rgba(80,120,130,.18)}.preview div:last-child{border:0}#turn-sheet-preview{max-height:520px}#turn-sheet-preview h4{margin:12px 0 6px;font-size:12px;color:#80d9cc;text-transform:uppercase;letter-spacing:.06em}#turn-sheet-preview details{margin:6px 0;border:1px solid rgba(80,120,130,.25);border-radius:8px;padding:6px 8px}#turn-sheet-preview summary{cursor:pointer;font-size:12px}#turn-sheet-preview .sheet-diff{width:100%;min-width:0!important;table-layout:fixed;margin-top:6px;border-collapse:collapse;font-size:12px}#turn-sheet-preview .sheet-diff th,#turn-sheet-preview .sheet-diff td{padding:4px 6px;text-align:left;border-bottom:1px solid rgba(80,120,130,.18)}#turn-sheet-preview .sheet-diff td small{display:block;opacity:.65;font-size:10px}#turn-sheet-preview .sheet-diff td b{color:#fcd34d}#turn-sheet-preview .sheet-warn{color:#fca5a5}html.navisuite-light #turn-sheet-preview .sheet-diff td b{color:#9a6200}
     .import-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.import-box{padding:14px;border:1px solid #28515d;border-radius:12px;background:#0a2029}.import-box h3{margin:0 0 5px}.import-box input[type=file]{width:100%;margin:8px 0;padding:10px;border:1px dashed #397583;border-radius:9px;background:#071b24;color:#b9d8dc}.pending-table select,.pending-table input{min-width:110px;border:1px solid #315b66;border-radius:6px;background:#071b24;color:#fff;padding:6px;font-size:11px}.import-box.foldable{padding:0;overflow:hidden}.import-box.foldable>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:14px;cursor:pointer;list-style:none}.import-box.foldable>summary::-webkit-details-marker{display:none}.import-box.foldable>summary::after{content:'⌄';color:var(--accent);font-size:18px}.import-box.foldable[open]>summary::after{transform:rotate(180deg)}.import-box.foldable>.import-inner{padding:0 14px 14px}
     .import-box.full-upload{grid-column:1/-1}.document-upload-fields{display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:10px;margin:10px 0}.uploaded-documents{display:grid;gap:7px;margin-top:12px}.uploaded-document{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid #244956;border-radius:9px;background:#071b24}.uploaded-document small{display:block;margin-top:3px;color:#86aab3}
     .ods-group-row td{background:#163b45;border-top:2px solid #2d6974;color:#d9ffff}.ods-group-row[data-toggle-row]{cursor:pointer}.ods-group-title{display:flex;align-items:center;gap:9px;font-size:13px}.ods-group-toggle{display:inline-grid;place-items:center;width:25px;height:25px;padding:0;border-color:#3a7580;background:#0b2933;color:#99f6e4;font-size:14px}.ods-group-count{padding:3px 7px;border-radius:999px;background:#0b2933;color:#99f6e4;font-size:10px}.ods-child td:first-child{padding-left:25px;color:#72cfc2}.ods-child[hidden]{display:none}
@@ -43,6 +43,7 @@
     @media(max-width:420px){main{padding-inline:9px}.card{padding:12px}.hero h1{font-size:23px}.admin-mobile-nav{width:calc(100% - 16px)}}
     .card.foldable{padding:0;overflow:hidden}.card.foldable>.card-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px;cursor:pointer}.card.foldable>.card-heading>div{min-width:0}.card.foldable>.card-heading h2{margin:0 0 6px}.card.foldable>.card-heading p{margin:0}.card-fold-toggle{flex:0 0 auto;width:34px;height:34px;border:1px solid var(--line);border-radius:50%;padding:0;background:var(--card);color:var(--accent);font-size:18px}.card.foldable>.card-body{padding:0 18px 18px}.card.foldable[data-collapsed="true"]>.card-body{display:none}
     html.navisuite-light body.aggiornamenti-page{background:#edf5f6!important;color:#17323a!important}html.navisuite-light .hero p,html.navisuite-light .card p,html.navisuite-light .owner,html.navisuite-light .empty{color:#547078!important}html.navisuite-light .status{background:#fff!important;border-color:#9fc8ce!important;color:#17323a!important}html.navisuite-light .card,html.navisuite-light .import-box,html.navisuite-light .change-approval{background:#fff!important;border-color:#bdd8dc!important;color:#17323a!important;box-shadow:0 7px 20px rgba(22,56,66,.08)!important}html.navisuite-light .card h2,html.navisuite-light .import-box h3,html.navisuite-light .change-lines,html.navisuite-light td strong{color:#17323a!important}html.navisuite-light .field label{color:#547078!important}html.navisuite-light .field input,html.navisuite-light .field select,html.navisuite-light .field textarea,html.navisuite-light .current,html.navisuite-light .preview,html.navisuite-light .uploaded-document,html.navisuite-light .pending-table select,html.navisuite-light .pending-table input{background:#f8fcfc!important;border-color:#b8d5da!important;color:#17323a!important}html.navisuite-light .import-box input[type=file]{background:#f8fcfc!important;border-color:#9fc8ce!important;color:#31545c!important}html.navisuite-light button,html.navisuite-light .button{background:#fff!important;border-color:#a9cbd1!important;color:#31545c!important}html.navisuite-light button.primary{background:#d9f4ef!important;border-color:#3bb9aa!important;color:#075b52!important}html.navisuite-light th{background:#e9f5f5!important;color:#17323a!important}html.navisuite-light td,html.navisuite-light th,html.navisuite-light .table-wrap{border-color:#c4dde1!important}html.navisuite-light .ods-group-row td{background:#e5f5f2!important;color:#17323a!important}html.navisuite-light .approved-badge{background:#e2f6ea!important;color:#16734e!important}.card-fold-toggle{transition:transform .18s ease}.card.foldable[data-collapsed="false"] .card-fold-toggle{transform:rotate(180deg)}
+      .sheet-sync{margin-top:16px;padding-top:14px;border-top:1px solid rgba(120,170,180,.3)}.sheet-sync h3{margin:0 0 6px}.sheet-sync ul{margin:6px 0 0;padding-left:18px}
   </style>
 </head>
 <body class="aggiornamenti-page">
@@ -65,6 +66,9 @@
             <div class="field"><label for="new-ods-number">Numero ODS</label><input id="new-ods-number" placeholder="es. 30/2026"></div>
             <input id="new-ods-file" type="file" accept=".pdf,.json,.csv,application/pdf">
             <div class="actions"><button id="parse-new-ods">Leggi e prepara ODS</button><button id="save-new-ods" class="primary" disabled>Salva righe confermate</button></div>
+            <div class="field"><label for="servizi-terra-week">Servizi a terra Desenzano e Maderno · settimana dal</label><input id="servizi-terra-week" type="date"></div>
+            <div class="actions"><button id="generate-servizi-terra" type="button">Genera Servizi a terra</button></div>
+            <p style="font-size:12px">Apre gli A4 da stampare e li salva in Documenti (sostituisce la versione precedente). Si aggiornano da soli anche quando salvi un ODS.</p>
           </div></details>
           <details class="import-box full-upload foldable">
             <summary><h3>Nuovi turni bariste</h3></summary><div class="import-inner">
@@ -85,6 +89,20 @@
             <div class="actions"><button id="parse-new-turn" disabled>Leggi e controlla PDF</button><button id="save-new-turn" class="primary" disabled>Salva settimane e documento</button></div>
             <div id="turn-import-preview" class="preview" hidden></div>
             <div id="uploaded-documents" class="uploaded-documents"></div>
+            <details class="import-box foldable" style="margin-top:10px">
+              <summary><h3>Diagnostica cambi di residenza</h3></summary>
+              <div class="import-inner"><div id="residence-move-debug"></div></div>
+            </details>
+          </div></details>
+          <details class="import-box full-upload foldable">
+            <summary><h3>Alleggerisci le importazioni</h3></summary><div class="import-inner">
+            <p>Le importazioni <b>disattivate</b> (sostituite da altre) si scaricano comunque su ogni telefono a ogni apertura. Qui si spostano in un archivio nel database, che le pagine non scaricano: i turni restano identici. Prima viene scaricata anche una copia sul tuo dispositivo.</p>
+            <div class="actions"><button id="compatta-import" type="button">Archivia le importazioni disattivate</button></div>
+            <hr style="border:0;border-top:1px dashed rgba(126,243,226,.3);margin:14px 0">
+            <p><b>Consolida il turno</b>: unisce il turno base con tutte le importazioni e lo pubblica come nuovo turno base. Così i telefoni scaricano un solo turno già completo (e con poca rete non tornano al turno vecchio). Le importazioni passano in archivio; resta solo il Foglio Google collegato. Fallo dopo ogni nuovo turno importato. Prima scarica una copia di sicurezza.</p>
+            <div class="actions"><button id="consolida-turno" type="button">Consolida il turno</button></div>
+            <p id="consolida-esito" class="hint"></p>
+            <p id="compatta-esito" class="hint"></p>
           </div></details>
           <details class="import-box full-upload foldable">
             <summary><h3>Foglio Google dei turni</h3></summary><div class="import-inner">
@@ -92,6 +110,12 @@
             <div class="field"><label for="turn-sheet-url">Collegamento Foglio Google</label><input id="turn-sheet-url" type="url" placeholder="https://docs.google.com/spreadsheets/d/…/edit#gid=0"></div>
             <div class="actions"><button id="download-turn-sheet" type="button">Scarica CSV attuale</button><button id="parse-turn-sheet" type="button">Leggi e confronta</button><button id="save-turn-sheet" class="primary" type="button" disabled>Applica a Firebase</button></div>
             <div id="turn-sheet-preview" class="preview" hidden></div>
+            <div id="sheet-sync-box" class="sheet-sync" hidden>
+              <h3>Allinea il foglio al turno di NaviSuite</h3>
+              <p>Il foglio si aggiorna già da solo (entro 5 minuti) quando carichi un turno o un ODS. Questo pulsante riscrive comunque nel foglio l’ultimo turno caricato e le variazioni ODS: per quel periodo le celle del foglio vengono sostituite. Trasferte scritte CxxC; i codici non chiari restano come sono e vengono elencati. Lo script del foglio esegue la richiesta entro circa 5 minuti.</p>
+              <div class="actions"><button id="request-sheet-sync" class="primary" type="button">Sincronizza il foglio con NaviSuite</button></div>
+              <div id="sheet-sync-status" class="preview" aria-live="polite"></div>
+            </div>
           </div></details>
         </div>
         <div id="import-result" class="preview" hidden></div>
@@ -137,10 +161,16 @@
     <a class="active" href="aggiornamenti.html"><span>↻</span>Aggiorna</a>
     <a href="agenti.html"><span>♙</span>Agenti</a>
   </nav>
-  <script src="assets/js/turni-shared.js"></script>
-  <script src="assets/js/admin-firebase-rest.js?v=36"></script>
-  <script src="assets/js/shared-menu.js?v=1.54"></script>
-  <script src="assets/js/shared-data.js?v=3"></script>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/turni-shared.js?v=1"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/turn-import-helpers.js?v=1"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/admin-pocketbase-rest.js?v=6"></script>
+  <script src="assets/js/comitive.js?v=8"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
   <script src="vendor/pdfjs/pdf.worker.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -149,12 +179,12 @@
     document.querySelectorAll('.card.foldable').forEach(card=>{const toggle=card.querySelector('.card-fold-toggle'),heading=card.querySelector('.card-heading');const change=()=>card.dataset.collapsed=card.dataset.collapsed==='true'?'false':'true';toggle.addEventListener('click',change);heading.addEventListener('click',event=>{if(!event.target.closest('button,input,select,textarea,a'))change()})});
     const state={odsVariations:[],manualVariations:[],baristas:[],approvedChangeRequests:[],dismissedOdsApprovals:[],scheduleImports:[],turniNavi:[]};
     let schedule=null;
-    let pendingOds=[],pendingOdsNavi=[],pendingBaristas=[],pendingNavi=[],pendingTurnImport=null,pendingSheetImport=null,adminDocuments=[],changeRequests=[];
+    let pendingOds=[],pendingOdsNavi=[],pendingComitive=[],pendingBaristas=[],pendingNavi=[],pendingTurnImport=null,pendingSheetImport=null,adminDocuments=[],changeRequests=[];
     const $=id=>document.getElementById(id);
     const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const profile=()=>window.TurniShared?.readLoggedAgentProfile?.()||JSON.parse(localStorage.getItem('naviturni_logged_agent')||'null');
-    const isAdmin=p=>['91','92'].includes(String(p?.id||''))||String(p?.role||'').toLowerCase()==='admin';
-    const isHiba=p=>String(p?.id||'').toUpperCase()==='BARISTA_HIBA'||(String(p?.role||'').toLowerCase()==='barista'&&normalize(String(p?.name||p?.agente||p?.cognome||''))==='HIBA');
+    const isAdmin=p=>window.NaviRoles.isAdminAgent(p);
+    const isHiba=p=>window.NaviRoles.isHibaBarista(p);
     const canManageBariste=p=>isAdmin(p)||isHiba(p);
     // Una stessa variazione ODS è identificata da agente, data e numero ODS.
     // La provenienza (ufficio/volontaria) è informativa e non deve generare un
@@ -246,8 +276,57 @@
     function parseCsvMatrix(text){const rows=[];let row=[],cell='',quoted=false;for(let i=0;i<String(text).length;i++){const char=text[i],next=text[i+1];if(char==='"'){if(quoted&&next==='"'){cell+='"';i++}else quoted=!quoted}else if(!quoted&&(char===','||char===';')){row.push(cell.trim());cell=''}else if(!quoted&&(char==='\n'||char==='\r')){if(char==='\r'&&next==='\n')i++;row.push(cell.trim());cell='';if(row.some(Boolean))rows.push(row);row=[]}else cell+=char}row.push(cell.trim());if(row.some(Boolean))rows.push(row);return rows}
     function googleSheetCsvUrl(value){const raw=String(value||'').trim(),id=raw.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/)?.[1];if(!id)throw new Error('Collegamento del Foglio Google non riconosciuto');const gid=raw.match(/[?#&]gid=(\d+)/)?.[1]||'0';return `https://docs.google.com/spreadsheets/d/${id}/gviz/tq?tqx=out:csv&gid=${gid}`}
     function exportScheduleCsv(){const dates=(schedule?.date||[]).map(item=>item.iso).filter(Boolean).sort(),header=['agent_uid','agente','residenza',...dates],lines=[header.map(csvCell).join(',')];agents().filter(agent=>String(agent.residence).toUpperCase()!=='BARISTE').sort((a,b)=>String(a.agente).localeCompare(String(b.agente),'it')).forEach(agent=>{lines.push([agent.agent_uid||stableAgentUid(agent.agente),agent.agente,agent.residence,...dates.map(date=>agent.turni?.[date]||'RIP')].map(csvCell).join(','))});const blob=new Blob(['\ufeff'+lines.join('\r\n')],{type:'text/csv;charset=utf-8'}),link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='NaviSuite-turni-foglio-google.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000)}
-    function sheetBatchFromCsv(text,url){const matrix=parseCsvMatrix(text);if(matrix.length<2)throw new Error('Il foglio non contiene righe turno');const header=matrix.shift(),normalized=header.map(normalize),uidIndex=normalized.indexOf('AGENTUID'),nameIndex=normalized.indexOf('AGENTE'),residenceIndex=normalized.indexOf('RESIDENZA'),dateColumns=header.map((value,index)=>({date:isoDate(value),index})).filter(item=>item.date);if(nameIndex<0||!dateColumns.length)throw new Error('Servono le colonne agent_uid, agente, residenza e almeno una data');const rows=[];matrix.forEach(values=>{const suppliedUid=uidIndex>=0?String(values[uidIndex]||'').trim():'',name=String(values[nameIndex]||'').trim(),agent=agents().find(item=>String(item.agent_uid)===suppliedUid)||resolveAgent(name);if(!agent)return;rows.push({id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:String(agent.agente),residenza:String(agent.residence||values[residenceIndex]||''),turni:dateColumns.map(column=>normalizeImportedShift(values[column.index]))})});if(!rows.length)throw new Error('Nessun agente del foglio corrisponde all’archivio NaviSuite');const dates=dateColumns.map(item=>item.date);return {id:`SHEET_${Date.now()}`,tipo:'turno',filename:'Foglio Google',dates,rows,inizio:dates[0],fine:dates.at(-1),source:'google_sheet',sheetUrl:url,identityVersion:2,importedAt:new Date().toISOString(),attiva:true}}
-    function renderSheetPreview(){const box=$('turn-sheet-preview'),batch=pendingSheetImport;box.hidden=!batch;if(!batch)return;box.innerHTML=`<strong>${batch.rows.length} agenti · ${batch.dates.length} giornate</strong><p>${esc(batch.inizio)} → ${esc(batch.fine)}. Le righe sono associate tramite agent_uid, non tramite posizione.</p>`}
+    function sheetBatchFromCsv(text,url){sheetUnmatched=[];const matrix=parseCsvMatrix(text);if(matrix.length<2)throw new Error('Il foglio non contiene righe turno');const header=matrix.shift(),normalized=header.map(normalize),uidIndex=normalized.indexOf('AGENTUID'),nameIndex=normalized.indexOf('AGENTE'),residenceIndex=normalized.indexOf('RESIDENZA'),dateColumns=header.map((value,index)=>({date:isoDate(value),index})).filter(item=>item.date);if(nameIndex<0||!dateColumns.length)throw new Error('Servono le colonne agent_uid, agente, residenza e almeno una data');const rows=[];matrix.forEach(values=>{const suppliedUid=uidIndex>=0?String(values[uidIndex]||'').trim():'',name=String(values[nameIndex]||'').trim(),agent=agents().find(item=>String(item.agent_uid)===suppliedUid)||resolveAgent(name);if(!agent){if(name)sheetUnmatched.push(name);return;}rows.push({id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:String(agent.agente),residenza:String(agent.residence||values[residenceIndex]||''),turni:dateColumns.map(column=>normalizeImportedShift(values[column.index]))})});if(!rows.length)throw new Error('Nessun agente del foglio corrisponde all’archivio NaviSuite');const dates=dateColumns.map(item=>item.date);return {id:`SHEET_${Date.now()}`,tipo:'turno',filename:'Foglio Google',dates,rows,inizio:dates[0],fine:dates.at(-1),source:'google_sheet',sheetUrl:url,identityVersion:2,importedAt:new Date().toISOString(),attiva:true}}
+    // Confronto foglio <-> NaviSuite prima di applicare: per ogni agente e
+    // giornata del foglio il turno attuale di NaviSuite (turno caricato, senza
+    // variazioni ODS). Le differenze che coincidono con una variazione ODS o
+    // manuale attiva sono gia' note e vengono contate a parte.
+    let sheetUnmatched=[];
+    const sheetShiftKey=value=>{const shift=normalizeImportedShift(value);return shift==='TERRA'?'LAV':shift};
+    function sheetVariationMap(){
+      const byKey=new Map();
+      const odsNumber=v=>Number.parseInt(String(v?.ods||'').match(/\d+/)?.[0]||'0',10);
+      const active=v=>v&&v.attiva!==false&&v.data&&v.turno_nuovo;
+      [...(state.odsVariations||[]).filter(active).sort((a,b)=>odsNumber(a)-odsNumber(b)),...(state.manualVariations||[]).filter(active)]
+        .forEach(v=>byKey.set(`${String(v.id_agente||'')}|${String(v.data).slice(0,10)}`,{shift:sheetShiftKey(v.turno_nuovo),label:String(v.tipo||'').toUpperCase()==='MANUALE'?'variazione manuale':`ODS ${odsNumber(v)||''}`.trim()}));
+      return byKey;
+    }
+    function sheetDifferences(batch){
+      const byUid=new Map(agents().map(agent=>[String(agent.agent_uid),agent])),variations=sheetVariationMap(),changes=[],explained=[];
+      batch.rows.forEach(row=>{
+        const agent=byUid.get(String(row.agent_uid));if(!agent)return;
+        batch.dates.forEach((date,index)=>{
+          const sheet=sheetShiftKey(row.turni[index]),current=sheetShiftKey(agent.turni?.[date]);
+          if(sheet===current)return;
+          const item={date,agente:row.agente,residenza:row.residenza,current,sheet};
+          const variation=variations.get(`${String(row.id_agente)}|${date}`);
+          if(variation&&variation.shift===sheet)explained.push({...item,note:variation.label});else changes.push(item);
+        });
+      });
+      const order=(a,b)=>a.date.localeCompare(b.date)||String(a.agente).localeCompare(String(b.agente),'it');
+      const sheetUids=new Set(batch.rows.map(row=>String(row.agent_uid)));
+      const missing=agents().filter(agent=>String(agent.residence).toUpperCase()!=='BARISTE'&&String(agent.residence).toLowerCase()!=='uffici'&&!sheetUids.has(String(agent.agent_uid))).map(agent=>agent.agente).sort((a,b)=>String(a).localeCompare(String(b),'it'));
+      return {changes:changes.sort(order),explained:explained.sort(order),missing,unmatched:[...sheetUnmatched]};
+    }
+    function renderSheetPreview(){
+      const box=$('turn-sheet-preview'),batch=pendingSheetImport;box.hidden=!batch;if(!batch)return;
+      const diff=sheetDifferences(batch),today=new Date().toLocaleDateString('sv-SE');
+      const upcoming=diff.changes.filter(item=>item.date>=today),past=diff.changes.length-upcoming.length;
+      const day=iso=>{const d=new Date(`${iso}T12:00:00`);return d.toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'})};
+      const table=(list,withNote)=>{
+        const groups=new Map();list.forEach(item=>{if(!groups.has(item.date))groups.set(item.date,[]);groups.get(item.date).push(item)});
+        return [...groups].map(([date,items],index)=>`<details${index<3?' open':''}><summary><strong>${esc(day(date))}</strong> · ${items.length} ${items.length===1?'differenza':'differenze'}</summary><table class="sheet-diff"><thead><tr><th>Agente</th><th>NaviSuite</th><th>Foglio</th>${withNote?'<th>Motivo</th>':''}</tr></thead><tbody>${items.map(item=>`<tr><td>${esc(item.agente)}<small>${esc(item.residenza)}</small></td><td>${esc(item.current)}</td><td><b>${esc(item.sheet)}</b></td>${withNote?`<td>${esc(item.note)}</td>`:''}</tr>`).join('')}</tbody></table></details>`).join('');
+      };
+      const summary=diff.changes.length
+        ?`<strong>${diff.changes.length} ${diff.changes.length===1?'turno cambierà':'turni cambieranno'} in NaviSuite</strong> · ${upcoming.length} da oggi in poi${past?`, ${past} in giorni passati`:''}`
+        :'<strong>Nessuna differenza: NaviSuite è già allineato al foglio.</strong>';
+      box.innerHTML=`${summary}<p>${batch.rows.length} agenti · ${batch.dates.length} giornate (${esc(batch.inizio)} → ${esc(batch.fine)}). Le righe sono associate tramite agent_uid, non tramite posizione.</p>
+        ${upcoming.length?`<h4>Da oggi in poi</h4>${table(upcoming,false)}`:''}
+        ${past?`<details><summary><strong>Giorni passati</strong> · ${past}</summary>${table(diff.changes.filter(item=>item.date<today),false)}</details>`:''}
+        ${diff.explained.length?`<details><summary>${diff.explained.length===1?'1 differenza già coperta':`${diff.explained.length} differenze già coperte`} da variazioni ODS o manuali (nessun effetto)</summary>${table(diff.explained,true)}</details>`:''}
+        ${diff.unmatched.length?`<p class="sheet-warn">Righe del foglio non riconosciute (non verranno applicate): ${diff.unmatched.map(esc).join(', ')}</p>`:''}
+        ${diff.missing.length?`<p class="sheet-warn">Agenti di NaviSuite assenti dal foglio (restano invariati): ${diff.missing.map(esc).join(', ')}</p>`:''}`;
+    }
     function selectedAgent(){return agents().find(a=>String(a.id)===String($('agent').value));}
     function latestShift(agent,date){
       if(!agent||!date)return '—';
@@ -508,10 +587,26 @@
         await save();renderHistory();renderChangeApprovals();updateCurrent();
       }));
     }
+    // Sola lettura: mostra esattamente cosa e' salvato per ogni riga con un
+    // cambio di residenza, in tutti gli import (anche quelli disattivati/vecchi),
+    // per capire se un batch precedente ha scritto dati incompleti o sbagliati.
+    function renderResidenceMoveDebug(){
+      const box=$('residence-move-debug');if(!box)return;
+      const rows=[];
+      (state.scheduleImports||[]).forEach(batch=>{
+        (batch.rows||[]).forEach(row=>{
+          if(!row.residenzaNuova && !row.residenzaPrecedente)return;
+          rows.push({batchId:batch.id,importedAt:batch.importedAt,attiva:batch.attiva!==false,inizio:batch.inizio,fine:batch.fine,...row});
+        });
+      });
+      if(!rows.length){box.innerHTML='<div class="empty">Nessuna riga con cambio di residenza in nessun import.</div>';return;}
+      rows.sort((a,b)=>String(a.agente).localeCompare(String(b.agente),'it')||String(a.importedAt||'').localeCompare(String(b.importedAt||'')));
+      box.innerHTML=`<table class="pending-table"><thead><tr><th>Agente</th><th>Da</th><th>A</th><th>Decorrenza</th><th>Sposta</th><th>Import</th><th>Attivo</th></tr></thead><tbody>${rows.map(row=>`<tr${row.attiva?'':' style="opacity:.5"'}><td>${esc(row.agente)}</td><td>${esc(row.residenzaPrecedente||'—')}</td><td>${esc(row.residenzaNuova||'—')}</td><td>${esc(row.residenzaDal||'—')}</td><td>${row.sposta===false?'NO':'sì'}</td><td>${esc((row.importedAt||'').slice(0,16).replace('T',' '))} · ${esc(row.inizio||'')}–${esc(row.fine||'')}</td><td>${row.attiva?'attivo':'disattivato'}</td></tr>`).join('')}</tbody></table>`;
+    }
     function renderUploadedDocuments(){
       const box=$('uploaded-documents');if(!box)return;
       const rows=[...adminDocuments].sort((a,b)=>String(b.uploadedAt||'').localeCompare(String(a.uploadedAt||'')));
-      box.innerHTML=rows.length?rows.map(doc=>{const imported=(state.scheduleImports||[]).find(item=>String(item.documentId||item.id)===String(doc.id)&&item.attiva!==false);return `<div class="uploaded-document"><div><strong>${esc(doc.titolo||doc.filename)}</strong><small>${esc(doc.tipo==='bozza'?'Bozza':'Turno')} · ${esc(doc.inizio||'')} → ${esc(doc.fine||'')} · ${esc(doc.filename||'')}${imported?` · ${imported.rows?.length||0} agenti applicati`:''}</small></div><button class="danger" data-delete-document="${esc(doc.id)}">Elimina${imported?' dati e PDF':''}</button></div>`}).join(''):'<div class="empty">Nessun turno o bozza caricato da Firebase.</div>';
+      box.innerHTML=rows.length?rows.map(doc=>{const imported=(state.scheduleImports||[]).find(item=>String(item.documentId||item.id)===String(doc.id)&&item.attiva!==false);return `<div class="uploaded-document"><div><strong>${esc(doc.titolo||doc.filename)}</strong><small>${esc(doc.tipo==='servizi_terra'?'Servizi a terra':doc.tipo==='bozza'?'Bozza':'Turno')} · ${esc(doc.tipo==='servizi_terra'&&!doc.inizio?'orario invernale':`${doc.inizio||''} → ${doc.fine||''}`)} · ${esc(doc.filename||'')}${imported?` · ${imported.rows?.length||0} agenti applicati`:''}</small></div><button class="danger" data-delete-document="${esc(doc.id)}">Elimina${imported?' dati e PDF':''}</button></div>`}).join(''):'<div class="empty">Nessun turno o bozza caricato da Firebase.</div>';
       box.querySelectorAll('[data-delete-document]').forEach(button=>button.addEventListener('click',async()=>{
         const doc=adminDocuments.find(item=>String(item.id)===String(button.dataset.deleteDocument));
         const imported=(state.scheduleImports||[]).find(item=>String(item.documentId||item.id)===String(doc?.id)&&item.attiva!==false);
@@ -524,6 +619,55 @@
         setStatus('✓ Documento eliminato.','ok');
       }));
     }
+    // Importazioni disattivate -> private/adminUpdates/scheduleImportsArchivio (copia anche sul dispositivo)
+    document.getElementById('compatta-import')?.addEventListener('click',async()=>{
+      const via=(state.scheduleImports||[]).filter(item=>item&&item.attiva===false);
+      const esito=$('compatta-esito');
+      if(!via.length){esito.textContent='Nessuna importazione disattivata da archiviare.';return;}
+      const kb=Math.round(JSON.stringify(via).length/1024);
+      if(!confirm(`Archiviare ${via.length} importazioni disattivate (circa ${kb} KB in meno da scaricare)? I turni non cambiano.`))return;
+      const copia=new Blob([JSON.stringify(state.scheduleImports)],{type:'application/json'}),a=document.createElement('a');
+      a.href=URL.createObjectURL(copia);a.download=`importazioni-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();a.remove();
+      const prima=[...state.scheduleImports];
+      try{
+        await window.NaviAdminFirebase.archiviaImportazioni(via);
+        state.scheduleImports=prima.filter(item=>item&&item.attiva!==false);
+        await save();
+        esito.textContent=`✓ Archiviate ${via.length} importazioni (${kb} KB). Restano ${state.scheduleImports.length} importazioni attive.`;
+      }catch(error){state.scheduleImports=prima;esito.textContent=`Non riuscito: ${error.message}`;}
+    });
+    // Consolida: turno base + importazioni attive -> nuovo turno base; importazioni in archivio (resta il Foglio Google collegato)
+    document.getElementById('consolida-turno')?.addEventListener('click',async()=>{
+      const esito=$('consolida-esito'),api=window.NaviAdminFirebase,SD=window.NaviSharedData;
+      const scarica=(nome,dati)=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(dati)],{type:'application/json'}));a.download=nome;document.body.appendChild(a);a.click();a.remove();};
+      try{
+        esito.textContent='Leggo il turno base…';
+        const base=await api.getTurnoBase();
+        if(!base?.residenze)throw new Error('turno base non leggibile');
+        const attive=(state.scheduleImports||[]).filter(x=>x&&x.attiva!==false);
+        if(!attive.length){esito.textContent='Nessuna importazione attiva da consolidare.';return;}
+        const ordinate=[...attive].sort((a,b)=>String(a.importedAt||'').localeCompare(String(b.importedAt||'')));
+        const foglio=ordinate.filter(x=>x.source==='google_sheet').slice(-1);
+        const oggi=new Date().toISOString().slice(0,10),copia=x=>JSON.parse(JSON.stringify(x));
+        const unito=SD.applyScheduleImports(copia(base),copia(attive),{today:oggi});
+        // controllo: il nuovo base (+ il Foglio Google che resta) deve dare esattamente lo stesso turno di oggi
+        const conIlFoglio=SD.applyScheduleImports(copia(unito),copia(foglio),{today:oggi});
+        if(JSON.stringify(conIlFoglio.residenze)!==JSON.stringify(unito.residenze))throw new Error('il controllo di coerenza non torna: nessuna modifica fatta');
+        const date=(unito.date||[]).map(d=>d.iso).filter(Boolean).sort();
+        unito.data_fine=date.at(-1)||unito.data_fine;unito.aggiornato_il=new Date().toISOString();unito.consolidato={il:unito.aggiornato_il,importazioni:attive.length,da:profile()?.name||''};
+        const kb=n=>Math.round(JSON.stringify(n).length/1024);
+        if(!confirm(`Pubblicare il turno consolidato fino al ${unito.data_fine} (${kb(unito)} KB) e archiviare ${attive.length-foglio.length} importazioni? Prima scarico una copia di sicurezza.`)){esito.textContent='Annullato.';return;}
+        scarica(`turno-base-backup-${oggi}.json`,base);scarica(`importazioni-backup-${oggi}.json`,state.scheduleImports);
+        esito.textContent='Pubblico il turno consolidato…';
+        await api.pubblicaTurnoBase(unito);
+        const via=(state.scheduleImports||[]).filter(x=>x&&!foglio.includes(x));
+        await api.archiviaImportazioni(via);
+        state.scheduleImports=foglio;
+        await save();
+        SD.clear?.();
+        esito.textContent=`✓ Turno consolidato fino al ${unito.data_fine}. Archiviate ${via.length} importazioni; i telefoni scaricano ora un solo turno.`;
+      }catch(error){esito.textContent=`Non riuscito: ${error.message}`+(/permess|Permission/i.test(error.message)?' — serve la regola di scrittura per public/schedule (vedi istruzioni).':'');}
+    });
     async function save(){
       setStatus('Salvataggio su Firebase…');
       try{
@@ -618,7 +762,8 @@
     function parseOdsPdf(pages,ods){
       const lines=linesFromItems(pages);
       let currentDate='',section='';
-      const records=[];
+      const records=[],avvisi=[];
+      const avvisa=(data,testo)=>avvisi.push({data,testo});
       const sectionForHeading=line=>{
         const heading=normalize(line);
         // L'OCR può leggere "TURNI" come "TURN!": riconosciamo quindi il
@@ -637,20 +782,23 @@
         if(section&&/^\s*(?:TURNO\s+NAVI|PROGRAMMAZIONE\s+RIFORNIMENTI|ORMEGGI\s+SERALI)\b/i.test(line)){section='';continue}
         if(!section)continue;
         const foundDate=italianDate(line);if(foundDate){currentDate=foundDate;continue}
-        const m=line.match(/^([A-ZÀ-Ü][A-ZÀ-Ü .,'’-]{2,}):\s*(.+)$/i);
-        if(!m||!currentDate)continue;
+        const m=line.match(/^([A-ZÀ-Ü][A-ZÀ-Ü .,'’-]{2,}):\s*(.*)$/i);
+        if(!m)continue;
+        if(!currentDate){avvisa('',`Riga prima di una data, non usata: «${line.trim()}»`);continue}
+        if(!m[2].trim()){avvisa(currentDate,`Riga senza servizio, non usata: «${line.trim()}»`);continue}
         const content=m[2],service=content.match(/\bservizio\s+([A-Z0-9.=/-]+)/i);
-        // Nei precedenti ODS già gestiti da NaviSuite "===" rappresenta RIP.
+        // Nei precedenti ODS già gestiti da NaviSuite "===" rappresenta RIP (a volte scritto "==", es. ODS 41/2026).
         // Manteniamo quindi la stessa semantica anche nelle sezioni volontarie.
         const explicitCode=content.match(/\b(?:L\.?\s*D\.?|F\.?\s*P\.?|AGB\d?)(?![A-Z0-9])/i)?.[0]||'';
-        const tokens=content.toUpperCase().match(/={3}|\b(?:RIP|[A-Z]{1,5}\d{0,2})\b/g)||[];
-        let shift=(service?.[1]||explicitCode||tokens.find(t=>!['DALLE','ALLE','SONO','PRONTI','MUOVERE','CON','COME','PER','IL','LA','DI','IN','A'].includes(t))||'').replace(/^={3}$/,'RIP');
+        const tokens=content.toUpperCase().match(/={2,}|\b(?:RIP|[A-Z]{1,5}\d{0,2})\b/g)||[];
+        let shift=(service?.[1]||explicitCode||tokens.find(t=>!['DALLE','ALLE','SONO','PRONTI','MUOVERE','CON','COME','PER','IL','LA','DI','IN','A'].includes(t))||'').replace(/^={2,}$/,'RIP');
         if(/^L\.?\s*D\.?$/i.test(shift))shift='L.D.';
         if(/^F\.?\s*P\.?$/i.test(shift))shift='F.P.';
-        if(!shift)continue;
+        if(!shift){avvisa(currentDate,`Servizio non riconosciuto, riga non usata: «${line.trim()}»`);continue}
+        if(/^=+$/.test(m[2].trim())&&m[2].trim().length!==3)avvisa(currentDate,`«${m[2].trim()}» letto come RIP (di solito è «===»): «${line.trim()}»`);
         m[1].split(/\s*,\s*|\s+E\s+/i).forEach(name=>{
           const agent=resolveAgent(name.trim());
-          if(!agent)return;
+          if(!agent){avvisa(currentDate,`Agente non riconosciuto: «${name.trim()}» (riga «${line.trim()}»)`);return}
           records.push({data:currentDate,agente:agent.agente,id_agente:String(agent.id),turno_originale:baseShift(agent,currentDate),turno_nuovo:shift.toUpperCase(),ods:ods||'da definire',tipo:section,note:content});
         });
       }
@@ -658,6 +806,16 @@
       const byAgentDate=new Map();
       unique.forEach(row=>{const key=`${row.data}|${row.id_agente}`;if(!byAgentDate.has(key))byAgentDate.set(key,[]);byAgentDate.get(key).push(row)});
       byAgentDate.forEach(rows=>{if(new Set(rows.map(row=>row.turno_nuovo)).size>1)rows.forEach(row=>{row.conflict=true;row.note=`⚠ Conflitto nello stesso ODS: ${row.note}`})});
+      // Controlli sulle variazioni lette: segnalano cose strane, non cambiano niente.
+      const libero=t=>/^(RIP|RIPOSO|L\.D\.|F\.P\.|FERIE|MALATTIA|==+)$/i.test(String(t||''));
+      unique.forEach(row=>{
+        const da=String(row.turno_originale||'').toUpperCase(),a=String(row.turno_nuovo||'').toUpperCase();
+        if(da&&da===a)avvisa(row.data,`${row.agente}: «${a}» è già il suo turno, la variazione non cambia niente`);
+        // Chi prende un servizio dovrebbe sostituire qualcuno che lo lascia nello stesso giorno (cessione)
+        if(a&&!libero(a)&&a!==da&&!unique.some(o=>o!==row&&o.data===row.data&&String(o.turno_originale||'').toUpperCase()===a&&String(o.turno_nuovo||'').toUpperCase()!==a))
+          avvisa(row.data,`${row.agente} prende ${a}, ma nell'ODS nessuno lascia ${a} quel giorno: controlla se manca una riga (es. chi cede il turno)`);
+      });
+      unique.avvisi=avvisi;
       return unique;
     }
     function odsDateRange(items){
@@ -679,8 +837,11 @@
       return datesBetween(`${match[4]}-${month}-${match[1].padStart(2,'0')}`,`${match[4]}-${month}-${match[2].padStart(2,'0')}`);
     }
     function parseOdsNaviPdf(pages,ods){
-      const courseRe=/^(D[1-4]|BIS2?|T[12]|M1|R[1-4]|CAR1|P[1-3]|CAP1|SR1)$/i;
-      const shipRe=/\b(PARINI\s*\+\s*D['’]ANNUNZIO|D['’]ANNUNZIO|SOLFERINO|AGONE|TONALE|BALDO|S\.?\s*MARCO|CATULLO|S\.?\s*VIGILIO|MINCIO|MANTOVA|TRENTO|BRENNERO|S\.?\s*MARTINO|PELER|PARINI|BRESCIA|ANDROMEDA|ANDER|VIRGILIO|GOETHE|RIVIERE|VERGA)\b/i;
+      // Etichette di riga della tabella navi. "CAR/SR2" vale per entrambe le
+      // corse, "SRI" e' un refuso di SR1 presente in alcuni allegati.
+      const courseRe=/^(D[1-4]|BIS2?|T[12]|M1|R[1-4]|CAR1?|P[1-3]|CAP1?|SR[12I]|CAR1?\s*\/\s*SR2|S\.\s*S\.?)$/i;
+      const courseCodes=label=>label.toUpperCase().replace(/\s+/g,'').split('/').map(code=>code==='SRI'?'SR1':code==='S.S'?'S.S.':code);
+      const shipRe=/\b(PARINI\s*\+\s*D['’]ANNUNZIO|D['’]ANNUNZIO|SOLFERINO|AGONE|TONALE|BALDO|S\.?\s*MARCO|CATULLO|S\.?\s*VIGILIO|MINCIO|MANTOVA|TRENTO|BRENNERO|S\.?\s*MARTINO|PELER|PARINI|BRESCIA|ANDROMEDA|ANDER|VIRGILIO|GOETHE|RIVIERE|VERGA|VERONA|ITALIA|ADAMELLO|GALILEI|ZANARDELLI|FRECCIA\s+D\.?\s*G\.?)(?![A-Z])/i;
       const mooringRe=/\b(PONT\.?|PONTILE|PONTE|PORT\.?|PORTO|ORMEGGIO|MOLO|RIVA|BOA|LUNGOLAGO|DESENZANO|SIRMIONE|MADERNO|GARGNANO|MALCESINE|LIMONE)\b/i;
       const records=[];
       pages.forEach(items=>{
@@ -698,18 +859,23 @@
           centers.forEach((center,column)=>{
             const cell=items.filter(item=>{
               const itemCenter=item.x+(item.width||0)/2;
-              return Math.abs(itemCenter-center)<spacing*.46&&item.y<=high&&item.y>=low;
+              // Le note sotto la tabella sono righe lunghe: non sono celle.
+              return Math.abs(itemCenter-center)<spacing*.46&&(item.width||0)<=spacing*1.3&&item.y<=high&&item.y>=low;
             });
             if(!cell.length)return;
             const lines=groupedPdfLines(cell).map(line=>line.items.map(item=>item.text).join(' ').replace(/\s+/g,' ').trim());
             const text=lines.join(' ');
-            const ship=text.match(shipRe)?.[1]?.replace(/\s+/g,' ').replace(/^S\s+/i,'S. ')||'';
+            const shipName=value=>value.replace(/\s+/g,' ').replace(/^S\s+/i,'S. ');
+            const first=text.match(shipRe);
+            // Due navi abbinate ("VERONA + AGONE"): si tengono entrambe.
+            const second=first&&text.slice(first.index+first[0].length).match(new RegExp('^\\s*\\+\\s*'+shipRe.source,'i'));
+            const ship=first?(second&&!/\+/.test(first[1])?`${shipName(first[1])} + ${shipName(second[1])}`:shipName(first[1])):'';
             const mooringLine=lines.find(line=>mooringRe.test(line)&&!shipRe.test(line))||'';
             const refuel=/\bRIFORNIMENTO\b/i.test(text)?'Sì':'';
             // Salviamo solo celle realmente descritte nell'allegato; le celle
             // vuote non devono cancellare turni nave già registrati.
             if(!ship&&!mooringLine&&!refuel)return;
-            records.push({attiva:true,data:dates[column],corsa:course.text.toUpperCase(),nave:ship,rifornimento_mattina:refuel,ormeggio_serale:mooringLine.replace(/^(?:ORMEGGIO\s*(?:SERALE)?\s*[:\-]?\s*)/i,'').trim(),ods:`ODS ${ods||'da definire'}`,inserita_il:new Date().toISOString()});
+            courseCodes(course.text.trim()).forEach(corsa=>records.push({attiva:true,data:dates[column],corsa,nave:ship,rifornimento_mattina:refuel,ormeggio_serale:mooringLine.replace(/^(?:ORMEGGIO\s*(?:SERALE)?\s*[:\-]?\s*)/i,'').trim(),ods:`ODS ${ods||'da definire'}`,inserita_il:new Date().toISOString()}));
           });
         });
       });
@@ -757,8 +923,15 @@
     function normalizeImportedShift(value){
       const raw=String(value??'').trim().toUpperCase().replace(/[‐‑–—]/g,'-');
       if(!raw||/^(?:RIP(?:\.|-*)?|RIPOSO|-{2,}|={2,})$/.test(raw))return 'RIP';
-      if(/^(?:CONG?\.?|CON;|CONC\.?|C\.)$/.test(raw))return 'CON';
+      if(/^(?:CONG?\.?|CON[;/]|CONC\.?|C\.)$/.test(raw))return 'CON';
+      if(/^LAV[.;]?$/.test(raw))return 'LAV';
+      if(/^L\.?D[.;]?$/.test(raw))return 'L.D.';
       if(/^F\.?P\.?-*$/.test(raw))return 'F.P.';
+      // Abbreviazioni del turno PDF: c.c./c--- = congedo, crip--/crip./c.rip. = riposo, cF.P. = F.P., l.d/C = L.D.
+      if(/^(?:C\.C\.|C-+)$/.test(raw))return 'CON';
+      if(/^(?:CRIP[.-]*|C\.RIP\.?)$/.test(raw))return 'RIP';
+      if(/^CF\.?P\.?-*$/.test(raw))return 'F.P.';
+      if(/^L\.?D\.?\/C$/.test(raw))return 'L.D.';
       return raw.replace(/\.{2,}$/g,'.').replace(/-+$/g,'');
     }
     function datesBetween(start,end){
@@ -786,9 +959,21 @@
       const number=String(prefix||'').match(/^\s*(\d+)(?:\s*[-/]\s*(\d+))?/);
       const list=agents().filter(agent=>String(agent.residence||'').toUpperCase()!=='BARISTE');
       const withoutNumber=String(prefix||'').replace(/^\s*\d+(?:\s*[-/]\s*\d+)?\s*/,'').trim();
-      const key=normalize(withoutNumber),exact=resolveAgent(withoutNumber);
+      const key=normalize(withoutNumber);
+      // Righe senza nome (titolo, numeri dei giorni) non appartengono a nessuno.
+      if(!key)return [];
+      const parsedName=window.NaviTurnImport?.parseRowPrefix(prefix);
+      if(parsedName){
+        const same=list.filter(agent=>window.NaviTurnImport.sameAgent(agent.agente,parsedName.name));if(same.length===1)return same;
+        // Cognome (anche con un refuso) presente una sola volta: e' lui. Altrimenti
+        // l'agente e' nuovo o ambiguo: si lascia decidere all'anteprima.
+        const surname=normalize(parsedName.name.replace(/\s+(?:[A-Za-z]{1,3}\.)+$/,''));
+        const sameSurname=list.filter(agent=>{const s=normalize(String(agent.agente||'').replace(/\s+(?:[A-Za-z]{1,3}\.)+$/,''));return s===surname||(s.length>3&&Math.abs(s.length-surname.length)<=1&&editDistance(s,surname)<=1)});
+        return sameSurname.length===1?sameSurname:[];
+      }
+      const exact=resolveAgent(withoutNumber);
       if(exact)return [exact];
-      const byName=list.filter(agent=>{
+      const byName=parsedName?[]:list.filter(agent=>{
         const surname=normalize(String(agent.agente||'').split(/\s+/)[0]);
         return surname.length>3&&key.includes(surname);
       });
@@ -799,11 +984,21 @@
       }
       return [];
     }
+    // Righe del PDF senza agente in anagrafica ma con formato "N COGNOME I.":
+    // sono agenti nuovi (es. neo assunti), creati nella residenza della sezione.
+    function newAgentFromPrefix(prefix,section){
+      const parsed=window.NaviTurnImport?.parseRowPrefix(prefix);
+      if(!parsed||!section)return null;
+      const uid=stableAgentUid(parsed.name);
+      return {nuovo:true,agente:parsed.name,agent_uid:uid,id:`NEW_${uid.replace(/^AG_/,'')}`,residence:section,qualifica:'marinaio'};
+    }
     function parseTurnPdf(pages,start,end,tipo,filename){
+      const Turn=window.NaviTurnImport;
       const dates=datesBetween(start,end);
       if(!dates.length||dates.length%7!==0)throw new Error('Il periodo deve contenere settimane complete di 7 giorni');
-      const rows=new Map();let pendingAgents=[];
+      const collected=[];let pendingAgents=[],section='';
       pages.forEach(items=>{
+        pendingAgents=[];
         const centers=pageDayCenters(items,dates.length);
         if(centers.length<7)throw new Error('Non trovo le 7 colonne dei giorni in una pagina del PDF');
         const spacing=centers.slice(1).reduce((sum,x,i)=>sum+(x-centers[i]),0)/Math.max(1,centers.length-1);
@@ -813,35 +1008,73 @@
             const item=line.items.filter(entry=>Math.abs((entry.x+(entry.width||0)/2)-center)<spacing*.40).sort((a,b)=>Math.abs(a.x-center)-Math.abs(b.x-center))[0];
             return item?normalizeImportedShift(item.text):'RIP';
           });
-          if(cells.some(value=>/^(?:LUN|MAR|MER|GIO|VEN|SAB|DOM)(?:\s+\d{1,2})?$/i.test(value)))return;
-          const populated=cells.filter(value=>value!=='RIP').length;
           const prefix=line.items.filter(item=>item.x<centers[0]-spacing*.48).map(item=>item.text).join(' ').replace(/\s+/g,' ').trim();
-          const rowAgents=resolvePdfRowAgents(prefix);
+          if(cells.some(value=>/^(?:LUN|MAR|MER|GIO|VEN|SAB|DOM)(?:\s+\d{1,2})?$/i.test(value))){
+            const heading=Turn?.sectionResidence(prefix);if(heading)section=heading;
+            return;
+          }
+          const populated=cells.filter(value=>value!=='RIP').length;
+          const rowAgents=(()=>{const found=resolvePdfRowAgents(prefix);if(found.length)return found;const created=newAgentFromPrefix(prefix,section);return created?[created]:[]})();
           if(rowAgents.length){
-            if(!populated){pendingAgents=rowAgents;return}
-            rowAgents.forEach(agent=>rows.set(String(agent.agent_uid||stableAgentUid(agent.agente)),{id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            if(!populated){pendingAgents=rowAgents.map(agent=>({agent,section}));return}
+            rowAgents.forEach(agent=>collected.push({agent,section,cells}));
             pendingAgents=[];
           }else if(pendingAgents.length&&populated>=2){
-            pendingAgents.forEach(agent=>rows.set(String(agent.agent_uid||stableAgentUid(agent.agente)),{id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:agent.agente,residenza:agent.residence,turni:cells}));
+            pendingAgents.forEach(item=>collected.push({agent:item.agent,section:item.section,cells}));
             pendingAgents=[];
           }
         });
       });
-      const parsed=[...rows.values()];
+      // Un agente puo' comparire in piu' sezioni (trasferta): le righe si fondono.
+      const groups=new Map();
+      collected.forEach(item=>{
+        const uid=String(item.agent.agent_uid||stableAgentUid(item.agent.agente));
+        if(!groups.has(uid))groups.set(uid,{uid,agent:item.agent,sections:[],cellsList:[]});
+        const group=groups.get(uid);group.sections.push(item.section);group.cellsList.push(item.cells);
+      });
+      const parsed=[...groups.values()].map(group=>{
+        const agent=group.agent,sections=[...new Set(group.sections.filter(Boolean))];
+        const turni=(Turn?Turn.mergeCells(group.cellsList):group.cellsList[0]).map(value=>Turn?.isTransferMarker(value)?'RIP':value);
+        const current=String(agent.residence||'').toUpperCase();
+        // Con piu' sezioni (trasferta) la sede resta quella attuale se presente.
+        const home=agent.nuovo?sections[0]:(sections.includes(current)?current:sections[0]);
+        const row={id_agente:String(agent.id),agent_uid:group.uid,agente:agent.agente,residenza:home||current,turni};
+        if(agent.nuovo){row.nuovo=true;row.qualifica=agent.qualifica||'marinaio'}
+        else{const move=Turn?.planResidenceMove(agent,home,start);if(move)Object.assign(row,move)}
+        return row;
+      });
       if(!parsed.length)throw new Error('Nessun agente riconosciuto nel PDF');
       parsed.forEach(row=>{while(row.turni.length<dates.length)row.turni.push('RIP');row.turni=row.turni.slice(0,dates.length).map(normalizeImportedShift)});
+      // Agenti in anagrafica ma assenti dal PDF (es. cessati): proposti come CONG
+      // per tutto il periodo, da confermare in anteprima.
+      const seen=new Set(parsed.map(row=>row.agent_uid));
+      const sawSections=collected.some(item=>item.section);
+      const missing=sawSections?agents().filter(agent=>String(agent.residence||'').toUpperCase()!=='BARISTE'&&String(agent.residence||'').toLowerCase()!=='uffici'&&!seen.has(String(agent.agent_uid||stableAgentUid(agent.agente)))):[];
+      missing.forEach(agent=>parsed.push({id_agente:String(agent.id),agent_uid:String(agent.agent_uid||stableAgentUid(agent.agente)),agente:agent.agente,residenza:agent.residence,assente:true,turni:dates.map(()=>'CON')}));
       return {id:`TURN_${Date.now()}`,tipo,filename,dates,rows:parsed,inizio:start,fine:end,importedAt:new Date().toISOString(),attiva:true};
+    }
+    function turnRowNotes(row){
+      const notes=[];
+      if(row.nuovo)notes.push(`<span class="approved-badge">Nuovo agente</span> <select data-field="qualifica" aria-label="Qualifica ${esc(row.agente)}">${['marinaio','motorista','capitano'].map(q=>`<option value="${q}"${String(row.qualifica||'marinaio')===q?' selected':''}>${q}</option>`).join('')}</select>`);
+      if(row.residenzaNuova)notes.push(`<label><input type="checkbox" data-field="sposta" checked> ${esc(row.residenzaPrecedente)} → <b>${esc(row.residenzaNuova)}</b> dal ${esc(row.residenzaDal.split('-').reverse().join('/'))}</label>`);
+      if(row.assente)notes.push('<span class="approved-badge">Non nel PDF: CONG per tutto il periodo</span>');
+      return notes.length?`<br><small>${notes.join('<br>')}</small>`:'';
     }
     function renderTurnImportPreview(){
       const box=$('turn-import-preview'),batch=pendingTurnImport;box.hidden=!batch;if(!batch)return;
       const labels=batch.dates.map(date=>new Date(`${date}T12:00:00`).toLocaleDateString('it-IT',{weekday:'short',day:'2-digit',month:'2-digit'}));
-      box.innerHTML=`<div><strong>${batch.rows.length} agenti · ${batch.dates.length} giornate</strong> · celle vuote convertite in RIP</div><div class="table-wrap"><table class="pending-table"><thead><tr><th>Usa</th><th>Agente</th>${labels.map(label=>`<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${batch.rows.map((row,index)=>`<tr data-pending-turn="${index}"><td><input type="checkbox" data-field="use" checked></td><td><strong>${esc(row.agente)}</strong><small>${esc(row.residenza||'')}</small></td>${row.turni.map((shift,day)=>`<td><input data-turn-day="${day}" value="${esc(shift)}" aria-label="${esc(row.agente)} ${esc(labels[day])}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+      const moves=batch.rows.filter(row=>row.residenzaNuova).length,created=batch.rows.filter(row=>row.nuovo).length,absent=batch.rows.filter(row=>row.assente).length;
+      const summary=[moves&&`${moves} cambi di residenza`,created&&`${created} nuovi agenti`,absent&&`${absent} agenti non presenti nel PDF`].filter(Boolean).join(' · ');
+      box.innerHTML=`<div><strong>${batch.rows.length} agenti · ${batch.dates.length} giornate</strong> · celle vuote convertite in RIP${summary?`<br>${esc(summary)}`:''}</div><div class="table-wrap"><table class="pending-table"><thead><tr><th>Usa</th><th>Agente</th>${labels.map(label=>`<th>${esc(label)}</th>`).join('')}</tr></thead><tbody>${batch.rows.map((row,index)=>`<tr data-pending-turn="${index}"><td><input type="checkbox" data-field="use" checked></td><td><strong>${esc(row.agente)}</strong><small>${esc(row.residenzaNuova||row.residenza||'')}</small>${turnRowNotes(row)}</td>${row.turni.map((shift,day)=>`<td><input data-turn-day="${day}" value="${esc(shift)}" aria-label="${esc(row.agente)} ${esc(labels[day])}"></td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     }
     function collectTurnImport(){
       if(!pendingTurnImport)return null;
       const rows=[...$('turn-import-preview').querySelectorAll('[data-pending-turn]')].filter(tr=>tr.querySelector('[data-field=use]').checked).map(tr=>{
         const source=pendingTurnImport.rows[Number(tr.dataset.pendingTurn)];
-        return {...source,turni:[...tr.querySelectorAll('[data-turn-day]')].map(input=>normalizeImportedShift(input.value))};
+        const row={...source,turni:[...tr.querySelectorAll('[data-turn-day]')].map(input=>normalizeImportedShift(input.value))};
+        const move=tr.querySelector('[data-field=sposta]');if(move)row.sposta=move.checked;
+        const qualifica=tr.querySelector('[data-field=qualifica]');if(qualifica)row.qualifica=qualifica.value;
+        return row;
       });
       return {...pendingTurnImport,rows};
     }
@@ -866,8 +1099,10 @@
         return;
       }
       const options=agents().filter(a=>String(a.residence).toUpperCase()!=='BARISTE').sort((a,b)=>String(a.agente).localeCompare(String(b.agente),'it')).map(a=>`<option value="${esc(a.id)}">${esc(a.agente)}</option>`).join('');
+      const avvisi=kind==='ods'?(rows.avvisi||[]):[];
+      const boxAvvisi=avvisi.length?`<div class="status bad" style="margin:0 0 12px"><strong>⚠ ${avvisi.length===1?'1 cosa strana':`${avvisi.length} cose strane`} nell'ODS: controlla prima di salvare</strong><ul style="margin:6px 0 0;padding-left:18px">${avvisi.map(v=>`<li>${v.data?`${esc(v.data.split('-').reverse().join('/'))} · `:''}${esc(v.testo)}</li>`).join('')}</ul></div>`:'';
       result.innerHTML=kind==='ods'
-        ?`${rows.length?`<h3>Variazioni del personale (${rows.length})</h3><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Agente</th><th>Prima</th><th>Dopo</th><th>Nota</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-ods="${i}" data-tipo="${esc(v.tipo||'ODS')}"><td><input type="checkbox" data-field="use" ${v.conflict?'':'checked'}></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><select data-field="id_agente"><option value="">— scegli —</option>${options}</select></td><td><input data-field="turno_originale" value="${esc(v.turno_originale)}"></td><td><input data-field="turno_nuovo" value="${esc(v.turno_nuovo)}"></td><td><input data-field="note" value="${esc(v.note)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessuna variazione del personale riconosciuta.</div>'}${pendingOdsNavi.length?`<h3>Turni nave, rifornimenti e ormeggi (${pendingOdsNavi.length})</h3><p>Controlla l’anteprima: ogni riga sarà salvata nella NaviDiaria con il nome nave, il rifornimento e l’ormeggio serale.</p><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Nave</th><th>Rifornimento</th><th>Ormeggio serale</th></tr></thead><tbody>${pendingOdsNavi.map((v,i)=>`<tr data-pending-ods-nave="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="nave" value="${esc(v.nave)}"></td><td><input data-field="rifornimento_mattina" value="${esc(v.rifornimento_mattina)}"></td><td><input data-field="ormeggio_serale" value="${esc(v.ormeggio_serale)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessun turno nave riconosciuto nell’allegato ODS.</div>'}`
+        ?`${boxAvvisi}${rows.length?`<h3>Variazioni del personale (${rows.length})</h3><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Agente</th><th>Prima</th><th>Dopo</th><th>Nota</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-ods="${i}" data-tipo="${esc(v.tipo||'ODS')}"><td><input type="checkbox" data-field="use" ${v.conflict?'':'checked'}></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><select data-field="id_agente"><option value="">— scegli —</option>${options}</select></td><td><input data-field="turno_originale" value="${esc(v.turno_originale)}"></td><td><input data-field="turno_nuovo" value="${esc(v.turno_nuovo)}"></td><td><input data-field="note" value="${esc(v.note)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessuna variazione del personale riconosciuta.</div>'}${pendingOdsNavi.length?`<h3>Turni nave, rifornimenti e ormeggi (${pendingOdsNavi.length})</h3><p>Controlla l’anteprima: ogni riga sarà salvata nella NaviDiaria con il nome nave, il rifornimento e l’ormeggio serale.</p><table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Nave</th><th>Rifornimento</th><th>Ormeggio serale</th></tr></thead><tbody>${pendingOdsNavi.map((v,i)=>`<tr data-pending-ods-nave="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="nave" value="${esc(v.nave)}"></td><td><input data-field="rifornimento_mattina" value="${esc(v.rifornimento_mattina)}"></td><td><input data-field="ormeggio_serale" value="${esc(v.ormeggio_serale)}"></td></tr>`).join('')}</tbody></table>`:'<div class="empty">Nessun turno nave riconosciuto nell’allegato ODS.</div>'}`
         :`<table class="pending-table"><thead><tr><th>Usa</th><th>Data</th><th>Corsa</th><th>Barista</th></tr></thead><tbody>${rows.map((v,i)=>`<tr data-pending-barista="${i}"><td><input type="checkbox" data-field="use" checked></td><td><input type="date" data-field="data" value="${esc(v.data)}"></td><td><input data-field="corsa" value="${esc(v.corsa)}"></td><td><input data-field="barista" value="${esc(v.barista)}"></td></tr>`).join('')}</tbody></table>`;
       if(kind==='ods')result.querySelectorAll('[data-pending-ods]').forEach((tr,i)=>{tr.querySelector('[data-field=id_agente]').value=String(rows[i].id_agente||resolveAgent(rows[i].agente)?.id||'')});
     }
@@ -887,6 +1122,13 @@
         return {attiva:true,data:value('data'),corsa:value('corsa').toUpperCase(),nave:value('nave'),rifornimento_mattina:value('rifornimento_mattina'),ormeggio_serale:value('ormeggio_serale'),ods:$('new-ods-number').value.trim()||'importato',inserita_il:new Date().toISOString()};
       }).filter(row=>row.data&&row.corsa&&(row.nave||row.rifornimento_mattina||row.ormeggio_serale));
     }
+    // Comitive lette dall'ODS → PocketBase (pagina Comitive, Il mio turno, Scali)
+    async function salvaComitive(){
+      if(!pendingComitive.length)return;
+      const p=profile();
+      try{const r=await NaviComitive.salvaOds(pendingComitive,String(p?.name||p?.id||''));setStatus(`Comitive salvate: ${r.nuove} nuove, ${r.aggiornate} aggiornate.`,'ok');pendingComitive=[];}
+      catch(error){setStatus(`ODS salvato, ma le comitive non sono state salvate: ${error.message}`,'bad');}
+    }
     async function parseImport(kind){
       const input=$(kind==='ods'?'new-ods-file':kind==='nave'?'new-nave-file':'new-bariste-file'),file=input.files?.[0];
       if(!file)throw new Error('Seleziona prima un file');
@@ -900,13 +1142,15 @@
       if(kind==='ods'){
         pendingOds=records;
         pendingOdsNavi=/\.pdf$/i.test(file.name)?parseOdsNaviPdf(pages,$('new-ods-number').value.trim()):[];
-        $('save-new-ods').disabled=!(pendingOds.length||pendingOdsNavi.length);
+        // comitive dell'allegato «Comitive O.d.S.»: si salvano su PocketBase insieme all'ODS
+        try{pendingComitive=pages&&window.NaviComitive?NaviComitive.daPdf(pages,$('new-ods-number').value.trim()):[]}catch(error){console.warn('Comitive non lette',error);pendingComitive=[]}
+        $('save-new-ods').disabled=!(pendingOds.length||pendingOdsNavi.length||pendingComitive.length);
       }
       else if(kind==='nave'){pendingNavi=records;$('save-new-nave').disabled=!records.length}
       else{pendingBaristas=records;$('save-new-bariste').disabled=!records.length}
       renderPending(kind);
       const total=kind==='ods'?pendingOds.length+pendingOdsNavi.length:records.length;
-      const message=kind==='ods'?`${pendingOds.length} variazioni e ${pendingOdsNavi.length} turni nave riconosciuti. Controlla entrambe le anteprime prima di salvare.`:`${records.length} righe riconosciute. Controllale e correggile prima di salvare.`;
+      const message=kind==='ods'?`${pendingOds.length} variazioni, ${pendingOdsNavi.length} turni nave e ${pendingComitive.length} comitive riconosciuti.${pendingOds.avvisi?.length?` ⚠ ${pendingOds.avvisi.length} da controllare (vedi sotto).`:''} Controlla entrambe le anteprime prima di salvare.`:`${records.length} righe riconosciute. Controllale e correggile prima di salvare.`;
       setStatus(message,total?'ok':'bad');
     }
     async function init(){
@@ -947,6 +1191,7 @@
       $('date').value='2026-08-14';updateCurrent();renderHistory();
       renderChangeApprovals();
       renderUploadedDocuments();
+      renderResidenceMoveDebug();
       const linkedSheet=state.scheduleImports.filter(item=>item.source==='google_sheet'&&item.attiva!==false).sort((a,b)=>String(b.importedAt).localeCompare(String(a.importedAt)))[0];
       $('turn-sheet-url').value=linkedSheet?.sheetUrl||localStorage.getItem('navisuite.turnSheetUrl')||'';
       setStatus(repairedLegacyTurn?'✓ Turno 22 giugno–26 luglio riparato per nome agente e salvato su Firebase.':'Connesso a Firebase. Puoi importare i documenti o registrare una variazione.','ok');
@@ -973,32 +1218,102 @@
       $('parse-new-turn').disabled=false;
     });
     $('parse-new-ods').addEventListener('click',()=>parseImport('ods').catch(error=>setStatus(`Errore importazione ODS: ${error.message}`,'bad')));
+    // A4 Servizi a terra (Desenzano settimanale + Maderno): turni nave salvati + quelli dell'ODS
+    // appena letto (non ancora salvato). Ogni generazione sostituisce i due documenti in Documenti.
+    $('servizi-terra-week').value=NaviServiziTerra.defaultMonday();
+    function serviziTerraMonday(){
+      const picked=$('servizi-terra-week').value||NaviServiziTerra.defaultMonday();
+      const [y,m,d]=picked.split('-').map(Number),date=new Date(y,m-1,d);
+      date.setDate(date.getDate()-(date.getDay()+6)%7);
+      const monday=`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
+      $('servizi-terra-week').value=monday;
+      return monday;
+    }
+    async function saveServiziTerraDocuments(navi,monday){
+      for(const doc of NaviServiziTerra.documents(navi,monday))await window.NaviAdminFirebase.saveAdminDocument(doc.metadata,doc.dataUrl);
+      adminDocuments=await window.NaviAdminFirebase.getAdminDocuments();
+      renderUploadedDocuments();
+    }
+    $('generate-servizi-terra').addEventListener('click',async()=>{
+      try{
+        const monday=serviziTerraMonday();
+        const navi=[...(state.turniNavi||[]),...(pendingOdsNavi.length?collectOdsNavi():[]).map(row=>({...row,_pending:true}))];
+        const days=NaviServiziTerra.open(navi,monday);
+        setStatus('Salvataggio dei Servizi a terra in Documenti…');
+        await saveServiziTerraDocuments(navi,monday);
+        setStatus(days?`✓ Servizi a terra di Desenzano e Maderno salvati in Documenti: ormeggi di ${days} giorni su 7 negli ODS. Usa “Stampa / PDF”.`:'Servizi a terra salvati in Documenti, ma nessun turno nave per questa settimana: carica l’ODS che la copre.',days?'ok':'bad');
+      }catch(error){setStatus(`Errore Servizi a terra: ${error.message}`,'bad')}
+    });
     $('parse-new-bariste').addEventListener('click',()=>parseImport('barista').catch(error=>setStatus(`Errore importazione turni: ${error.message}`,'bad')));
     $('parse-new-turn').addEventListener('click',()=>parseTurnImport().catch(error=>setStatus(`Errore lettura turno: ${error.message}`,'bad')));
+    // Pulsante admin: chiede allo script del Foglio Google di allinearsi
+    // all'ultimo turno caricato (private/adminUpdates/sheetSync).
+    let sheetSyncPoll=null;
+    function renderSheetSync(state,waitingId){
+      const box=$('sheet-sync-status');const result=state?.result,request=state?.request;
+      const when=value=>value?new Date(value).toLocaleString('it-IT'):'';
+      if(waitingId&&(!result||result.requestId!==waitingId)){box.innerHTML=`⏳ Richiesta inviata ${esc(when(request?.requestedAt))}: lo script del foglio la eseguirà entro circa 5 minuti.`;return false}
+      if(!result){box.innerHTML='Nessuna sincronizzazione richiesta finora.';return true}
+      if(!result.ok){box.innerHTML=`⚠️ Sincronizzazione del ${esc(when(result.doneAt))} non riuscita: ${esc(result.errore||'errore sconosciuto')}`;return true}
+      const list=(title,items)=>items?.length?`<p><strong>${esc(title)} (${items.length})</strong></p><ul>${items.slice(0,40).map(item=>`<li>${esc(item)}</li>`).join('')}</ul>`:'';
+      box.innerHTML=`✓ Foglio allineato il ${esc(when(result.doneAt))} al turno <strong>${esc(result.turno||'—')}</strong>${result.dal?` (${esc(result.dal)} → ${esc(result.al)})`:''}: ${Number(result.celle_cambiate)||0} celle cambiate per ${Number(result.agenti_cambiati)||0} agenti.`+
+        (result.variazioni&&!result.variazioni.errore?`<p>Variazioni ODS: ${Number(result.variazioni.scritte)||0} scritte nel foglio.</p>`:'')+list('Da verificare a mano',result.da_verificare)+list('Variazioni ODS da verificare',result.variazioni?.da_verificare)+list('Agenti del turno non presenti nel foglio',result.agenti_non_nel_foglio)+list('Celle cambiate',result.dettaglio);
+      return true;
+    }
+    async function refreshSheetSync(waitingId){
+      try{const state=await window.NaviAdminFirebase.getSheetSync();const done=renderSheetSync(state,waitingId);if(done&&sheetSyncPoll){clearInterval(sheetSyncPoll);sheetSyncPoll=null;$('request-sheet-sync').disabled=false}}
+      catch(error){$('sheet-sync-status').textContent=`Stato non disponibile: ${error.message}`}
+    }
+    function installSheetSync(){
+      if(!isAdmin(profile())||!window.NaviAdminFirebase?.getSheetSync)return;
+      $('sheet-sync-box').hidden=false;refreshSheetSync();
+      $('request-sheet-sync').addEventListener('click',async()=>{
+        if(!confirm('Sincronizzare il Foglio Google con l’ultimo turno caricato in NaviSuite? Per il periodo del turno le celle del foglio verranno sostituite.'))return;
+        $('request-sheet-sync').disabled=true;
+        try{
+          const request=await window.NaviAdminFirebase.requestSheetSync(profile()||{});
+          renderSheetSync({request},request.id);
+          if(sheetSyncPoll)clearInterval(sheetSyncPoll);
+          let rounds=0;sheetSyncPoll=setInterval(()=>{rounds+=1;refreshSheetSync(request.id);if(rounds>=30&&sheetSyncPoll){clearInterval(sheetSyncPoll);sheetSyncPoll=null;$('request-sheet-sync').disabled=false}},20000);
+        }catch(error){$('request-sheet-sync').disabled=false;$('sheet-sync-status').textContent=`Richiesta non inviata: ${error.message}`}
+      });
+    }
+    installSheetSync();
     $('download-turn-sheet').addEventListener('click',exportScheduleCsv);
     $('parse-turn-sheet').addEventListener('click',async()=>{
       const url=$('turn-sheet-url').value.trim();if(!url)return setStatus('Inserisci il collegamento del Foglio Google.','bad');
       setStatus('Lettura del Foglio Google…');$('save-turn-sheet').disabled=true;
-      try{const response=await fetch(googleSheetCsvUrl(url),{cache:'no-store'});if(!response.ok)throw new Error(`Google Fogli HTTP ${response.status}`);pendingSheetImport=sheetBatchFromCsv(await response.text(),url);localStorage.setItem('navisuite.turnSheetUrl',url);renderSheetPreview();$('save-turn-sheet').disabled=false;setStatus(`✓ ${pendingSheetImport.rows.length} agenti riconosciuti. Controlla l’anteprima e applica a Firebase.`,'ok')}catch(error){pendingSheetImport=null;renderSheetPreview();setStatus(`Errore Foglio Google: ${error.message}. Verifica che sia pubblicato come CSV.`,'bad')}
+      try{const response=await fetch(googleSheetCsvUrl(url),{cache:'no-store'});if(!response.ok)throw new Error(`Google Fogli HTTP ${response.status}`);pendingSheetImport=sheetBatchFromCsv(await response.text(),url);localStorage.setItem('navisuite.turnSheetUrl',url);renderSheetPreview();$('save-turn-sheet').disabled=false;const found=sheetDifferences(pendingSheetImport).changes.length;$('save-turn-sheet').disabled=!found;setStatus(found?`✓ ${found} ${found===1?'differenza':'differenze'} rispetto a NaviSuite: controlla l’elenco e applica a Firebase.`:'✓ Nessuna differenza: NaviSuite è già allineato al foglio.','ok')}catch(error){pendingSheetImport=null;renderSheetPreview();setStatus(`Errore Foglio Google: ${error.message}. Verifica che sia pubblicato come CSV.`,'bad')}
     });
     $('save-turn-sheet').addEventListener('click',async()=>{
       if(!pendingSheetImport)return;
-      if(!confirm(`Applicare a Firebase ${pendingSheetImport.rows.length} agenti dal ${pendingSheetImport.inizio} al ${pendingSheetImport.fine}?`))return;
+      {const found=sheetDifferences(pendingSheetImport).changes.length;if(!confirm(`Applicare a Firebase il foglio (${pendingSheetImport.rows.length} agenti dal ${pendingSheetImport.inizio} al ${pendingSheetImport.fine})? Cambieranno ${found} turni in NaviSuite.`))return;}
       const previous=[...state.scheduleImports];state.scheduleImports=state.scheduleImports.map(item=>item.source==='google_sheet'&&item.attiva!==false?{...item,attiva:false,replacedAt:new Date().toISOString()}:item).concat(pendingSheetImport);
       try{await save();schedule=await window.NaviSharedData.load('',{force:true});$('save-turn-sheet').disabled=true;setStatus('✓ Foglio Google applicato a Firebase. I turni sono stati aggiornati.','ok')}catch(error){state.scheduleImports=previous;setStatus(`Errore applicazione Foglio Google: ${error.message}`,'bad')}
     });
     $('save-new-ods').addEventListener('click',async()=>{
-      const rows=collectPending('ods'),navi=collectOdsNavi();if(!rows.length&&!navi.length)return setStatus('Nessuna riga ODS valida da salvare.','bad');
+      const rows=collectPending('ods'),navi=collectOdsNavi();
+      if(!rows.length&&!navi.length&&pendingComitive.length){await salvaComitive();$('save-new-ods').disabled=true;return;}
+      if(!rows.length&&!navi.length)return setStatus('Nessuna riga ODS valida da salvare.','bad');
       const selectedKeys=rows.map(row=>`${row.data}|${row.id_agente}`);if(new Set(selectedKeys).size!==selectedKeys.length)return setStatus('Conflitto ODS: per lo stesso agente e giorno seleziona una sola variazione.','bad');
       if(rows.length)state.odsVariations=merge(state.odsVariations,rows,variationKey);
-      if(navi.length)state.turniNavi=merge(state.turniNavi,navi,turnoNaveKey);
+      if(navi.length){
+        // Una nuova lettura della stessa corsa e giornata sostituisce la
+        // precedente (anche se la nave e' diversa, es. una lettura errata).
+        const replaced=new Set(navi.map(v=>`${v.data}|${v.corsa}`)),now=new Date().toISOString();
+        state.turniNavi=merge(state.turniNavi.map(v=>v.attiva!==false&&replaced.has(`${v.data}|${v.corsa}`)?{...v,attiva:false,sostituita_il:now}:v),navi,turnoNaveKey);
+      }
       const touchesRequest=request=>rows.some(variation=>odsVariationMatchesRequest(variation,request));
       state.dismissedOdsApprovals=(state.dismissedOdsApprovals||[]).filter(item=>{
         const request=changeRequests.find(entry=>String(entry.id)===String(item.requestId));
         return !request||!touchesRequest(request)||!odsConfirmationFor(request).complete;
       });
       await save();renderHistory();renderChangeApprovals();$('save-new-ods').disabled=true;pendingOdsNavi=[];
-      setStatus(`✓ ODS salvato: ${rows.length} variazioni e ${navi.length} turni nave.`, 'ok');
+      await salvaComitive();
+      // Nuovi ormeggi serali: rigenera i Servizi a terra in Documenti.
+      let terra='';
+      if(navi.length){try{await saveServiziTerraDocuments(state.turniNavi,serviziTerraMonday());terra=' Servizi a terra aggiornati in Documenti.'}catch(error){terra=` Servizi a terra non aggiornati (${error.message}).`}}
+      setStatus(`✓ ODS salvato: ${rows.length} variazioni e ${navi.length} turni nave.${terra} Il Foglio Google si aggiornerà da solo entro 5 minuti.`, 'ok');
     });
     $('save-new-bariste').addEventListener('click',async()=>{
       const rows=collectPending('barista');if(!rows.length)return setStatus('Nessun turno barista valido da salvare.','bad');
@@ -1021,8 +1336,9 @@
         await save();
         adminDocuments=await window.NaviAdminFirebase.getAdminDocuments();
         renderUploadedDocuments();
+        renderResidenceMoveDebug();
         $('new-turn-file').value='';pendingTurnImport=null;$('turn-import-preview').hidden=true;$('parse-new-turn').disabled=true;
-        setStatus(`✓ ${batch.rows.length} agenti aggiornati per ${batch.dates.length} giorni. Il PDF di prova può essere eliminato dalla riga qui sopra.`,'ok');
+        setStatus(`✓ ${batch.rows.length} agenti aggiornati per ${batch.dates.length} giorni. Il Foglio Google si aggiornerà da solo entro 5 minuti. Il PDF di prova può essere eliminato dalla riga qui sopra.`,'ok');
       }catch(error){
         setStatus(`Errore caricamento documento: ${error.message}`,'bad');
         $('save-new-turn').disabled=false;
@@ -1038,6 +1354,6 @@
   })();
   </script>
 
-  <script src="assets/js/announcements-recovered.js?v=1"></script>
+  <script src="assets/js/announcements-recovered.js?v=11"></script>
 </body>
 </html>

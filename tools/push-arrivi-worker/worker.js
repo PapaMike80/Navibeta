@@ -1,0 +1,354 @@
+'use strict';
+// NaviSuite · turno pronto per l'app (public/turnoFuturo) e avvisi a telefono bloccato: arrivo delle navi (chi e' a terra) e prossimo scalo (chi e' a bordo),
+// 10 minuti prima. Ogni minuto calcola gli avvisi con gli stessi file dell'app (scaricati da GitHub Pages) e li
+// mette nella coda private/adminUpdates/pushQueue: li spedisce il push-worker gia' attivo su TrueNAS.
+// Nessuna chiave VAPID qui: serve solo l'accesso a Firebase (lo stesso anonimo dell'app).
+const vm = require('vm');
+const { execFileSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const SITE = (process.env.NAVISUITE_URL || 'https://papamike80.github.io/NaviSuite').replace(/\/$/, '');
+const DB = (process.env.FIREBASE_DB || 'https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app').replace(/\/$/, '');
+const API_KEY = process.env.FIREBASE_API_KEY || '';
+const DRY_RUN = /^(1|true|si|yes)$/i.test(process.env.DRY_RUN || '');
+const SCRIPTS = ['assets/js/shared-roles.js', 'assets/js/shared-data.js', 'assets/js/course-info.js', 'assets/js/orario-corse.js',
+  'assets/js/servizi-terra-a4.js', 'assets/js/turni-giorno.js', 'assets/js/orario-giorno.js', 'assets/js/push-summary.js', 'assets/js/push-arrivi.js',
+  'assets/js/shift-competence.js', 'assets/js/diaria-backup.js'];
+const log = (...a) => console.log(new Date().toISOString(), '[arrivi]', ...a);
+
+// --- Firebase (accesso anonimo come l'app) ---
+let token = '', tokenExp = 0, apiKey = API_KEY;
+async function auth() {
+  if (token && Date.now() < tokenExp) return token;
+  const r = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=${apiKey}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"returnSecureToken":true}' });
+  const j = await r.json();
+  if (!j.idToken) throw new Error('Accesso Firebase non riuscito: ' + JSON.stringify(j.error || j));
+  token = j.idToken; tokenExp = Date.now() + 50 * 60 * 1000;
+  return token;
+}
+let fb = async function fbReale(p, options = {}) {
+  const r = await fetch(`${DB}/${p}.json?auth=${await auth()}`, options);
+  if (!r.ok) throw new Error(`Firebase ${p}: HTTP ${r.status}`);
+  return r.json();
+};
+
+// --- codice dell'app (ricaricato ogni 30 minuti, cosi' segue gli aggiornamenti) ---
+let ctx = null, ctxAt = 0;
+async function source(file) {
+  if (process.env.NAVISUITE_DIR) return fs.readFileSync(path.join(process.env.NAVISUITE_DIR, file), 'utf8');
+  const r = await fetch(`${SITE}/${file}?t=${Date.now()}`);
+  if (!r.ok) throw new Error(`${file}: HTTP ${r.status}`);
+  return r.text();
+}
+async function app() {
+  if (ctx && Date.now() - ctxAt < 30 * 60 * 1000) return ctx;
+  const store = new Map();
+  const sandbox = {
+    console, setTimeout, clearTimeout, setInterval: () => 0, fetch, URL, URLSearchParams, TextEncoder, AbortController, Response,
+    localStorage: { getItem: k => (store.has(k) ? store.get(k) : null), setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k) },
+    sessionStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+    location: { pathname: '/worker', search: '', href: 'https://worker/' },
+    document: { addEventListener() {}, querySelector: () => null, getElementById: () => null, createElement: () => ({ style: {} }) },
+    addEventListener() {}, dispatchEvent() {}, CustomEvent: class {}
+  };
+  sandbox.window = sandbox; sandbox.globalThis = sandbox; sandbox.self = sandbox;
+  vm.createContext(sandbox);
+  for (const file of SCRIPTS) vm.runInContext(await source(file), sandbox, { filename: file });
+  if (!apiKey) apiKey = ((await source('assets/js/admin-firebase-rest.js')).match(/AIza[0-9A-Za-z_-]{35}/) || [])[0] || '';
+  ctx = sandbox; ctxAt = Date.now();
+  log('codice dell\'app caricato');
+  return ctx;
+}
+
+// --- dati: turni (public/schedule) + aggiornamenti, come l'app ---
+let dati = null, datiAt = 0;
+async function data(w) {
+  if (dati && Date.now() - datiAt < 2 * 60 * 1000) return dati;
+  const base = await fb('public/schedule');
+  const names = ['scheduleImports', 'agentProfiles', 'odsVariations', 'manualVariations', 'turniNavi', 'pontiliCorse', 'pushSubscriptions'];
+  const parts = await Promise.all(names.map(n => fb(`private/adminUpdates/${n}`).catch(() => null)));
+  const u = Object.fromEntries(names.map((n, i) => [n, parts[i]]));
+  const asArray = v => Array.isArray(v) ? v.filter(Boolean) : Object.values(v || {}).filter(Boolean);
+  // gli aggiornamenti sono salvati come {items: [...]} o come lista
+  const items = v => asArray(v?.items ?? v?.rows ?? v);
+  const updates = { scheduleImports: items(u.scheduleImports), agentProfiles: u.agentProfiles || {}, odsVariations: items(u.odsVariations),
+    manualVariations: items(u.manualVariations), turniNavi: items(u.turniNavi) };
+  const effective = w.NaviPushSummary.effectiveData(base, updates, w.NaviSharedData);
+  dati = { effective, pontili: u.pontiliCorse?.DESENZANO || {}, subs: u.pushSubscriptions || {} };
+  datiAt = Date.now();
+  return dati;
+}
+
+// --- Turno pronto per l'app (public/turnoFuturo): da una settimana fa in poi, gia' unito con importazioni, O.d.S.,
+// profili e turni nave, calcolato con lo stesso codice dell'app. Il telefono scarica solo questo (apertura veloce,
+// poca rete). Si rifa' quando cambia il segno degli aggiornamenti admin, o comunque ogni 10 minuti.
+let prontoSegno = '', prontoAt = 0;
+async function turnoPronto(w) {
+  const [updatedAt, versione] = await Promise.all([fb('private/adminUpdates/updatedAt'), fb('private/adminUpdates/versione')]);
+  const v = versione || {};
+  const segno = [String(updatedAt || ''), ...Object.keys(v).sort().map(k => `${k}:${v[k]}`)].join('|'); // come segnoDa() dell'app
+  if (segno === prontoSegno && Date.now() - prontoAt < 10 * 60 * 1000) return;
+  const names = ['scheduleImports', 'agentProfiles', 'odsVariations', 'manualVariations', 'turniNavi', 'baristas', 'approvedChangeRequests', 'dismissedOdsApprovals'];
+  const parts = await Promise.all(names.map(n => fb(`private/adminUpdates/${n}`)));
+  const lista = x => Array.isArray(x) ? x.filter(Boolean) : Object.values(x || {}).filter(Boolean);
+  const u = Object.fromEntries(names.map((n, i) => [n, parts[i]]));
+  const updates = { scheduleImports: lista(u.scheduleImports), agentProfiles: u.agentProfiles || {}, odsVariations: lista(u.odsVariations),
+    manualVariations: lista(u.manualVariations), turniNavi: lista(u.turniNavi), baristas: lista(u.baristas),
+    approvedChangeRequests: lista(u.approvedChangeRequests), dismissedOdsApprovals: lista(u.dismissedOdsApprovals) };
+  // l'app nel NAS legge gli aggiornamenti da qui, come farebbe da Firebase
+  w.NaviAdminFirebase = { ready: Promise.resolve(), getAdminUpdates: async () => updates };
+  w.NaviSharedData.clear?.();
+  const completo = await w.NaviSharedData.load('', { force: true });
+  const leggero = w.NaviSharedData.leggero(completo);
+  const dal = leggero.__leggeroDal;
+  // turni nave da una settimana fa in poi (le righe senza data restano)
+  leggero.turni_navi = (leggero.turni_navi || []).filter(r => !r?.data || String(r.data) >= dal);
+  const item = { creato: new Date().toISOString(), segno, dal, data: leggero };
+  if (process.env.PRONTO_FILE) fs.writeFileSync(process.env.PRONTO_FILE, JSON.stringify(item));
+  if (DRY_RUN) log('[prova] turno pronto', Math.round(JSON.stringify(item).length / 1024), 'KB dal', dal);
+  else await fb('public/turnoFuturo', { method: 'PUT', body: JSON.stringify(item) });
+  prontoSegno = segno; prontoAt = Date.now();
+  log(`turno pronto pubblicato (${Math.round(JSON.stringify(item).length / 1024)} KB, dal ${dal})`);
+}
+
+// --- ODS e variazioni (preferenza "ODS e variazioni"): a ogni agente le variazioni nuove del suo turno, da oggi in poi.
+// Nuove = inserite dopo l'ultimo controllo (private/adminUpdates/pushOdsDa). Al primo avvio si parte da adesso,
+// senza mandare le vecchie. Piu' variazioni dello stesso agente arrivano in un solo avviso.
+async function variazioni(oggi) {
+  const da = await fb('private/adminUpdates/pushOdsDa');
+  if (!da) { if (!DRY_RUN) await fb('private/adminUpdates/pushOdsDa', { method: 'PUT', body: JSON.stringify(new Date().toISOString()) }); return; }
+  const [ods, manuali, subs] = await Promise.all(['odsVariations', 'manualVariations', 'pushSubscriptions'].map(n => fb(`private/adminUpdates/${n}`)));
+  const lista = x => Array.isArray(x) ? x.filter(Boolean) : Object.values(x || {}).filter(Boolean);
+  const nuove = [...lista(ods), ...lista(manuali)].filter(v => v.attiva !== false && v.inserita_il && String(v.inserita_il) > String(da)
+    && String(v.data || '').slice(0, 10) >= oggi && (v.turno_nuovo ?? v.turno));
+  if (!nuove.length) return;
+  const norm = t => String(t || '').trim().toUpperCase();
+  const giorno = iso => { const d = new Date(`${iso}T12:00:00`); return `${['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+  let messi = 0;
+  for (const [agentKey, devices] of Object.entries(subs || {})) {
+    const disp = Object.values(devices || {}).filter(sub => sub && sub.enabled !== false && sub.preferences?.ods !== false);
+    if (!disp.length) continue;
+    const agentId = String(disp[0].agentId || agentKey), nome = norm(disp[0].agentName);
+    const mie = nuove.filter(v => String(v.id_agente || '') === agentId || (!v.id_agente && nome && norm(v.agente) === nome))
+      .sort((a, b) => String(a.data).localeCompare(String(b.data)));
+    if (!mie.length) continue;
+    const fonte = [...new Set(mie.map(v => (/MOVIMENTO/i.test(v.ods) ? 'Movimento' : v.ods ? `ODS ${v.ods}` : 'Variazione')))].join(', ');
+    const title = `📋 ${fonte} · ${mie.length === 1 ? giorno(String(mie[0].data).slice(0, 10)) : `${mie.length} variazioni`}`;
+    const body = mie.slice(0, 4).map(v => `${giorno(String(v.data).slice(0, 10))} ${v.turno_originale ? `${turnoLabel(v.turno_originale)}→` : ''}${turnoLabel(v.turno_nuovo ?? v.turno)}`).join(' · ') + (mie.length > 4 ? ` · +${mie.length - 4}` : '');
+    const firma = mie.map(v => `${v.data}${v.turno_nuovo ?? v.turno}${v.inserita_il}`).join('|');
+    for (const sub of disp) {
+      const id = safe(`ODS_${agentId}_${sub.deviceId}_${Buffer.from(firma).toString('base64').slice(-40)}`).slice(0, 700);
+      if (await fb(`private/adminUpdates/pushQueue/${id}`)) continue;
+      const item = { id, status: 'pending', kind: 'ods', requestedByAgentId: 'system', requestedByName: 'NaviSuite ODS', targetAgentId: agentId,
+        targetDeviceId: String(sub.deviceId || ''), title, body, url: 'naviturni.html', meta: { automatic: true, date: oggi }, createdAt: new Date().toISOString() };
+      if (DRY_RUN) log('[prova] ODS', agentId, '→', title, '|', body);
+      else await fb(`private/adminUpdates/pushQueue/${id}`, { method: 'PUT', body: JSON.stringify(item) });
+      messi++;
+    }
+  }
+  const ultima = nuove.map(v => String(v.inserita_il)).sort().pop();
+  if (!DRY_RUN) await fb('private/adminUpdates/pushOdsDa', { method: 'PUT', body: JSON.stringify(ultima) });
+  if (messi) log(`${messi} avvisi ODS in coda`);
+}
+
+// --- Cambi turno (preferenza "Cambi turno"): al collega la nuova richiesta, a entrambi l'approvazione.
+// Nuovi = dopo l'ultimo controllo (private/adminUpdates/pushCambiDa); al primo avvio si parte da adesso.
+async function cambi() {
+  const da = await fb('private/adminUpdates/pushCambiDa');
+  const ora = new Date().toISOString();
+  if (!da) { if (!DRY_RUN) await fb('private/adminUpdates/pushCambiDa', { method: 'PUT', body: JSON.stringify(ora) }); return; }
+  const [richieste, approvate, cancellate, subs] = await Promise.all([fb('private/changeRequests'), fb('private/adminUpdates/approvedChangeRequests'),
+    fb('private/adminUpdates/deletedChangeRequests'), fb('private/adminUpdates/pushSubscriptions')]);
+  const lista = x => Array.isArray(x) ? x.filter(Boolean) : Object.values(x || {}).filter(Boolean);
+  const tolte = new Set(lista(cancellate).map(x => String(x.requestId)));
+  const perId = new Map(lista(richieste).map(r => [String(r.id), r]));
+  const giorno = iso => { const d = new Date(`${iso}T12:00:00`); return `${['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'][d.getDay()]} ${d.getDate()}/${d.getMonth() + 1}`; };
+  const cambiTesto = r => (Array.isArray(r?.changes) ? r.changes : []).slice(0, 3).map(c => `${giorno(String(c.date).slice(0, 10))} ${turnoLabel(c.from)}→${turnoLabel(c.to)}`).join(' · ');
+  const avvisi = []; // {agentId, title, body, chiave}
+  lista(richieste).filter(r => String(r.sentAt || '') > String(da) && !tolte.has(String(r.id)) && r.colleagueId).forEach(r =>
+    avvisi.push({ agentId: String(r.colleagueId), title: `⇄ Cambio turno da ${r.agentName || r.agentId}`, body: cambiTesto(r) || 'Apri Cambio turno per rispondere', chiave: `R_${r.id}` }));
+  lista(approvate).filter(a => String(a.approvedAt || '') > String(da)).forEach(a => {
+    const r = perId.get(String(a.requestId)) || {};
+    [[a.agentId, r.colleagueName || a.colleagueId], [a.colleagueId, r.agentName || a.agentId]].forEach(([id, con]) => id && avvisi.push({
+      agentId: String(id), title: '✅ Cambio turno approvato', body: [`con ${con}`, cambiTesto(r)].filter(Boolean).join(' · '), chiave: `A_${a.requestId}` }));
+  });
+  let messi = 0;
+  for (const av of avvisi) {
+    const disp = Object.values(subs?.[av.agentId] || {}).filter(sub => sub && sub.enabled !== false && sub.preferences?.shiftChanges !== false);
+    for (const sub of disp) {
+      const id = safe(`CAMBIO_${av.chiave}_${av.agentId}_${sub.deviceId}`).slice(0, 700);
+      if (await fb(`private/adminUpdates/pushQueue/${id}`)) continue;
+      const item = { id, status: 'pending', kind: 'cambio-turno', requestedByAgentId: 'system', requestedByName: 'NaviSuite cambi', targetAgentId: av.agentId,
+        targetDeviceId: String(sub.deviceId || ''), title: av.title, body: av.body, url: 'cambi_turno.html', meta: { automatic: true }, createdAt: ora };
+      if (DRY_RUN) log('[prova] cambio', av.agentId, '→', av.title, '|', av.body);
+      else await fb(`private/adminUpdates/pushQueue/${id}`, { method: 'PUT', body: JSON.stringify(item) });
+      messi++;
+    }
+  }
+  if (!DRY_RUN) await fb('private/adminUpdates/pushCambiDa', { method: 'PUT', body: JSON.stringify(ora) });
+  if (messi) log(`${messi} avvisi cambi turno in coda`);
+}
+
+// Nei testi degli avvisi "Riposo" per esteso, mai RIP
+const turnoLabel = t => (/^RIP(OSO)?$/i.test(String(t || '').trim()) ? 'Riposo' : String(t ?? ''));
+
+const romeDay = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
+const romeMinutes = () => { const [h, m] = new Date().toLocaleTimeString('it-IT', { timeZone: 'Europe/Rome', hour12: false }).split(':').map(Number); return h * 60 + m; };
+const safe = v => String(v).replace(/[.#$\[\]\/]/g, '_');
+
+async function giro() {
+  const w = await app();
+  const { effective, pontili, subs } = await data(w);
+  const oggi = romeDay(), ora = romeMinutes();
+  let messi = 0;
+  for (const [agentKey, devices] of Object.entries(subs)) {
+    for (const sub of Object.values(devices || {})) {
+      if (!sub || sub.enabled === false || sub.preferences?.arrivals === false) continue;
+      const agentId = String(sub.agentId || agentKey);
+      let lista = [];
+      try { lista = w.NaviPushArrivi.notifiche(effective, agentId, oggi, { pontili, agentName: sub.agentName || '' }); }
+      catch (e) { log('errore calcolo', agentId, e.message); continue; }
+      for (const n of w.NaviPushArrivi.dovute(lista, ora)) {
+        const id = safe(`ARR_${agentId}_${sub.deviceId}_${n.tag}`).slice(0, 700);
+        if (await fb(`private/adminUpdates/pushQueue/${id}`)) continue; // gia' messo (anche dopo un riavvio)
+        const item = { id, status: 'pending', kind: n.scalo ? 'prossimo-scalo' : 'arrivo', requestedByAgentId: 'system', requestedByName: 'NaviSuite arrivi',
+          targetAgentId: agentId, targetDeviceId: String(sub.deviceId || ''), title: n.title, body: n.body, url: n.url,
+          meta: { automatic: true, date: oggi, code: n.code, run: String(n.run || ''), tag: n.tag }, createdAt: new Date().toISOString() };
+        if (DRY_RUN) log('[prova]', agentId, '→', n.title, '|', n.body.replace(/\n/g, ' / '));
+        else await fb(`private/adminUpdates/pushQueue/${id}`, { method: 'PUT', body: JSON.stringify(item) });
+        messi++;
+      }
+    }
+  }
+  if (messi) log(`${messi} avvisi in coda`);
+  await widget(w, effective, pontili, oggi, ora);
+}
+
+// Widget (Scriptable su iPhone): per ogni agente i prossimi eventi di oggi (fino a 15) (arrivo della nave a terra, prossimo
+// scalo a bordo) in private/adminUpdates/widget/<agente>. Si scrive solo quando cambia.
+const widgetScritti = new Map();
+async function widget(w, effective, pontili, oggi, ora) {
+  const G = w.NaviTurniGiorno;
+  const agenti = new Map();
+  Object.entries(effective.residenze || {}).forEach(([res, list]) => {
+    if (/^(uffici|bariste)$/i.test(res)) return;
+    (list || []).forEach(a => { if (a?.id && !agenti.has(String(a.id))) agenti.set(String(a.id), a); });
+  });
+  let scritti = 0;
+  for (const [id, a] of agenti) {
+    let lista = [], turno = '';
+    try {
+      turno = G.turnoAgente(effective, { id, name: a.agente || '' }, oggi)?.turno || '';
+      lista = w.NaviPushArrivi.notifiche(effective, id, oggi, { pontili, agentName: a.agente || '' });
+    } catch (e) { continue; }
+    const m = t => { const [h, mi] = String(t).split('.').map(Number); return h * 60 + mi; };
+    const prossimi = lista.filter(n => m(n.time) >= ora - 1).slice(0, 15)
+      .map(n => ({ ora: n.time, titolo: n.title, testo: n.body, codice: n.code, scalo: n.scalo || '', pontile: n.pontile || '' }));
+    const valore = { data: oggi, turno: turnoLabel(turno), nome: a.agente || '', prossimi };
+    const chiave = JSON.stringify(valore);
+    if (widgetScritti.get(id) === chiave) continue;
+    if (!DRY_RUN) await fb(`private/adminUpdates/widget/${safe(id)}`, { method: 'PUT', body: JSON.stringify({ ...valore, aggiornato: new Date().toISOString() }) });
+    widgetScritti.set(id, chiave);
+    scritti++;
+  }
+  if (scritti) log(`widget aggiornati: ${scritti}`);
+  // Elenco nomi -> numero, per scrivere nel widget il cognome invece del numero: "PEDRONI M" e "PEDRONI" (se unico).
+  const norm = v => String(v || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^A-Z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+  const nomi = {};
+  for (const [id, a] of agenti) {
+    const pieno = norm(a.agente), cognome = pieno.split(' ')[0];
+    if (pieno) nomi[pieno.replace(/ /g, '_')] = id;
+    if (cognome) nomi[cognome] = nomi[cognome] && nomi[cognome] !== id ? 'PIU' : id;
+  }
+  const chiaveNomi = JSON.stringify(nomi);
+  if (widgetScritti.get('__nomi') !== chiaveNomi) {
+    if (!DRY_RUN) await fb('private/adminUpdates/widgetNomi', { method: 'PUT', body: chiaveNomi });
+    widgetScritti.set('__nomi', chiaveNomi);
+  }
+}
+
+// Backup notturno: ogni giorno dopo le 2 una copia completa in BACKUP_DIR (JSON per ripristinare + CSV delle distinte),
+// tenendo gli ultimi BACKUP_GIORNI giorni.
+const BACKUP_DIR = process.env.BACKUP_DIR || '/backup';
+const BACKUP_GIORNI = Math.max(1, Number(process.env.BACKUP_GIORNI || 60));
+async function backupNotturno(w, forza = false) {
+  if (!fs.existsSync(BACKUP_DIR)) return;
+  const oggi = romeDay();
+  if (!forza && (romeMinutes() < 120 || fs.existsSync(path.join(BACKUP_DIR, `NaviSuite-backup-${oggi}.json`)))) return;
+  const chiavi = ['diaria', 'diariaConversioni', 'agentProfiles', 'pageAccess', 'scheduleImports', 'odsVariations', 'manualVariations',
+    'turniNavi', 'approvazioniTurni', 'userRegistry', 'userAuth', 'baristas', 'pontiliCorse'];
+  const parti = await Promise.all(chiavi.map(k => fb(`private/adminUpdates/${k}`).catch(() => null)));
+  const adminUpdates = Object.fromEntries(chiavi.map((k, i) => [k, parti[i]]));
+  const schedule = await fb('public/schedule').catch(() => null);
+  const json = JSON.stringify({ tipo: 'navisuite-backup-centrale', versione: 1, creato: new Date().toISOString(), adminUpdates, schedule });
+  fs.writeFileSync(path.join(BACKUP_DIR, `NaviSuite-backup-${oggi}.json`), json);
+  const nomi = new Map();
+  Object.values(schedule?.residenze || {}).forEach(l => (l || []).forEach(a => { if (a?.id) nomi.set(String(a.id), a.agente || ''); if (a?.agent_uid) nomi.set(String(a.agent_uid), a.agente || ''); }));
+  Object.values(adminUpdates.userRegistry || {}).forEach(u => u?.id && u.name && !nomi.has(String(u.id)) && nomi.set(String(u.id), u.name));
+  Object.values(adminUpdates.agentProfiles || {}).forEach(p => p?.id && p.name && !nomi.has(String(p.id)) && nomi.set(String(p.id), p.name));
+  const agenti = Object.entries(adminUpdates.diaria || {}).map(([id, r]) => ({ id: String(r?.agentId || id), nome: nomi.get(String(r?.agentId || id)) || String(r?.agentId || id).replace(/^AG_/, '').replace(/_([A-Z])$/, ' $1.').replace(/_/g, ' '),
+    entries: Array.isArray(r?.entries) ? r.entries.filter(Boolean) : [], conversioni: adminUpdates.diariaConversioni?.[id]?.map || {} }))
+    .filter(a => a.entries.length).sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
+  fs.writeFileSync(path.join(BACKUP_DIR, `NaviSuite-backup-${oggi}-distinte.csv`), w.NaviDiariaBackup.csv(agenti));
+  // i piu' vecchi di BACKUP_GIORNI giorni
+  const limite = new Date(Date.now() - BACKUP_GIORNI * 864e5).toISOString().slice(0, 10);
+  fs.readdirSync(BACKUP_DIR).filter(f => /^NaviSuite-backup-\d{4}-\d{2}-\d{2}/.test(f) && f.slice(17, 27) < limite).forEach(f => fs.unlinkSync(path.join(BACKUP_DIR, f)));
+  log(`backup salvato: ${agenti.length} distinte, ${(json.length / 1048576).toFixed(1)} MB`);
+  try { backupCodice(oggi); } catch (e) { log('copia del codice non riuscita:', e.message); }
+}
+
+// Copia del codice dell'app (repository GitHub con tutta la storia) in BACKUP_DIR/codice: NaviSuite.git si aggiorna
+// ogni notte, e un .zip del sito pronto da pubblicare (ultimi 14 giorni). Se GitHub sparisse l'app resta qui.
+const REPO = process.env.REPO_URL || 'https://github.com/PapaMike80/NaviSuite.git';
+function backupCodice(oggi) {
+  const dir = path.join(BACKUP_DIR, 'codice'), mirror = path.join(dir, 'NaviSuite.git');
+  fs.mkdirSync(dir, { recursive: true });
+  if (fs.existsSync(mirror)) execFileSync('git', ['--git-dir', mirror, 'remote', 'update', '--prune'], { stdio: 'ignore', timeout: 300000 });
+  else execFileSync('git', ['clone', '--mirror', REPO, mirror], { stdio: 'ignore', timeout: 600000 });
+  execFileSync('git', ['--git-dir', mirror, 'archive', '--format=zip', '-o', path.join(dir, `NaviSuite-sito-${oggi}.zip`), 'main'], { timeout: 300000 });
+  const limite = new Date(Date.now() - 14 * 864e5).toISOString().slice(0, 10);
+  fs.readdirSync(dir).filter(f => /^NaviSuite-sito-\d{4}-\d{2}-\d{2}\.zip$/.test(f) && f.slice(15, 25) < limite).forEach(f => fs.unlinkSync(path.join(dir, f)));
+  log('copia del codice aggiornata');
+}
+
+async function main() {
+  log(`avvio${DRY_RUN ? ' (prova: non mette niente in coda)' : ''} · sito ${SITE}`);
+  if (process.argv.includes('--backup')) {
+    // backup subito: node worker.js --backup
+    const w = await app(); fs.mkdirSync(BACKUP_DIR, { recursive: true });
+    await backupNotturno(w, true); return;
+  }
+  if (process.argv.includes('--ods')) {
+    // prova degli avvisi ODS da una data: DRY_RUN=1 node worker.js --ods 2026-10-08T00:00:00Z
+    const da = process.argv[process.argv.indexOf('--ods') + 1];
+    const orig = fb; if (da) fb = async (p, o) => (p === 'private/adminUpdates/pushOdsDa' && !o ? da : orig(p, o));
+    await app(); await variazioni(romeDay()); return;
+  }
+  if (process.argv.includes('--cambi')) {
+    // prova degli avvisi cambi turno da una data: DRY_RUN=1 node worker.js --cambi 2026-10-01T00:00:00Z
+    const da = process.argv[process.argv.indexOf('--cambi') + 1];
+    const orig = fb; if (da) fb = async (p, o) => (p === 'private/adminUpdates/pushCambiDa' && !o ? da : orig(p, o));
+    await app(); await cambi(); return;
+  }
+  if (process.argv.includes('--pronto')) {
+    // prepara e pubblica subito il turno pronto: node worker.js --pronto  (con DRY_RUN=1 solo prova)
+    await turnoPronto(await app()); return;
+  }
+  if (process.argv.includes('--elenco')) {
+    // stampa gli avvisi di oggi per un agente: node worker.js --elenco <id>
+    const w = await app(); const { effective, pontili } = await data(w);
+    const id = process.argv[process.argv.indexOf('--elenco') + 1];
+    for (const n of w.NaviPushArrivi.notifiche(effective, id, romeDay(), { pontili })) console.log(n.quando, '·', n.title, '|', n.body.replace(/\n/g, ' / '));
+    return;
+  }
+  for (;;) {
+    try { await giro(); } catch (e) { log('errore:', e.message); }
+    try { await turnoPronto(await app()); } catch (e) { log('turno pronto non riuscito:', e.message); }
+    try { await variazioni(romeDay()); } catch (e) { log('avvisi ODS non riusciti:', e.message); }
+    try { await cambi(); } catch (e) { log('avvisi cambi turno non riusciti:', e.message); }
+    try { await backupNotturno(await app()); } catch (e) { log('backup non riuscito:', e.message); }
+    await new Promise(r => setTimeout(r, 60 * 1000 - (Date.now() % (60 * 1000)) + 2000));
+  }
+}
+main();

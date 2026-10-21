@@ -14,13 +14,13 @@ function startPresence(agent) {
 }
 
 const $ = id => document.getElementById(id);
-const isAdminAgent = agent => ['91', '92'].includes(String(agent?.id || '')) || String(agent?.role || '').toLowerCase() === 'admin';
+const isAdminAgent = agent => window.NaviRoles.isAdminAgent(agent);
 const isMovementAgent = agent => isAdminAgent(agent) || String(agent?.qualifica || agent?.office || '').toLowerCase().includes('movimento');
 // NaviDiaria e' un registro personale: e' disponibile per ogni agente che ha
 // gia' completato l'accesso, senza modificare il suo ruolo o i suoi permessi.
 const canUseDiaria = agent => Boolean(String(agent?.id || '').trim());
-const isBaristaAgent = agent => String(agent?.role || '').toLowerCase() === 'barista' || String(agent?.qualifica || '').toLowerCase() === 'barista';
-const isHibaBarista = agent => String(agent?.id || '').toUpperCase() === 'BARISTA_HIBA' || (isBaristaAgent(agent) && String(agent?.name || agent?.agente || '').trim().toUpperCase() === 'HIBA');
+const isBaristaAgent = agent => window.NaviRoles.isBaristaAgent(agent);
+const isHibaBarista = agent => window.NaviRoles.isHibaBarista(agent);
 let agentProfiles = {};
 const profileFor = id => agentProfiles[String(id)] || Object.values(agentProfiles).find(item => String(item?.id) === String(id)) || {};
 const applyAgentProfile = agent => ({...agent,...profileFor(agent?.id),id:agent?.id,name:agent?.name,residence:agent?.residence});
@@ -98,25 +98,44 @@ function showChoice(agent) {
   $('loginForm').hidden = true;
   $('firstPinForm').hidden = true;
   $('appChoice').hidden = false;
-  $('welcomeUser').textContent = `Ciao ${formatName(agent.name)}, dove vuoi andare?`;
+  // Grado con lo stesso distintivo di Movimento (cerchio colorato con la sigla)
+  const qualifica=String(agent.qualifica||agent.grado||(typeof agents!=='undefined'?agents:[]).find(a=>String(a.id)===String(agent.id))?.qualifica||'');
+  const grado=[[/capitano|comandante/i,'Capitano','Cap','#facc15'],[/capo\s*tim|capotim/i,'Capo timoniere','CT','#fb923c'],[/aiuto\s*motorista|aiutomotorista/i,'Aiuto motorista','AM','#3b82f6'],[/motorista/i,'Motorista','Mot','#a855f7'],[/timoniere/i,'Timoniere','Tim','#22c55e'],[/marinaio/i,'Marinaio','Mar','#e8f3f6']].find(([re])=>re.test(qualifica));
+  const welcome=$('welcomeUser');welcome.textContent=`Ciao ${formatName(agent.name)}`;
+  if(grado){const b=document.createElement('span');b.className='home-grado';b.style.setProperty('--g',grado[3]);b.title=grado[1];b.textContent=grado[2];welcome.appendChild(b);}
   document.dispatchEvent(new CustomEvent('navisuite-login-complete', { detail:{ agentId:String(agent.id||'') } }));
-  const allowedStartPages=new Set(['index.html','oggi.html','naviturni.html','cambi_turno.html','navidiaria.html','documenti.html','Orario.html','impostazioni.html','segnalazioni.html','aggiornamenti.html','agenti.html','gestione_navi.html']);
-  const savedStartPage=localStorage.getItem('navisuite.startPage.'+String(agent.id||''));
-  const preferred=allowedStartPages.has(savedStartPage||'')?savedStartPage:'index.html';
-  if(preferred&&preferred!=='index.html'){location.href=preferred;return;}
+  // Utente di uno scalo: solo la pagina Scali del proprio scalo
+  const scalo=window.NaviRoles?.scaloOf?.(agent);
+  if(scalo){location.replace(`orario.html?scalo=${encodeURIComponent(scalo)}`);return;}
+  const allowedStartPages=new Set(['auto','index.html','oggi.html','naviturni.html','cambi_turno.html','navidiaria.html','documenti.html','mio-turno.html','orario.html','impostazioni.html','aggiornamenti.html','agenti.html']);
+  // Prima pagina: quella scelta in Impostazioni; chi non ha mai scelto ha "Automatica" (sempre Il mio turno,
+  // anche a terra: Scali e' solo per gli scali), tranne le bariste. Servizi a terra e' ora in Scali.
+  const barista=isBaristaAgent(agent)&&!isHibaBarista(agent);
+  let savedStartPage=null;try{savedStartPage=localStorage.getItem('navisuite.startPage.'+String(agent.id||''));}catch(_){}
+  savedStartPage=(savedStartPage==null?(barista?'index.html':'auto'):savedStartPage).replace(/^servizi-terra\.html$/,'orario.html');
+  const preferred=allowedStartPages.has(savedStartPage)&&!(barista&&savedStartPage==='auto')?savedStartPage:'index.html';
+  // Solo all'apertura dell'app (una volta per sessione) e mai quando si torna alla Home dal menu.
+  let giaAperta=false;try{giaAperta=sessionStorage.getItem('navisuite.startDone')==='1';sessionStorage.setItem('navisuite.startDone','1');}catch(_){}
+  const homeRichiesta=new URLSearchParams(location.search).has('home');
+  if(preferred!=='index.html'&&!giaAperta&&!homeRichiesta){location.href=preferred==='auto'?'mio-turno.html?auto=1':preferred;return;}
   const diaria = document.querySelector('.app-card.diaria');
   const oggi = document.querySelector('.app-card.oggi');
   const docs = document.querySelector('.app-card.docs');
+  const terra = document.querySelector('.app-card.terra');
+  const mioTurno = document.querySelector('.app-card.mioturno');
   const trova = document.querySelector('.app-card.trova');
   const orario = document.querySelector('.app-card.orario');
   const orariTabella = document.querySelector('.app-card.orari-tabella');
   const settings = document.querySelector('.app-card.settings');
   const updates = document.querySelector('.app-card.updates');
   const agentAdmin = document.querySelector('.app-card.agents');
+  const movimento = document.querySelector('.app-card.movimento');
   const shipManagement = document.querySelector('[data-navi-tab="NaviGestioneNaviTab"]');
   if (diaria) diaria.hidden = !canUseDiaria(agent);
   if (oggi) oggi.hidden = isBaristaAgent(agent) && !isHibaBarista(agent);
   if (docs) docs.hidden = isBaristaAgent(agent);
+  if (terra) terra.hidden = isBaristaAgent(agent) && !isHibaBarista(agent);
+  if (mioTurno) mioTurno.hidden = isBaristaAgent(agent) && !isHibaBarista(agent);
   if (trova) trova.hidden = isBaristaAgent(agent);
   // Orario visibile solo agli admin (nascosto alle bariste)
   if (orario) orario.hidden = isBaristaAgent(agent);
@@ -124,7 +143,15 @@ function showChoice(agent) {
   if (settings) settings.hidden = isBaristaAgent(agent);
   if (updates) updates.hidden = !(isAdminAgent(agent) || isHibaBarista(agent));
   if (agentAdmin) agentAdmin.hidden = !isAdminAgent(agent);
+  if (movimento) movimento.hidden = !isAdminAgent(agent);
   if (shipManagement) shipManagement.hidden = !isAdminAgent(agent);
+  // come nel menu: Orari a tutti tranne le bariste, Comitive ad admin e Ufficio Movimento, Collegamenti agli admin
+  const orariPag = document.querySelector('.app-card.orari-pag'), comitive = document.querySelector('.app-card.comitive'), collegamenti = document.querySelector('.app-card.collegamenti');
+  if (orariPag) orariPag.hidden = isBaristaAgent(agent) && !isHibaBarista(agent);
+  if (comitive) comitive.hidden = !(isAdminAgent(agent) || String(agent?.qualifica || '').toLowerCase() === 'movimento');
+  if (collegamenti) collegamenti.hidden = !isAdminAgent(agent);
+  const quiz = document.querySelector('.app-card.quiz');
+  if (quiz) quiz.hidden = !isAdminAgent(agent);
 }
 
 function applyDirectory(directory) {
@@ -224,6 +251,7 @@ $('loginForm').addEventListener('submit', async event => {
       $('firstNewPin').focus();
       return;
     }
+    if (await window.NaviAdminFirebase?.accessoRevocato?.(agent.id).catch(() => false)) throw new Error('Periodo di servizio terminato: accesso non consentito. Rivolgiti all’amministratore.');
     localStorage.setItem(`navidiaria.pin.${agent.id}`, digest);
     localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
     localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
@@ -261,6 +289,7 @@ $('firstPinForm').addEventListener('submit', async event => {
     localStorage.setItem(DIARIA_SESSION, JSON.stringify(agent));
     localStorage.setItem(TURNI_SESSION, JSON.stringify({ id:agent.id, name:agent.name, residence:agent.residence, qualifica:agent.qualifica, role:agent.role || '' }));
     window.NaviAdminFirebase?.recordUserAccess?.(agent).catch(() => {});
+    window.NaviAdminFirebase?.chiudiRichiesteAccesso?.(agent.id).catch(error => console.warn('Richiesta di accesso non chiusa', error));
     pendingFirstLogin = null;
     $('firstPinMessage').textContent = '';
     showChoice(agent);
@@ -276,3 +305,34 @@ $('logoutButton').addEventListener('click', () => {
   localStorage.removeItem(TURNI_SESSION);
   location.reload();
 });
+
+// Chiedi accesso: cognome dall'elenco agenti + telefono; la richiesta arriva all'admin come notifica.
+(function () {
+  const form = document.getElementById('accessRequestForm');
+  if (!form) return;
+  const login = document.getElementById('loginForm');
+  const nome = document.getElementById('accessName'), tel = document.getElementById('accessPhone'), nota = document.getElementById('accessNote');
+  const lista = document.getElementById('accessSuggestions'), msg = document.getElementById('accessMessage'), invia = document.getElementById('accessSubmit');
+  const mostra = richiesta => { form.hidden = !richiesta; login.hidden = richiesta; msg.textContent = ''; if (richiesta) { nome.value = document.getElementById('agentSearch')?.value || ''; nome.focus(); } };
+  document.getElementById('accessRequestOpen')?.addEventListener('click', () => mostra(true));
+  document.getElementById('accessBack')?.addEventListener('click', () => mostra(false));
+  nome.addEventListener('input', () => {
+    const q = nome.value.trim().toLocaleLowerCase('it');
+    lista.innerHTML = q ? agents.filter(a => a.name.toLocaleLowerCase('it').includes(q)).slice(0, 12).map(a => `<option value="${a.name.replace(/"/g, '&quot;')}">`).join('') : '';
+  });
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const scelto = agents.find(a => a.name.toLocaleLowerCase('it') === nome.value.trim().toLocaleLowerCase('it'));
+    if (!scelto) { msg.textContent = 'Scegli il tuo cognome dall\'elenco.'; return; }
+    if (tel.value.replace(/\D/g, '').length < 6) { msg.textContent = 'Scrivi un numero di telefono valido.'; return; }
+    invia.disabled = true; msg.textContent = 'Invio in corso…';
+    try {
+      await window.NaviAdminFirebase.ready;
+      await window.NaviAdminFirebase.richiestaAccesso({ agentId: scelto.id, nome: scelto.name, telefono: tel.value.trim(), nota: nota.value });
+      form.querySelectorAll('label,#accessSubmit').forEach(el => { el.hidden = true; });
+      msg.textContent = '✓ Richiesta inviata. Verrai contattato al più presto con il PIN.';
+    } catch (error) {
+      msg.textContent = navigator.onLine ? `Richiesta non inviata: ${error.message}` : 'Senza rete: riprova quando torna il segnale.';
+    } finally { invia.disabled = false; }
+  });
+})();

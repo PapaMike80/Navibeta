@@ -1,6 +1,8 @@
 (function(){
-  const APP_VERSION='v1.45';
-  const NAVISUITE_PAYPAL_URL='https://www.paypal.com/pool/9sbGlr5lE9?sr=wccr';
+  // memoria delle sezioni aperte/chiuse, per tutte le pagine col menu
+  if(!document.querySelector('script[src*="section-memory.js"]')){const m=document.createElement('script');m.src='assets/js/section-memory.js?v=2';m.defer=true;document.head.appendChild(m);}
+  const APP_VERSION='v1.48';
+  const NAVISUITE_KOFI_URL='https://ko-fi.com/papamike80';
   function installSupportFooter(){
     if(document.getElementById('navisuite-support-footer'))return;
     const style=document.createElement('style');
@@ -10,7 +12,7 @@
     const footer=document.createElement('footer');
     footer.id='navisuite-support-footer';
     footer.className='navisuite-support-footer';
-    footer.innerHTML='<p>☕ NaviSuite ti è utile?</p><a href="'+NAVISUITE_PAYPAL_URL+'" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè e sostieni NaviSuite tramite PayPal">Offrimi un caffè</a>';
+    footer.innerHTML='<p>☕ NaviSuite ti è utile?</p><a href="'+NAVISUITE_KOFI_URL+'" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè e sostieni NaviSuite tramite Ko-fi">☕ Offrimi un caffè · 1 €</a>';
     document.body.appendChild(footer);
   }
   installSupportFooter();
@@ -25,6 +27,37 @@
   if(initialLightTheme)document.documentElement.dataset.theme='light';
   const sessionValue=localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem('naviturni_logged_agent')||'null';
   let sessionAgent=null;try{sessionAgent=JSON.parse(sessionValue)}catch{}
+  // Google Analytics: caricato una sola volta per tutte le pagine. Si invia solo
+  // la categoria di ruolo, mai nome, ID agente o PIN. Senza sessione (login) la
+  // pagina viene tracciata comunque, senza ruolo.
+  const installAnalytics=()=>{
+    const GA_ID='G-R59ZS3YB4Q';
+    if(window.__naviGaInstalled)return;
+    window.__naviGaInstalled=true;
+    window.dataLayer=window.dataLayer||[];
+    if(typeof window.gtag!=='function')window.gtag=function(){window.dataLayer.push(arguments);};
+    if(!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')){
+      const script=document.createElement('script');
+      script.async=true;
+      script.src='https://www.googletagmanager.com/gtag/js?id='+GA_ID;
+      document.head.appendChild(script);
+    }
+    const roles=window.NaviRoles;
+    const roleOf=agent=>{
+      if(!agent?.id||!roles)return '';
+      if(roles.isAdminAgent(agent))return 'admin';
+      if(String(agent?.qualifica||agent?.office||'').toLowerCase().includes('movimento'))return 'movimento';
+      if(roles.isBaristaAgent(agent))return 'barista';
+      if(roles.isScaloAgent?.(agent))return 'scalo';
+      return 'agente';
+    };
+    const ruolo=roleOf(sessionAgent);
+    window.gtag('js',new Date());
+    if(ruolo)window.gtag('set','user_properties',{ruolo});
+    window.gtag('config',GA_ID,{send_page_view:false});
+    window.gtag('event','page_view',{page_title:document.title,page_location:location.origin+location.pathname,page_path:location.pathname});
+  };
+  try{installAnalytics()}catch{}
   // Registra un solo dato di attività: pagina corrente e ora. Il tentativo viene
   // ripetuto perché in alcune pagine Firebase è caricato dopo questo script.
   const trackPageView=attempt=>{
@@ -35,24 +68,185 @@
   };
   trackPageView(0);
   const installTodayAboveResidences=()=>{const box=document.getElementById('top-residence-buttons');if(!box||document.getElementById('today-above-residences'))return Boolean(box);const link=document.createElement('a');link.id='today-above-residences';link.href='oggi.html';link.textContent='☀ Oggi';link.style.cssText='display:flex;align-items:center;justify-content:center;min-height:40px;margin:0 0 7px;border:1px solid #2dd4bf;border-radius:12px;background:rgba(45,212,191,.14);color:#a7fff0;font-size:13px;font-weight:900;text-decoration:none;letter-spacing:.04em';box.parentNode.insertBefore(link,box);return true;};let todayAttempts=0;const todayTimer=setInterval(()=>{if(installTodayAboveResidences()||++todayAttempts>30)clearInterval(todayTimer)},250);
-  const sidebar=document.querySelector('.app-sidebar');if(!sidebar)return;
+  // Menu unico NaviSuite: stesso elenco su ogni pagina, aperto da ogni pulsante ☰
+  // (window.NaviSuiteMenu.open). Le voci non dipendono piu' dalla sidebar.
+  function installUnifiedMenu(agent){
+    if(document.getElementById('navisuite-popup'))return;
+    const roles=window.NaviRoles||{};
+    const isAdmin=Boolean(roles.isAdminAgent?.(agent));
+    const isBarista=Boolean(roles.isBaristaAgent?.(agent));
+    const isHiba=Boolean(roles.isHibaBarista?.(agent));
+    const file=(location.pathname.split('/').pop()||'index.html').toLowerCase();
+    const onTurni=file==='naviturni.html';
+    // Alle bariste (tranne Hiba) Oggi rimanda a Turni: la voce non viene mostrata.
+    const MENU_SCALO={'oggi.html':['☀','Oggi'],'naviturni.html':['▦','Turni'],'navidiaria.html':['≈','Distinta'],'documenti.html':['▤','Documenti'],'mio-turno.html':['⚑','Il mio turno'],'orario.html':['⚓','Scali'],'orari.html':['🕒','Orari'],'cambi_turno.html':['⇄','Cambio'],'quiz.html':['✎','Quiz'],'impostazioni.html':['⚙','Impostazioni'],'verifica-busta.html':['✓','Verifica busta'],'controllo_cassa.html':['¤','Cassa']};
+    const entries=roles.isScaloAgent?.(agent)?(roles.pagineAperte?.(agent)||['orario.html']).map(f=>[f,...(MENU_SCALO[f]||['•',f])]):[
+      // pagine principali: Il mio turno e Scali
+      ...(isBarista&&!isHiba?[]:[['mio-turno.html','⚑','Il mio turno'],['orario.html','⚓','Scali'],['orari.html','🕒','Orari'],['oggi.html','☀','Oggi']]),
+      ['naviturni.html','▦','Turni'],
+      ['navidiaria.html','≈','Distinta'],
+      ['documenti.html','▤','Documenti'],
+      ['cambi_turno.html','⇄','Cambio'],
+      ['controllo_cassa.html','$','Cassa'],
+      ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
+      ['impostazioni.html','⚙','Impostazioni'],
+      ...(isAdmin||String(agent?.qualifica||'').toLowerCase()==='movimento'?[['comitive.html','⛴','Comitive']]:[]),
+      ...(isAdmin?[['agenti.html','♙','Agenti'],['aggiornamenti.html','↻','Aggiornamenti'],['movimento.html','⚓','Movimento'],['collegamenti.html','⇆','Collegamenti']]:[])
+    ];
+    const escapeText=value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
+    // Riquadri come nella Home: le 5 pagine principali grandi (Distinta per prima, larga), le altre piccole.
+    const PRINCIPALI={'navidiaria.html':['Ore, ritardi e competenze','#fb923c',0],'mio-turno.html':['Nave, corse e colleghi','#2dd4bf',1],'naviturni.html':['Turni di tutti gli agenti','#2dd4bf',2],'oggi.html':['Navi ed equipaggi del giorno','#facc15',3],'orario.html':['Navi allo scalo, pontili, ritardi','#38bdf8',4]};
+    const COLORI={'index.html':'#94a3b8','cambi_turno.html':'#a78bfa','documenti.html':'#f59e0b','impostazioni.html':'#94a3b8','quiz.html':'#f472b6','agenti.html':'#fb7185','aggiornamenti.html':'#4ade80','movimento.html':'#38bdf8','collegamenti.html':'#f59e0b','verifica-busta.html':'#4ade80','orari.html':'#fbbf24','comitive.html':'#67d7e6','controllo_cassa.html':'#27a9b6'};
+    const linkHtml=([href,icon,label])=>{
+      const key=href.split('?')[0].toLowerCase(),active=key===file,main=PRINCIPALI[key];
+      const colore=main?.[1]||COLORI[key]||'#94a3b8';
+      return `<a class="nav-link ns-tile${main?' ns-main':''}${key==='navidiaria.html'?' ns-wide':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
+    };
+    const pastHtml='<a href="#" data-turni-main-past><span>◷</span><b>Mostra passato</b></a>';
+    const ordine=e=>PRINCIPALI[e[0].split('?')[0].toLowerCase()]?.[2];
+    const principali=entries.filter(e=>ordine(e)!==undefined).sort((a,b)=>ordine(a)-ordine(b)),altre=entries.filter(e=>ordine(e)===undefined);
+    const pastTile=onTurni?pastHtml.replace('<a ','<a class="ns-tile" style="--c:#2dd4bf" ').replace('<b>','<i><b>').replace('</b>','</b></i>'):'';
+    const linksHtml=`<div class="ns-grid ns-grid-main">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small">${pastTile}${altre.map(linkHtml).join('')}<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a></div>`:''}`;
+
+    const style=document.createElement('style');
+    style.id='navisuite-unified-menu-style';
+    style.textContent=`
+      .app-sidebar,.sidebar-collapse-button,.sidebar-reopen-button{display:none!important}
+      @media(max-width:950px){.mobile-liquid-nav{display:none!important}}
+      #navisuite-popup[hidden],#ns-condividi[hidden]{display:none!important}
+      #navisuite-popup{position:fixed;inset:0;z-index:10000;background:rgba(2,12,17,.68);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+      .ns-menu-dialog{position:fixed;top:calc(12px + env(safe-area-inset-top,0px));left:12px;right:12px;box-sizing:border-box;width:auto;max-width:none;margin:0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 32px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #2e6971;border-radius:26px;background:linear-gradient(165deg,#102e39,#0a222c);box-shadow:0 22px 56px rgba(0,0,0,.5)}
+      .ns-menu-head{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 14px;color:#a7fff0;font:900 26px/1 Manrope,system-ui,sans-serif}
+      .ns-menu-close{width:44px;height:44px;border:1px solid rgba(126,243,226,.35);border-radius:14px;background:rgba(255,255,255,.06);color:#eafffb;font-size:30px;line-height:1;cursor:pointer}
+      .ns-menu-links{display:block;overflow:auto;padding:0 16px 14px;-webkit-overflow-scrolling:touch}
+      .ns-grid{display:grid;gap:9px}
+      .ns-grid-main{grid-template-columns:1fr 1fr}
+      .ns-grid-small{grid-template-columns:repeat(3,1fr);gap:8px}
+      .ns-tile{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:13px 12px;border:1px solid #285560;border-radius:16px;background:rgba(255,255,255,.025);color:#e8f7f7;text-decoration:none;min-width:0}
+      .ns-tile>span{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c);font-size:19px;flex:none}
+      .ns-tile i{display:grid;gap:3px;font-style:normal;min-width:0}
+      .ns-tile b{font:800 17px/1.15 Manrope,system-ui,sans-serif}
+      .ns-tile small{font:600 12.5px/1.3 "DM Sans",system-ui,sans-serif;color:#9fb8c2}
+      .ns-tile.ns-wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px}
+      .ns-tile.ns-wide>span{width:46px;height:46px;font-size:23px}
+      .ns-tile.ns-wide b{font-size:21px}
+      .ns-grid-small .ns-tile{align-items:center;text-align:center;padding:10px 4px;gap:4px}
+      .ns-grid-small .ns-tile>span{width:32px;height:32px;font-size:16px;border-radius:10px}
+      .ns-grid-small .ns-tile b{font-size:12.5px}
+      .ns-tile.active{border-color:#45d9c7;background:rgba(45,212,191,.14)}
+      .ns-saluto{display:flex;align-items:center;gap:10px;min-width:0;color:#eafffb;font-size:23px}
+      .ns-grado{--g:#e8f3f6;display:inline-grid;place-items:center;flex:none;width:34px;height:34px;border:3px solid var(--g);border-radius:50%;background:color-mix(in srgb,var(--g) 18%,transparent);color:var(--g);font-size:11px;font-weight:900;line-height:1}
+      #navisuite-popup .ns-tile{display:flex!important;flex-direction:column!important;align-items:flex-start!important;justify-content:flex-start!important;text-align:left!important;gap:6px!important;padding:13px 12px!important;border:1px solid #285560!important;border-radius:16px!important;background:rgba(255,255,255,.025)!important;color:#e8f7f7!important;text-decoration:none!important;min-height:0!important;box-shadow:none!important;opacity:1!important}
+      #navisuite-popup .ns-tile.active{border-color:#45d9c7!important;background:rgba(45,212,191,.14)!important}
+      #navisuite-popup .ns-tile.ns-wide{flex-direction:row!important;align-items:center!important;gap:12px!important}
+      #navisuite-popup .ns-grid-small .ns-tile{align-items:center!important;text-align:center!important;padding:10px 4px!important;gap:4px!important}
+      #navisuite-popup .ns-tile b{color:#e8f7f7!important;font:800 17px/1.15 Manrope,system-ui,sans-serif!important}
+      #navisuite-popup .ns-tile small{color:#9fb8c2!important;font:600 12.5px/1.3 "DM Sans",system-ui,sans-serif!important}
+      #navisuite-popup .ns-tile.ns-wide b{font-size:21px!important}
+      #navisuite-popup .ns-grid-small .ns-tile b{font-size:12.5px!important}
+      #navisuite-popup .ns-tile>span{flex:0 0 auto!important;width:38px!important;min-width:38px!important;height:38px!important;margin:0!important;padding:0!important;font-family:system-ui,sans-serif;font-variant-emoji:text}
+      #navisuite-popup .ns-tile.ns-wide>span{width:46px!important;min-width:46px!important;height:46px!important}
+      #navisuite-popup .ns-grid-small .ns-tile>span{width:32px!important;min-width:32px!important;height:32px!important}
+      .ns-altre{margin:16px 2px 8px;color:#66818d;font:900 10px/1 Manrope,system-ui,sans-serif;letter-spacing:.16em}
+      .ns-grid-main+.ns-grid-small{margin-top:9px}
+      .ns-menu-foot{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(126,243,226,.16)}
+      .ns-menu-foot a,.ns-menu-foot button{display:flex;align-items:center;justify-content:center;min-height:46px;border:1px solid #285560;border-radius:14px;background:rgba(255,255,255,.05);color:#d9eff0;text-decoration:none;font:800 14px/1 Manrope,system-ui,sans-serif;cursor:pointer}
+      .ns-menu-foot .ns-menu-exit{border-color:rgba(251,113,133,.52);background:rgba(251,113,133,.09);color:#fdb2ba}
+      @media(min-width:851px){#navisuite-popup .ns-tile.ns-wide{flex-direction:column!important;align-items:flex-start!important;gap:6px!important}#navisuite-popup .ns-tile.ns-wide b{font-size:17px!important}#navisuite-popup .ns-tile.ns-wide>span{width:38px!important;min-width:38px!important;height:38px!important}.ns-menu-dialog{left:50%;right:auto;width:min(980px,calc(100vw - 48px));transform:translateX(-50%);top:40px}.ns-grid-main{grid-template-columns:repeat(5,1fr)}.ns-tile.ns-wide{grid-column:auto;flex-direction:column;align-items:flex-start;gap:6px}.ns-tile.ns-wide>span{width:38px;height:38px;font-size:19px}.ns-tile.ns-wide b{font-size:17px}.ns-grid-small{grid-template-columns:repeat(6,1fr)}} @media(max-width:480px){.ns-menu-dialog{border-radius:23px}.ns-menu-head{font-size:24px}}
+    `;
+    document.head.appendChild(style);
+    // Intestazione: "Ciao Pedroni M." con il distintivo del grado come in Movimento
+    const nome=String(agent?.name||agent?.agente||'').trim().toLowerCase().replace(/(^|[\s'.-])\S/g,c=>c.toUpperCase());
+    const qualifica=String(agent?.qualifica||agent?.grado||(window.NaviSharedData?.directory?.()||[]).find(a=>String(a.id)===String(agent?.id))?.qualifica||'');
+    const grado=[[/capitano|comandante/i,'Capitano','Cap','#facc15'],[/capo\s*tim|capotim/i,'Capo timoniere','CT','#fb923c'],[/aiuto\s*motorista|aiutomotorista/i,'Aiuto motorista','AM','#3b82f6'],[/motorista/i,'Motorista','Mot','#a855f7'],[/timoniere/i,'Timoniere','Tim','#22c55e'],[/marinaio/i,'Marinaio','Mar','#e8f3f6']].find(([re])=>re.test(qualifica));
+    const saluto=`<span class="ns-saluto">${nome?`Ciao ${escapeText(nome)}`:'Menu'}${grado?`<span class="ns-grado" style="--g:${grado[3]}" title="${grado[1]}">${grado[2]}</span>`:''}</span>`;
+    const popup=document.createElement('div');
+    popup.id='navisuite-popup';
+    popup.hidden=true;
+    popup.innerHTML=`<section class="ns-menu-dialog" role="dialog" aria-modal="true" aria-label="Menu NaviSuite"><div class="ns-menu-head">${saluto} <button type="button" class="ns-menu-close" aria-label="Chiudi menu">×</button></div><nav class="ns-menu-links">${linksHtml}</nav><div class="ns-menu-foot"><a href="navidiaria.html?open-pin=1">Cambia PIN</a><button type="button" class="ns-menu-exit">Esci</button></div></section>`;
+    document.body.appendChild(popup);
+    const pastLink=popup.querySelector('[data-turni-main-past]');
+    const syncPastLabel=()=>{
+      const label=pastLink?.querySelector('b');
+      const source=document.getElementById('togglePastBtn');
+      if(label)label.textContent=source?.textContent?.replace(/^[^A-Za-zÀ-ÿ]+/,'').trim()||'Mostra passato';
+    };
+    pastLink?.addEventListener('click',event=>{
+      event.preventDefault();
+      if(typeof window.togglePastColumns==='function')window.togglePastColumns();
+      syncPastLabel();
+    });
+    const close=()=>{popup.hidden=true;document.body.classList.remove('ns-menu-open');};
+    const open=()=>{syncPastLabel();popup.hidden=false;document.body.classList.add('ns-menu-open');};
+    popup.querySelector('.ns-menu-close').addEventListener('click',close);
+    popup.addEventListener('click',event=>{if(event.target===popup)close();});
+    popup.querySelector('.ns-menu-exit').addEventListener('click',()=>{
+      if(typeof window.logoutAgent==='function'){window.logoutAgent();return;}
+      localStorage.removeItem('navidiaria.activeAgent');
+      localStorage.removeItem('naviturni_logged_agent');
+      location.href='index.html';
+    });
+    // Condividi: locandina con QR code da far girare ai colleghi
+    const TESTO_CONDIVIDI=["⚓ Scarica *NaviSuite*: il tuo turno e la tua distinta sempre con te","","👉 https://papamike80.github.io/NaviSuite/","","🔑 *Primo accesso*","1. Apri il link e premi *«Non hai il PIN? Chiedi accesso»*","2. Scegli il tuo cognome dall'elenco e lascia il numero di telefono","3. Riceverai su WhatsApp il PIN iniziale: al primo accesso ne scegli uno personale","","📲 *Installala come app*","• iPhone: Safari → Condividi ⬆️ → Aggiungi alla schermata Home","• Android: Chrome → menu ⋮ → Installa app","","Fallo girare ai colleghi! 🚢"].join("\n");
+    const IMG_LOCANDINA='assets/images/navisuite-locandina.png';
+    const apriCondividi=()=>{
+      close();
+      let box=document.getElementById('ns-condividi');
+      if(!box){
+        box=document.createElement('div');box.id='ns-condividi';
+        box.style.cssText='position:fixed;inset:0;z-index:10001;display:grid;place-items:center;padding:calc(12px + env(safe-area-inset-top,0px)) 12px 12px;background:rgba(2,12,17,.8);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)';
+        box.innerHTML=`<div style="position:relative;width:min(420px,100%);max-height:100%;display:flex;flex-direction:column;gap:10px"><button type="button" data-chiudi aria-label="Chiudi" style="position:absolute;top:8px;right:8px;width:42px;height:42px;border:1px solid rgba(126,243,226,.35);border-radius:13px;background:rgba(6,24,32,.75);color:#eafffb;font-size:26px;cursor:pointer">×</button><img src="${IMG_LOCANDINA}" alt="Locandina NaviSuite con QR code" style="width:100%;min-height:0;object-fit:contain;border-radius:20px;border:1px solid #2e6971"><a data-condividi target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(TESTO_CONDIVIDI)}" style="display:flex;align-items:center;justify-content:center;gap:10px;min-height:52px;border-radius:14px;background:#25d366;color:#05230f;text-decoration:none;font:800 16px Manrope,system-ui,sans-serif">Condividi via WhatsApp</a></div>`;
+        document.body.appendChild(box);
+        box.addEventListener('click',e=>{if(e.target===box||e.target.closest('[data-chiudi]'))box.hidden=true;});
+      }
+      box.hidden=false;
+    };
+    popup.querySelector('[data-ns-condividi]')?.addEventListener('click',event=>{event.preventDefault();apriCondividi();});
+    window.NaviSuiteMenu={open,close,condividi:apriCondividi};
+    // Pulsante ☰ nell'intestazione della pagina; Quiz e Cambia PIN non hanno
+    // un'intestazione adatta e lo ricevono fisso in alto a destra.
+    const host=document.querySelector('.page-header,.archive-header,.diaria-header,main>header,body.impostazioni-page>header');
+    const floating=!host&&(file==='quiz.html'||file==='cambia-pin.html');
+    if(host||floating){
+      const button=document.createElement('button');
+      button.type='button';button.id='navisuite-header-menu';button.setAttribute('aria-label','Apri menu');button.textContent='☰';
+      button.style.cssText=`position:${floating?'fixed':'absolute'};right:12px;top:${floating?'calc(12px + env(safe-area-inset-top,0px))':'12px'};z-index:${floating?9000:30};width:44px;height:44px;border:1px solid #2dd4bf;border-radius:13px;background:#103a3d;color:#a7fff0;font-size:25px;font-weight:900;cursor:pointer`;
+      if(host){host.style.position=host.style.position||'relative';host.appendChild(button);}
+      else document.body.appendChild(button);
+      button.addEventListener('click',open);
+    }
+  }
+  const sidebar=document.querySelector('.app-sidebar');
+  if(!sidebar){
+    // Pagine senza sidebar: Quiz e Cambia PIN ricevono comunque il menu, solo con sessione attiva.
+    const file=(location.pathname.split('/').pop()||'').toLowerCase();
+    if(sessionAgent?.id&&(file==='quiz.html'||file==='cambia-pin.html'))setTimeout(()=>installUnifiedMenu(sessionAgent),0);
+    return;
+  }
   if('serviceWorker' in navigator){
     if(!window.__naviSwRegistrationPromise){
-      window.__naviSwRegistrationPromise=navigator.serviceWorker.register('sw.js?menu=169').then(registration=>{
+      window.__naviSwRegistrationPromise=navigator.serviceWorker.register('sw.js?menu=171').then(registration=>{
         if(registration&&typeof registration.update==='function')registration.update().catch(()=>{});
         return registration;
       }).catch(()=>null);
     }
   }
-  const page=document.body.classList.contains('oggi-page')?'oggi':document.body.classList.contains('tickets-page')?'tickets':document.body.classList.contains('orario-data-page')?'orario-data':document.body.classList.contains('orario-page')?'orario':document.body.classList.contains('ponteradio-page')?'ponteradio':document.body.classList.contains('impostazioni-page')?'settings':document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':document.body.classList.contains('agenti-page')?'agenti':document.body.classList.contains('aggiornamenti-page')?'aggiornamenti':sidebar.id==='archive-sidebar'?'archive':'turni';
-  const tabNames={oggi:'NaviOggiTab',turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab',ponteradio:'NaviPonteRadioTab',settings:'NaviImpostazioniTab',orario:'NaviOrarioTab','orario-data':'NaviOrarioTab'};
+  const page=document.body.classList.contains('oggi-page')?'oggi':document.body.classList.contains('impostazioni-page')?'settings':document.body.classList.contains('trova-turno-page')?'trova':document.body.classList.contains('diaria-page')?'diaria':document.body.classList.contains('agenti-page')?'agenti':document.body.classList.contains('aggiornamenti-page')?'aggiornamenti':document.body.classList.contains('movimento-page')?'movimento':document.body.classList.contains('collegamenti-page')?'collegamenti':document.body.classList.contains('mio-turno-page')?'mioturno':document.body.classList.contains('orario-page')?'orario':document.body.classList.contains('servizi-terra-page')?'terra':sidebar.id==='archive-sidebar'?'archive':'turni';
+  const tabNames={oggi:'NaviOggiTab',turni:'NaviTurniTab',trova:'NaviTrovaTurnoTab',diaria:'NaviDiariaTab',archive:'NaviDocumentiTab',settings:'NaviImpostazioniTab'};
   if(page==='archive')document.body.classList.add('archive-page');
-  const isAdminAgent=agent=>['91','92'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin';
-  const isNaviPage=location.pathname.toLowerCase().endsWith('/gestione_navi.html');
+  // Sorgente unica: assets/js/shared-roles.js. Il fallback qui sotto serve solo
+  // per le pagine che non caricano shared-roles.js (es. gestione_navi.html) e
+  // deve restare allineato alla logica canonica.
+  const Roles=window.NaviRoles||{
+    isAdminAgent:agent=>['91','92'].includes(String(agent?.id||''))||String(agent?.role||'').toLowerCase()==='admin',
+    isBaristaAgent:agent=>String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista',
+    isHibaBarista:agent=>String(agent?.id||'').toUpperCase()==='BARISTA_HIBA'||((String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista')&&String(agent?.name||agent?.agente||agent?.cognome||'').trim().toUpperCase()==='HIBA'),
+  };
+  const isAdminAgent=agent=>Roles.isAdminAgent(agent);
   // La Diaria e' personale, non amministrativa: basta una sessione autenticata.
   const canUseDiaria=agent=>Boolean(String(agent?.id||'').trim());
-  const isBaristaAgent=agent=>String(agent?.role||'').toLowerCase()==='barista'||String(agent?.qualifica||'').toLowerCase()==='barista';
-  const isHibaBarista=agent=>String(agent?.id||'').toUpperCase()==='BARISTA_HIBA'||(isBaristaAgent(agent)&&String(agent?.name||agent?.agente||agent?.cognome||'').trim().toUpperCase()==='HIBA');
+  const isBaristaAgent=agent=>Roles.isBaristaAgent(agent);
+  const isHibaBarista=agent=>Roles.isHibaBarista(agent);
   const isBaristaSession=isBaristaAgent(sessionAgent);
   // Il test è riservato a Marco: riconosciamo sia gli ID storici sia il cognome
   // con cui può comparire nelle diverse versioni dell'anagrafica.
@@ -73,7 +267,7 @@
     // Superfici visibili mentre la tabella di NaviTurni sta ancora caricando.
     // Restano chiare anche prima che arrivino i dati del periodo.
     const loadingStyle=document.createElement('style');loadingStyle.id='navisuite-light-loading-style';
-    loadingStyle.textContent='html.navisuite-light #welcome-notice{background:#fff!important;border-color:#83c9c2!important;color:#17323a!important;box-shadow:0 6px 20px rgba(22,56,66,.1)!important}html.navisuite-light #welcome-notice h3{color:#087b6e!important}html.navisuite-light #welcome-notice p{color:#547078!important}html.navisuite-light #welcome-notice .loading-spinner{border-color:#c9e1e2!important;border-top-color:#22bda9!important}html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th,html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th[data-month],html.navisuite-light #matrix-scroll-wrap .month-header th[data-month]{background:#e7f5f4!important;color:#17323a!important;box-shadow:none!important}html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th[data-month] .month-visible-label,html.navisuite-light #matrix-scroll-wrap .month-header th[data-month] .month-visible-label{background:transparent!important;color:#17323a!important}html.navisuite-light .app-sidebar .sidebar-agent-name,html.navisuite-light .app-sidebar .login-user-name{background:#f3f9fa!important;border-color:#b9d7dc!important;color:#17323a!important;box-shadow:none!important}html.navisuite-light .app-sidebar .sidebar-agent-name:before{color:#417078!important}html.navisuite-light .app-sidebar .sidebar-action,html.navisuite-light .app-sidebar .login-user-panel button:not(.login-user-name){background:#fff!important;border-color:#b9d7dc!important;color:#31545c!important}html.navisuite-light .app-sidebar .sidebar-action.sidebar-exit,html.navisuite-light .app-sidebar .login-user-panel .sidebar-exit{background:#fff5f6!important;border-color:#efb7c0!important;color:#b53c4c!important}html.navisuite-light .app-sidebar .sidebar-footer-update{background:#e7f7f4!important;border-color:#83c9c2!important;color:#087b6e!important}html.navisuite-light .app-sidebar .sidebar-data-status{color:#17856f!important}html.navisuite-light body.orario-page,html.navisuite-light .orario-page{background:#edf5f6!important;color:#17323a!important}html.navisuite-light .orario-page .og-page-chart,html.navisuite-light .orario-page .og-chart-wrap,html.navisuite-light .orario-page .card,html.navisuite-light .orario-page dialog{background:#fff!important;color:#17323a!important;border-color:#b9d5da!important}html.navisuite-light .orario-page .btn,html.navisuite-light .orario-page button{background:#fff!important;color:#17323a!important;border-color:#a9cbd1!important}';
+    loadingStyle.textContent='html.navisuite-light #welcome-notice{background:#fff!important;border-color:#83c9c2!important;color:#17323a!important;box-shadow:0 6px 20px rgba(22,56,66,.1)!important}html.navisuite-light #welcome-notice h3{color:#087b6e!important}html.navisuite-light #welcome-notice p{color:#547078!important}html.navisuite-light #welcome-notice .loading-spinner{border-color:#c9e1e2!important;border-top-color:#22bda9!important}html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th,html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th[data-month],html.navisuite-light #matrix-scroll-wrap .month-header th[data-month]{background:#e7f5f4!important;color:#17323a!important;box-shadow:none!important}html.navisuite-light #matrix-scroll-wrap #thead-container .month-header th[data-month] .month-visible-label,html.navisuite-light #matrix-scroll-wrap .month-header th[data-month] .month-visible-label{background:transparent!important;color:#17323a!important}html.navisuite-light .app-sidebar .sidebar-agent-name,html.navisuite-light .app-sidebar .login-user-name{background:#f3f9fa!important;border-color:#b9d7dc!important;color:#17323a!important;box-shadow:none!important}html.navisuite-light .app-sidebar .sidebar-agent-name:before{color:#417078!important}html.navisuite-light .app-sidebar .sidebar-action,html.navisuite-light .app-sidebar .login-user-panel button:not(.login-user-name){background:#fff!important;border-color:#b9d7dc!important;color:#31545c!important}html.navisuite-light .app-sidebar .sidebar-action.sidebar-exit,html.navisuite-light .app-sidebar .login-user-panel .sidebar-exit{background:#fff5f6!important;border-color:#efb7c0!important;color:#b53c4c!important}html.navisuite-light .app-sidebar .sidebar-footer-update{background:#e7f7f4!important;border-color:#83c9c2!important;color:#087b6e!important}html.navisuite-light .app-sidebar .sidebar-data-status{color:#17856f!important}';
     document.head.appendChild(loadingStyle);
     const finalLightStyle=document.createElement('style');finalLightStyle.textContent='html.navisuite-light .diaria-page .topbar{background:linear-gradient(135deg,#fff,#e7f7f4)!important;border-bottom-color:#b7d8d7!important}html.navisuite-light .diaria-page .topbar h1{color:#17323a!important}html.navisuite-light .diaria-page .topbar .eyebrow{color:#087b6e!important}html.navisuite-light .diaria-page .topbar-context{color:#547078!important}html.navisuite-light .diaria-page .monthly-table .shift-column{background:color-mix(in srgb,var(--day-color) 13%,#fff)!important;border-color:color-mix(in srgb,var(--day-color) 35%,#c2dce0)!important}html.navisuite-light .diaria-page .monthly-table thead .shift-column{background:color-mix(in srgb,var(--day-color) 22%,#f7fcfc)!important;box-shadow:inset 0 3px var(--day-color)!important}html.navisuite-light .diaria-page .monthly-table .row-service .shift-column{background:color-mix(in srgb,var(--day-color) 20%,#fff)!important}html.navisuite-light .diaria-page .weekly-day[style*="--shift-color"]{background:color-mix(in srgb,var(--shift-color) 12%,#fff)!important;border-color:color-mix(in srgb,var(--shift-color) 34%,#bdd7dc)!important}html.navisuite-light .diaria-page .weekly-day[style*="--shift-color"] .weekly-service{background:color-mix(in srgb,var(--shift-color) 18%,#fff)!important;border-color:color-mix(in srgb,var(--shift-color) 52%,#bdd7dc)!important}html.navisuite-light .liquid-modal-overlay,html.navisuite-light .weekly-edit-overlay,html.navisuite-light .monthly-value-overlay{background:rgba(225,241,242,.82)!important}html.navisuite-light .liquid-modal-content,html.navisuite-light .weekly-edit-dialog,html.navisuite-light .monthly-value-dialog,html.navisuite-light .monthly-shift-dialog,html.navisuite-light .monthly-bubble-dialog{background:#fff!important;color:#17323a!important;border-color:#a8ccd2!important;box-shadow:0 18px 48px rgba(22,56,66,.18)!important}html.navisuite-light .liquid-modal-content *,html.navisuite-light .weekly-edit-dialog h3,html.navisuite-light .monthly-value-dialog h3{color:#17323a!important}html.navisuite-light .liquid-modal-content input,html.navisuite-light .liquid-modal-content select,html.navisuite-light .weekly-edit-dialog input,html.navisuite-light .weekly-edit-dialog select,html.navisuite-light .monthly-value-dialog input,html.navisuite-light .monthly-value-dialog select{background:#f8fcfc!important;color:#17323a!important;border-color:#aacbd1!important}';document.head.appendChild(finalLightStyle);
   }
@@ -83,17 +277,19 @@
     menuToggleLight.textContent='html.navisuite-light .sidebar-collapse-button{background:#fff!important;border-color:#9fc4ca!important;color:#176b87!important;box-shadow:6px 0 16px rgba(22,56,66,.14)!important}html.navisuite-light .sidebar-collapse-button:hover{background:#e5f6f3!important;color:#087b6e!important}html.navisuite-light .app-sidebar .shifts-filter-block{background:#f7fcfc!important;border-color:#bdd8dc!important}html.navisuite-light .app-sidebar .filter-label{color:#547078!important}html.navisuite-light .diaria-page .weekly-calendar,html.navisuite-light .diaria-page .weekly-week{background:#fff!important;border-color:#bdd8dc!important}html.navisuite-light .diaria-page .weekly-week-heading{background:#e8f5f4!important;border-color:#bdd8dc!important}html.navisuite-light .diaria-page .weekly-week-heading>div:first-child small{color:#087b6e!important}html.navisuite-light .diaria-page .weekly-week-heading>div:first-child strong{color:#17323a!important}html.navisuite-light .diaria-page .weekly-days-row{background:#bdd8dc!important}html.navisuite-light .diaria-page .weekly-day{background:#fff!important;color:#17323a!important}html.navisuite-light .diaria-page .weekly-day-name,html.navisuite-light .diaria-page .weekly-field,html.navisuite-light .diaria-page .weekly-field strong,html.navisuite-light .diaria-page .weekly-service{color:#17323a!important}html.navisuite-light .diaria-page .weekly-service{background:#f8fcfc!important;border-color:#b7d4d8!important}html.navisuite-light .diaria-page .weekly-field,html.navisuite-light .diaria-page .weekly-bubble{background:#f5fafb!important;border-color:#c7dfe2!important}html.navisuite-light .diaria-page .weekly-more{background:#fff5fb!important;border-color:#efbdd9!important;color:#b33b81!important}html.navisuite-light .diaria-page .weekly-week-totals span,html.navisuite-light .diaria-page .weekly-total-bubble{background:#f5fafb!important;border-color:#b9d7dc!important}html.navisuite-light .diaria-page .weekly-week-totals small,html.navisuite-light .diaria-page .weekly-week-totals b{color:#17323a!important}html.navisuite-light #day-panel .panel-date,html.navisuite-light #day-panel .shift-nav-label,html.navisuite-light #day-panel .crew-tooltip{background:#f8fcfc!important;color:#17323a!important;border-color:#9fc6cd!important}html.navisuite-light #day-panel .service-code{background:transparent!important;color:var(--day-color,#176b87)!important}html.navisuite-light #day-panel .crew-tooltip *{color:#17323a!important}';
     document.head.appendChild(menuToggleLight);
   }
-  const isPinChangePage=page==='diaria'&&new URLSearchParams(location.search).has('pin');
   if(!sessionAgent){
     document.documentElement.style.display='none';
     location.replace('index.html');
     return;
   }
   // NaviDiaria è disponibile dal menu mobile a ogni agente autenticato.
-  if((page==='agenti'||page==='aggiornamenti')&&!isAdminAgent(sessionAgent)&&!(page==='aggiornamenti'&&isHibaBarista(sessionAgent))){location.replace('index.html');return}
+  if((page==='agenti'||page==='aggiornamenti'||page==='collegamenti'||page==='movimento')&&!isAdminAgent(sessionAgent)&&!(page==='aggiornamenti'&&isHibaBarista(sessionAgent))){location.replace('index.html');return}
   if(window.NaviAdminFirebase?.touchUserPresence){
     const signalPresence=()=>window.NaviAdminFirebase.touchUserPresence(sessionAgent).catch(()=>{});
     signalPresence();
+    // Stagionali ed esterni fuori servizio: sessione chiusa (salvo accesso forzato dall'amministratore)
+    if(!isAdminAgent(sessionAgent))window.NaviAdminFirebase.accessoRevocato?.(sessionAgent?.id).then(revocato=>{if(!revocato)return;localStorage.removeItem('navidiaria.activeAgent');localStorage.removeItem('naviturni_logged_agent');alert('Periodo di servizio terminato: accesso non consentito. Rivolgiti all’amministratore.');location.replace('index.html');}).catch(()=>{});
+    window.NaviAdminFirebase.registraVisita?.(sessionAgent,(location.pathname.split('/').pop()||'index.html').toLowerCase()).catch(()=>{});
     setInterval(signalPresence,45000);
     document.addEventListener('visibilitychange',()=>{if(!document.hidden)signalPresence();});
   }
@@ -112,137 +308,82 @@
   if(isBaristaSession&&(page==='aggiornamenti'||page==='oggi')&&!isHibaBarista(sessionAgent)){location.replace('naviturni.html');return}
   const item=(href,icon,label,active=false,id='')=>`<a ${id?`id="${id}" `:''}class="nav-link${active?' active':''}" href="${href}"${['competencyNav','adminNav','archiveAdminNav'].includes(id)?' hidden':''}><span>${icon}</span>${label}</a>`;
   let common='',specific='',user='',status='<div id="odsVariationStatus" class="ods-variation-status" hidden></div>';
-  const adminOrarioLink=item('Orario.html','◴','Orario',false,'orarioNavLink');
-  const ponteRadioLink=item('ponteradio.html','📻','Ponte Radio',page==='ponteradio','ponteRadioNav');
+
+  // Menu principale: un solo ordine, identico su ogni pagina e per ogni ruolo.
+  // Home · Oggi · NaviTurni · Distinta · Documenti · Impostazioni · Cambio turno,
+  // e infine (solo admin) Aggiornamenti · Agenti. Cambia soltanto quale voce e' attiva.
+  common=(()=>{
+    const activeHref={oggi:'oggi.html',turni:'naviturni.html',trova:'cambi_turno.html',diaria:'navidiaria.html',archive:'documenti.html',terra:'orario.html',mioturno:'mio-turno.html',orario:'orario.html',settings:'impostazioni.html'}[page]||'';
+    // Sulla propria pagina alcune voci puntano a un'ancora interna (niente reload).
+    const selfAnchor={'oggi.html':'#oggi','naviturni.html':'#turni-operativi','cambi_turno.html':'#turni-operativi','navidiaria.html':'#oggi','documenti.html':'#turni-docs'};
+    return [
+      ['index.html?home=1','⌂','Home',''],
+      ['mio-turno.html','⚑','Il mio turno','mioTurnoNavLink'],
+      ['orario.html','⚓','Scali','orarioNavLink'],
+      ['oggi.html','☀','Oggi','oggiNav'],
+      ['naviturni.html','▦','NaviTurni',''],
+      ['navidiaria.html','≈','Distinta','diariaNavLink'],
+      ['documenti.html','▤','Documenti','archiveNavLink'],
+      ['impostazioni.html','⚙','Impostazioni',''],
+      ['cambi_turno.html','⇄','Cambio turno','trovaTurnoNavLink'],
+    ].map(([href,icon,label,id])=>{
+      const active=href===activeHref;
+      return item(active&&selfAnchor[href]?selfAnchor[href]:href,icon,label,active,id);
+    }).join('');
+  })();
 
   if(page==='oggi'){
-    common=item('#oggi','☀','Oggi',true,'oggiNav')+item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
     specific='<span class="sidebar-menu-label">GIORNATA</span>';
     user=`<div class="sidebar-user-actions login-user-panel" id="login-user-panel"><button id="refreshBtn" class="sidebar-footer-update" onclick="window.NaviOggi?.refresh?.()" type="button"><span>↻</span>Aggiorna</button><small id="turniMenuStatus" class="sidebar-data-status">Locale</small><button class="sidebar-agent-name login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()"></button><button id="login-exit-button" class="sidebar-action sidebar-exit" type="button" onclick="logoutAgent()">Esci</button><button id="login-change-button" class="sidebar-action" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button></div>`;
   }else if(page==='diaria'){
-    common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('#oggi','≈','Distinta',true,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
     specific=`<span class="sidebar-menu-label">DIARIA</span>${item('#registro','≡','Registro mese')}${item('#consultivo','≈','Consultivo settimane')}${item('#competenze','◇','Competenze',false,'competencyNav')}${item('agenti.html','♙','Gestione agenti',false,'adminNav')}`;
     user=`<div class="sidebar-user-actions"><button id="syncShifts" class="sidebar-footer-update" type="button"><span>↻</span>Aggiorna</button><small id="syncStatus" class="sidebar-data-status">Locale</small><strong id="sidebarAgentName" class="sidebar-agent-name">AGENTE</strong><button id="logoutButton" class="sidebar-action sidebar-exit" type="button" hidden>Esci</button><button id="pinSettingsButton" class="sidebar-action" type="button" hidden>Cambia PIN</button></div>`;
   }else if(page==='trova'){
-    common=item('naviturni.html','▦','NaviTurni')+item('#turni-operativi','⇄','Cambio turno',true)+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
     // Elementi tecnici richiesti dal codice di NaviTurni: restano nel DOM ma non sono visibili.
     specific=`<div hidden aria-hidden="true"><button id="togglePastBtn" type="button"></button><div id="shift-filter-container"><div id="top-residence-buttons"></div><div id="shift-buttons-wrapper"></div></div></div>`;
     user=`<div class="sidebar-user-actions login-user-panel" id="login-user-panel"><button id="refreshBtn" class="sidebar-footer-update" onclick="ricaricaDati()" type="button"><span>↻</span>Aggiorna</button><small id="turniMenuStatus" class="sidebar-data-status">Locale</small><button class="sidebar-agent-name login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()"></button><button id="login-exit-button" class="sidebar-action sidebar-exit" type="button" onclick="logoutAgent()">Esci</button><button id="login-change-button" class="sidebar-action" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button></div>`;
   }else if(page==='turni'){
-    common=item('#turni-operativi','▦','NaviTurni',true)+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
     specific=`<span class="sidebar-menu-label">TURNI</span><button id="togglePastBtn" class="nav-link sidebar-nav-button" onclick="togglePastColumns()" type="button"><span>◷</span>Mostra passato</button><div class="shifts-filter-block" id="shift-filter-container"><div class="top-filter-controls"><div class="top-residence-controls"><a class="today-residence-link" href="oggi.html">☀ Oggi</a><span class="filter-label">Residenze</span><div class="coverage-residence-buttons" id="top-residence-buttons"></div></div><div class="top-filter-group"><span class="filter-label">Corse</span><div class="shift-buttons-grid" id="shift-buttons-wrapper"></div></div></div></div>`;
     user=`<div class="sidebar-user-actions login-user-panel" id="login-user-panel"><button id="refreshBtn" class="sidebar-footer-update" onclick="ricaricaDati()" type="button"><span>↻</span>Aggiorna</button><small id="turniMenuStatus" class="sidebar-data-status">Locale</small><button class="sidebar-agent-name login-user-name" id="login-user-name" type="button" onclick="repinLoggedAgent()"></button><button id="login-exit-button" class="sidebar-action sidebar-exit" type="button" onclick="logoutAgent()">Esci</button><button id="login-change-button" class="sidebar-action" type="button" onclick="location.href='navidiaria.html?pin=1'">Cambia PIN</button></div>`;
-  }else if(page==='orario' || page==='orario-data'){
-    const graficoLink=item('Orario.html','◴','Grafico interattivo',page==='orario','orarioGraphNavLink');
-    const tabelleLink=item('orari-tabella.html','▥','Orari tabella',page==='orario-data','orarioDataNavLink');
-    common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+item('Orario.html','◴','Orario',true,'orarioNavLink')+item('impostazioni.html','⚙','Impostazioni');
-    specific=`<span class="sidebar-menu-label">ORARIO</span>${graficoLink}${tabelleLink}`;
+  }else if(page==='terra'||page==='mioturno'||page==='orario'){
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
-    status='';
   }else if(page==='settings'){
-    common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('#altre-preferenze','⚙','Impostazioni',true);
-    specific=`<span class="sidebar-menu-label">PREFERENZE</span>${item('#altre-preferenze','≡','Altre preferenze')}${isAdminAgent(sessionAgent)?item('aggiornamenti.html','↻','Aggiornamenti turni')+item('agenti.html','♙','Gestione agenti'):''}`;
+    specific=isAdminAgent(sessionAgent)?`<span class="sidebar-menu-label">PREFERENZE</span>${item('aggiornamenti.html','↻','Aggiornamenti turni')}${item('agenti.html','♙','Gestione agenti')}`:'';
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
-  }else if(page==='tickets'||page==='ponteradio'){
-    common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
-    specific=page==='tickets'?`<span class="sidebar-menu-label">ASCOLTO</span>${item('#ticket-form','✉','Nuova segnalazione',true)}`:'';
-    user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
-  }else if(page==='agenti'||page==='aggiornamenti'){
-    const isAgenti=page==='agenti';
-    common=item('naviturni.html','▦','NaviTurni')+item('cambi_turno.html','⇄','Cambio turno',false,'trovaTurnoNavLink')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('documenti.html','▤','Documenti',false,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
-    specific=`<span class="sidebar-menu-label">AMMINISTRAZIONE</span>${item('aggiornamenti.html','↻','Aggiornamenti turni',!isAgenti,'aggiornamentiNav')}${item('agenti.html','♙','Gestione agenti',isAgenti,'agentiNav')}`;
+  }else if(page==='agenti'||page==='aggiornamenti'||page==='movimento'){
+    const isAgenti=page==='agenti',isMovimento=page==='movimento';
+    specific=`<span class="sidebar-menu-label">AMMINISTRAZIONE</span>${item('aggiornamenti.html','↻','Aggiornamenti turni',page==='aggiornamenti','aggiornamentiNav')}${item('agenti.html','♙','Gestione agenti',isAgenti,'agentiNav')}${item('movimento.html','⚓','Movimento',isMovimento,'movimentoNav')}`;
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }else{
-    common=item('naviturni.html','▦','NaviTurni')+item('navidiaria.html','≈','Distinta',false,'diariaNavLink')+ponteRadioLink+item('#turni-docs','▤','Documenti',true,'archiveNavLink')+adminOrarioLink+item('impostazioni.html','⚙','Impostazioni');
-    specific=`<span class="sidebar-menu-label">DOCUMENTI</span>${item('#turni-docs','▦','Turni e bozze')}${item('#ods-docs','≡','ODS 2026')}${item('#adminUploadPanel','＋','Carica documenti',false,'archiveAdminNav')}`;
+    specific=`<span class="sidebar-menu-label">DOCUMENTI</span>${item('#turni-docs','▦','Turni e bozze')}${item('#ods-docs','≡','ODS 2026')}${item('#terra-docs','⛴','Servizi a terra')}${item('#adminUploadPanel','＋','Carica documenti',false,'archiveAdminNav')}`;
     user=`<div class="sidebar-user-actions"><button class="sidebar-footer-update" type="button" onclick="typeof loadDocuments==='function'?loadDocuments():location.reload()"><span>↻</span>Aggiorna</button><small id="archiveMenuStatus" class="sidebar-data-status">Locale</small><strong id="archiveSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="archiveLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="archiveChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }
 
-  if(isBaristaSession&&page==='turni'){
-    common=item('#turni-operativi','▦','NaviTurni',true);
-    specific=`<span class="sidebar-menu-label">TURNI</span><button id="togglePastBtn" class="nav-link sidebar-nav-button" onclick="togglePastColumns()" type="button"><span>◷</span>Mostra passato</button><div id="shift-filter-container" hidden aria-hidden="true"><div id="top-residence-buttons"></div><div id="shift-buttons-wrapper"></div></div>`;
-    status='';
-  }else if(isBaristaSession&&isPinChangePage){
-    common=item('naviturni.html','▦','NaviTurni',false,true);
-    specific='';
-    status='';
-  }
-
-  // Collegamento amministrativo comune: non viene mai creato per gli utenti
-  // ordinari o per le bariste. In Impostazioni è già presente nella sezione
-  // PREFERENZE, quindi evitiamo di mostrarlo due volte.
-  if(isAdminAgent(sessionAgent)&&page!=='settings'&&page!=='agenti'&&page!=='aggiornamenti'){
+  // Collegamenti amministrativi: solo per gli amministratori e, in coda, dopo le
+  // voci comuni. Su Impostazioni/Agenti/Aggiornamenti sono gia' nella sezione
+  // dedicata, quindi li' non vengono ripetuti.
+  if(isAdminAgent(sessionAgent)&&page!=='settings'&&page!=='agenti'&&page!=='aggiornamenti'&&page!=='movimento'){
     common+=item('aggiornamenti.html','↻','Aggiornamenti');
     common+=item('agenti.html','♙','Agenti');
+    common+=item('movimento.html','⚓','Movimento');
+    common+=item('collegamenti.html','⇆','Collegamenti',page==='collegamenti');
   }
 
-  // Gestione navi resta, per ora, un collegamento riservato agli amministratori.
-  if(isAdminAgent(sessionAgent))common+=item('gestione_navi.html','▤','Navi',isNaviPage,'naviAdminNav');
-
-  if(page!=='oggi')common=item('oggi.html','☀','Oggi',false,'oggiNav')+common;
-  common=item('index.html','⌂','Home')+common+item('segnalazioni.html','✉','Segnalazioni',page==='tickets');
-
-  const brandTitle=page==='oggi'?'NaviSuite Oggi':page==='diaria'?'NaviSuite Diaria':page==='trova'?'NaviSuite Cambi':page==='turni'?'NaviSuite Turni':page==='orario'?'NaviSuite Orario':page==='orario-data'?'NaviSuite Orari':page==='ponteradio'?'NaviSuite Ponte Radio':page==='settings'?'NaviSuite Impostazioni':page==='agenti'?'NaviSuite Agenti':page==='aggiornamenti'?'NaviSuite Aggiornamenti':page==='tickets'?'NaviSuite Segnalazioni':'NaviSuite Documenti';
+  const brandTitle=page==='oggi'?'NaviSuite Oggi':page==='diaria'?'NaviSuite Diaria':page==='trova'?'NaviSuite Cambi':page==='turni'?'NaviSuite Turni':page==='settings'?'NaviSuite Impostazioni':page==='agenti'?'NaviSuite Agenti':page==='aggiornamenti'?'NaviSuite Aggiornamenti':page==='movimento'?'NaviSuite Movimento':page==='collegamenti'?'NaviSuite Collegamenti':page==='terra'?'NaviSuite Servizi a terra':page==='mioturno'?'NaviSuite Il mio turno':page==='orario'?'NaviSuite Scali':'NaviSuite Documenti';
   const version=`<div class="shared-app-version" aria-label="Versione applicazione">Versione ${APP_VERSION}</div>`;
 
   const brandHref=isBaristaSession?(page==='turni'?'#turni-operativi':'naviturni.html'):'index.html';
   sidebar.innerHTML=`<a class="shared-sidebar-brand" href="${brandHref}"><span class="shared-brand-mark">N</span><strong>${brandTitle}</strong></a><nav>${common}${specific}</nav>${user}${status}${version}`;
-  if(!canUseDiaria(sessionAgent))sidebar.querySelectorAll('a[href="navidiaria.html"],#diariaNavLink').forEach(link=>link.hidden=true);
-  const installHeaderMenu=()=>{
-    if(document.getElementById('navisuite-popup'))return;
+  // Utente di uno scalo: nel menu solo Scali
+  if(Roles.isScaloAgent?.(sessionAgent)){
+    document.body.classList.add('scalo-session');
     const style=document.createElement('style');
-    style.id='navisuite-unified-menu-style';
-    style.textContent=`
-      @media(max-width:950px){.mobile-liquid-nav{display:none!important}}
-      #navisuite-popup[hidden]{display:none!important}
-      #navisuite-popup{position:fixed;inset:0;z-index:10000;background:rgba(2,12,17,.68);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
-      .ns-menu-dialog{position:fixed;top:16px;left:12px;right:12px;box-sizing:border-box;width:auto;max-width:none;margin:0;max-height:calc(100dvh - env(safe-area-inset-top,0px) - env(safe-area-inset-bottom,0px) - 32px);display:flex;flex-direction:column;overflow:hidden;border:1px solid #2e6971;border-radius:26px;background:linear-gradient(165deg,#102e39,#0a222c);box-shadow:0 22px 56px rgba(0,0,0,.5)}
-      .ns-menu-head{display:flex;align-items:center;justify-content:space-between;padding:20px 20px 14px;color:#a7fff0;font:900 26px/1 Manrope,system-ui,sans-serif}
-      .ns-menu-close{width:44px;height:44px;border:1px solid rgba(126,243,226,.35);border-radius:14px;background:rgba(255,255,255,.06);color:#eafffb;font-size:30px;line-height:1;cursor:pointer}
-      .ns-menu-links{display:grid;gap:8px;overflow:auto;padding:0 18px 14px;-webkit-overflow-scrolling:touch}
-      .ns-menu-links a{display:flex;align-items:center;gap:13px;min-height:52px;padding:0 16px;border:1px solid #285560;border-radius:16px;background:rgba(255,255,255,.025);color:#e8f7f7;text-decoration:none;font:800 17px/1.15 Manrope,system-ui,sans-serif}
-      .ns-menu-links a span{width:23px;color:#55e6d3;font-size:23px;text-align:center}
-      .ns-menu-links a.active{border-color:#45d9c7;background:rgba(45,212,191,.14);color:#cafff7}
-      .ns-menu-foot{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:14px 18px calc(18px + env(safe-area-inset-bottom,0px));border-top:1px solid rgba(126,243,226,.16)}
-      .ns-menu-foot a,.ns-menu-foot button{display:flex;align-items:center;justify-content:center;min-height:46px;border:1px solid #285560;border-radius:14px;background:rgba(255,255,255,.05);color:#d9eff0;text-decoration:none;font:800 14px/1 Manrope,system-ui,sans-serif;cursor:pointer}
-      .ns-menu-foot .ns-menu-exit{border-color:rgba(251,113,133,.52);background:rgba(251,113,133,.09);color:#fdb2ba}
-      @media(min-width:851px){.ns-menu-dialog{left:50%;right:auto;width:min(430px,calc(100vw - 24px));transform:translateX(-50%)}} @media(max-width:480px){.ns-menu-dialog{border-radius:23px}.ns-menu-head{font-size:24px}.ns-menu-links a{min-height:49px;font-size:16px}}
-    `;
+    const aperte=(Roles.pagineAperte?.(sessionAgent)||['orario.html']).map(f=>`:not([href^="${f}"])`).join('');
+    style.textContent=`body.scalo-session nav a${aperte},`+'body.scalo-session nav button,body.scalo-session nav .sidebar-menu-label,body.scalo-session nav .shifts-filter-block{display:none!important}';
     document.head.appendChild(style);
-    const popup=document.createElement('div');
-    popup.id='navisuite-popup';
-    popup.hidden=true;
-    popup.innerHTML='<section class="ns-menu-dialog" role="dialog" aria-modal="true" aria-label="Menu NaviSuite"><div class="ns-menu-head">Menu <button type="button" class="ns-menu-close" aria-label="Chiudi menu">×</button></div><nav class="ns-menu-links"></nav><div class="ns-menu-foot"><a href="navidiaria.html?open-pin=1">Cambia PIN</a><button type="button" class="ns-menu-exit">Esci</button></div></section>';
-    document.body.appendChild(popup);
-    const close=()=>{popup.hidden=true;document.body.classList.remove('ns-menu-open');};
-    const open=()=>{
-      const target=popup.querySelector('.ns-menu-links');
-      const used=new Set();
-      const links=[...sidebar.querySelectorAll('nav a[href]')].filter(link=>!link.hidden&&link.offsetParent!==null).filter(link=>{const href=link.getAttribute('href');if(!href||used.has(href))return false;used.add(href);return true;});
-      target.innerHTML='';
-      links.forEach(link=>{const clone=link.cloneNode(true);clone.innerHTML=clone.innerHTML.replace(/NaviDiaria/g,'Distinta');if(/navidiaria\.html/.test(clone.getAttribute('href')||''))clone.setAttribute('aria-label','Apri Distinta');target.appendChild(clone);});
-      popup.hidden=false;document.body.classList.add('ns-menu-open');
-    };
-    popup.querySelector('.ns-menu-close').addEventListener('click',close);
-    popup.addEventListener('click',event=>{if(event.target===popup)close();});
-    popup.querySelector('.ns-menu-exit').addEventListener('click',()=>{
-      if(typeof window.logoutAgent==='function'){window.logoutAgent();return;}
-      localStorage.removeItem('navidiaria.activeAgent');
-      localStorage.removeItem('naviturni_logged_agent');
-      location.href='index.html';
-    });
-    window.NaviSuiteMenu={open,close};
-    const host=document.querySelector('.page-header,.archive-header,.diaria-header,main>header,body.impostazioni-page>header');
-    if(host){
-      host.style.position=host.style.position||'relative';
-      const button=document.createElement('button');
-      button.type='button';button.id='navisuite-header-menu';button.setAttribute('aria-label','Apri menu');button.textContent='☰';
-      button.style.cssText='position:absolute;right:12px;top:12px;z-index:30;width:44px;height:44px;border:1px solid #2dd4bf;border-radius:13px;background:#103a3d;color:#a7fff0;font-size:25px;font-weight:900';
-      host.appendChild(button);
-      button.addEventListener('click',open);
-    }
-  };
-  setTimeout(installHeaderMenu,0);
+  }
+  if(!canUseDiaria(sessionAgent))sidebar.querySelectorAll('a[href="navidiaria.html"],#diariaNavLink').forEach(link=>link.hidden=true);
+  setTimeout(()=>installUnifiedMenu(sessionAgent),0);
 
   function installThemeSettings(){
     if(page!=='settings'||!isLightThemeTester||document.getElementById('theme-test-setting'))return;
@@ -465,6 +606,8 @@
 
   const diariaNavLink=sidebar.querySelector('#diariaNavLink');if(diariaNavLink)diariaNavLink.hidden=!canUseDiaria(sessionAgent);
   const archiveNavLink=sidebar.querySelector('#archiveNavLink');if(archiveNavLink)archiveNavLink.hidden=isBaristaAgent(sessionAgent);
+  const terraNavLink=sidebar.querySelector('#terraNavLink');if(terraNavLink)terraNavLink.hidden=isBaristaSession&&!isHibaBarista(sessionAgent);
+  const mioTurnoNavLink=sidebar.querySelector('#mioTurnoNavLink');if(mioTurnoNavLink)mioTurnoNavLink.hidden=isBaristaSession&&!isHibaBarista(sessionAgent);
   sidebar.classList.add('menu-ready');
 
   sidebar.addEventListener('click',event=>{
@@ -475,29 +618,9 @@
     if(target)target.focus();
   });
 
-  const toggle=document.createElement('button');
-  toggle.className='sidebar-collapse-button';
-  toggle.type='button';
-  document.body.appendChild(toggle);
-
-  function syncCollapseToggle(){
-    toggle.hidden=window.innerWidth<=800;
-  }
-
-  function setCollapsed(value){
-    document.body.classList.toggle('menu-collapsed',value);
-    toggle.setAttribute('aria-expanded',String(!value));
-    toggle.setAttribute('aria-label',value?'Mostra menu':'Nascondi menu');
-    toggle.textContent=value?'›':'‹';
-    syncCollapseToggle();
-  }
-
-  toggle.addEventListener('click',()=>setCollapsed(!document.body.classList.contains('menu-collapsed')));
-  window.addEventListener('resize',syncCollapseToggle);
-  sidebar.querySelector('nav')?.addEventListener('click',event=>{
-    if(window.innerWidth<=800&&event.target.closest('a'))setCollapsed(true);
-  });
-  setCollapsed(true);
+  // Menu unico: la sidebar laterale non si mostra piu'. Resta nel DOM, nascosta,
+  // perche' le pagine usano gli elementi al suo interno (filtri, pulsanti, stato).
+  document.body.classList.add('menu-collapsed');
 
   async function refreshOdsVariationStatus(){
     const target=document.getElementById('odsVariationStatus');if(!target||!window.NaviFirebaseAuth)return;
@@ -518,198 +641,6 @@
   window.refreshOdsVariationStatus=refreshOdsVariationStatus;
   window.addEventListener('DOMContentLoaded',refreshOdsVariationStatus);
 
-  // La precedente barra mobile è stata rimossa: la navigazione usa solo il popup condiviso.
-
-  function installHibaMobileNav(){
-    if(!isHibaBarista(sessionAgent))return;
-    document.querySelectorAll('.mobile-liquid-nav,.admin-mobile-nav').forEach(node=>node.hidden=true);
-    document.getElementById('hiba-mobile-nav')?.remove();
-    const nav=document.createElement('nav');
-    nav.id='hiba-mobile-nav';
-    nav.className='hiba-mobile-nav';
-    nav.setAttribute('aria-label','Navigazione Hiba');
-    nav.innerHTML=[
-      ['naviturni.html','▦','Turni','turni'],
-      ['aggiornamenti.html','↻','Aggiornamenti','aggiornamenti'],
-      ['segnalazioni.html','✉','Segnalazioni','tickets']
-    ].map(([href,icon,label,key])=>`<a href="${href}" class="${page===key?'active':''}"><span>${icon}</span><b>${label}</b></a>`).join('');
-    document.body.appendChild(nav);
-    if(document.getElementById('hiba-mobile-nav-style'))return;
-    const style=document.createElement('style');
-    style.id='hiba-mobile-nav-style';
-    style.textContent='.hiba-mobile-nav{display:none}@media(max-width:850px){body{padding-bottom:102px!important}.hiba-mobile-nav{position:fixed;left:50%;bottom:14px;z-index:2000;display:flex;align-items:center;justify-content:space-evenly;width:calc(100% - 24px);height:68px;transform:translateX(-50%);border:1px solid rgba(255,255,255,.18);border-top-color:rgba(255,255,255,.28);border-radius:36px;background:rgba(18,34,45,.74);box-shadow:0 18px 40px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.13);backdrop-filter:blur(24px) saturate(180%);-webkit-backdrop-filter:blur(24px) saturate(180%)}.hiba-mobile-nav a{display:flex;flex:1 1 0;min-width:0;max-width:112px;align-self:stretch;flex-direction:column;align-items:center;justify-content:center;gap:3px;margin:0;padding:7px 3px;border:0;border-radius:28px;color:#a9c4ca;text-decoration:none;font:800 10px/1 Inter,Arial,sans-serif}.hiba-mobile-nav a span{font-size:20px;line-height:20px;color:#b9d2d8}.hiba-mobile-nav a.active{background:rgba(45,212,191,.14);color:#99f6e4}.hiba-mobile-nav a.active span{color:#2dd4bf}.hiba-mobile-nav a:active{transform:scale(.96)}}';
-    document.head.appendChild(style);
-  }
-
-  function installCompleteMobileMenu(){
-    if(isHibaBarista(sessionAgent))return;
-    let nav=document.querySelector('.mobile-liquid-nav');
-    if(!nav&&document.body.classList.contains('turni-page')){
-      nav=document.createElement('nav');
-      nav.className='mobile-liquid-nav';
-      nav.setAttribute('aria-label','Navigazione principale mobile');
-      nav.innerHTML='<a href="naviturni.html" class="nav-item"><span class="nav-icon">▦</span><span>Turni</span></a><a href="cambi_turno.html" class="nav-item"><span class="nav-icon">⇄</span><span>Cambio</span></a><a href="documenti.html" class="nav-item"><span class="nav-icon">▤</span><span>Doc</span></a>';
-      document.body.appendChild(nav);
-    }
-    if(!nav)return;
-
-    let trigger=document.getElementById('mobile-filter-btn')||document.getElementById('mobile-altre-btn')||document.getElementById('mobile-app-menu-btn');
-    if(canUseDiaria(sessionAgent)&&!nav.querySelector('a[href="navidiaria.html"]')){
-      const diaria=document.createElement('a');
-      diaria.href='navidiaria.html';
-      diaria.className=`nav-item${page==='diaria'?' active':''}`;
-      diaria.innerHTML='<span class="nav-icon">≈</span><span>Diaria</span>';
-      nav.insertBefore(diaria,trigger||null);
-    }
-    if(!trigger){
-      // Nelle pagine che usavano Impostazioni come quarta voce, quella
-      // posizione diventa il nuovo Menu completo.
-      nav.querySelector('a[href="impostazioni.html"]')?.remove();
-      trigger=document.createElement('button');
-      trigger.type='button';
-      trigger.className='nav-item';
-      trigger.id='mobile-app-menu-btn';
-      trigger.setAttribute('aria-label','Apri menu');
-      trigger.innerHTML='<span class="nav-icon">☰</span><span>Menu</span>';
-      nav.appendChild(trigger);
-    }else{
-      trigger.setAttribute('aria-label','Apri menu e filtri');
-      const label=trigger.querySelector('span:last-child');
-      if(label)label.textContent='Menu';
-      const icon=trigger.querySelector('.nav-icon');
-      if(icon)icon.textContent='☰';
-    }
-
-    let modal=document.getElementById('mobile-filter-modal');
-    if(!modal){
-      modal=document.createElement('div');
-      modal.id='mobile-filter-modal';
-      modal.className='liquid-modal-overlay';
-      modal.hidden=true;
-      modal.innerHTML=`<div class="liquid-modal-content"><div class="liquid-modal-header"><strong>Menu NaviSuite</strong><button type="button" id="close-filter-modal" aria-label="Chiudi">✕</button></div><div class="liquid-modal-body"></div></div>`;
-      document.body.appendChild(modal);
-    }
-
-    const body=modal.querySelector('.liquid-modal-body');
-    if(!body||body.querySelector('.mobile-complete-menu'))return;
-
-    // I vecchi comandi che aprivano il laterale non servono più su mobile:
-    // tutte le stesse funzioni sono disponibili direttamente qui.
-    modal.querySelectorAll('#modal-sidebar-toggle,#modal-sidebar-mini-toggle').forEach(node=>node.remove());
-
-    const section=document.createElement('div');
-    section.className='filter-section mobile-complete-menu';
-    const links=[];
-    if(canUseDiaria(sessionAgent))links.push('<a href="navidiaria.html"><span>≈</span>NaviDiaria</a>');
-    if(!isBaristaSession){
-      links.push('<a href="index.html"><span>⌂</span>Home</a>');
-      links.push('<a href="Orario.html"><span>◴</span>Orario</a>');
-      links.push('<a href="impostazioni.html"><span>⚙</span>Impostazioni</a>');
-      links.push('<a href="segnalazioni.html"><span>✉</span>Segnalazioni</a>');
-    }
-    if(isAdminAgent(sessionAgent)){
-      links.push('<a href="gestione_navi.html" class="admin-mobile-action"><span>▤</span>Navi</a>');
-      links.push('<a href="aggiornamenti.html" class="admin-mobile-action"><span>↻</span>Aggiornamenti</a>');
-      links.push('<a href="agenti.html" class="admin-mobile-action"><span>♙</span>Agenti</a>');
-    }
-
-    const supportsPast=page==='turni'||page==='trova';
-    section.innerHTML=`
-      <span class="filter-section-title">AZIONI</span>
-      <div class="mobile-menu-actions">
-        <button type="button" data-mobile-refresh><span>↻</span><b>Aggiorna</b></button>
-        ${supportsPast?'<button type="button" data-mobile-past><span>◷</span><b>Mostra passato</b></button>':''}
-        ${links.join('')}
-        <a href="navidiaria.html?pin=1"><span>⌁</span>Cambia PIN</a>
-        <button type="button" class="mobile-menu-logout" data-mobile-logout><span>⇥</span><b>Esci</b></button>
-      </div>`;
-    body.appendChild(section);
-
-    const openModal=()=>{
-      modal.removeAttribute('hidden');
-      modal.classList.add('open');
-      document.body.classList.remove('mobile-nav-hidden');
-    };
-    const closeModal=()=>modal.classList.remove('open');
-    trigger.addEventListener('click',openModal);
-    modal.querySelector('#close-filter-modal')?.addEventListener('click',closeModal);
-    modal.addEventListener('click',event=>{if(event.target===modal)closeModal();});
-
-    section.querySelector('[data-mobile-refresh]')?.addEventListener('click',()=>{
-      closeModal();
-      if(typeof window.ricaricaDati==='function'){window.ricaricaDati();return;}
-      if(typeof window.loadDocuments==='function'){window.loadDocuments();return;}
-      location.reload();
-    });
-
-    section.querySelector('[data-mobile-past]')?.addEventListener('click',()=>{
-      if(typeof window.togglePastColumns==='function')window.togglePastColumns();
-      const source=document.getElementById('togglePastBtn');
-      const label=section.querySelector('[data-mobile-past] b');
-      if(label)label.textContent=source?.textContent?.replace(/^[^A-Za-zÀ-ÿ]+/,'').trim()||'Mostra passato';
-    });
-    section.querySelector('[data-mobile-logout]')?.addEventListener('click',()=>{
-      if(typeof window.logoutAgent==='function'){window.logoutAgent();return;}
-      localStorage.removeItem('navidiaria.activeAgent');
-      localStorage.removeItem('naviturni_logged_agent');
-      location.href='index.html';
-    });
-  }
-
-  // Il menu mobile è gestito esclusivamente da mobile-menu-solid.js.
-  // Lasciamo qui il codice storico soltanto per non alterare il menu desktop.
-
-  function installMobileNavAutoHide(){
-    const nav=document.querySelector('.mobile-liquid-nav');
-    if(!nav){
-      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',installMobileNavAutoHide,{once:true});
-      return;
-    }
-
-    const lastPositions=new WeakMap();
-    let directionDistance=0;
-    let lastDirection=0;
-
-    const scrollingElement=target=>{
-      if(target===window||target===document||target===document.documentElement||target===document.body)return document.scrollingElement||document.documentElement;
-      return target instanceof Element?target:null;
-    };
-
-    const showNav=()=>document.body.classList.remove('mobile-nav-hidden');
-    const hideNav=()=>{
-      if(window.innerWidth<=800&&!document.querySelector('.liquid-modal-overlay.open')){
-        document.body.classList.add('mobile-nav-hidden');
-      }
-    };
-
-    const handleScroll=event=>{
-      if(window.innerWidth>800){showNav();return;}
-      const source=scrollingElement(event.target);
-      if(!source)return;
-      const current=Math.max(0,source.scrollTop||0);
-      const previous=lastPositions.has(source)?lastPositions.get(source):current;
-      const delta=current-previous;
-      lastPositions.set(source,current);
-      if(Math.abs(delta)<1)return;
-
-      const direction=delta>0?1:-1;
-      if(direction!==lastDirection){directionDistance=0;lastDirection=direction;}
-      directionDistance+=Math.abs(delta);
-
-      if(current<18){showNav();return;}
-      if(direction<0&&directionDistance>=6)showNav();
-      else if(direction>0&&directionDistance>=14)hideNav();
-    };
-
-    document.addEventListener('scroll',handleScroll,{capture:true,passive:true});
-    window.addEventListener('scroll',handleScroll,{passive:true});
-    window.addEventListener('resize',()=>{if(window.innerWidth>800)showNav();},{passive:true});
-    document.addEventListener('click',event=>{
-      if(event.target.closest('.liquid-modal-overlay,.mobile-liquid-nav,.turni-menu-button'))showNav();
-    });
-  }
-
-  // L'autohide è ora gestito dal solo menu mobile comune.
 })();
 
 

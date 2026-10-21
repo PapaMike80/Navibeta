@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#002b5e">
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <title>NaviSuite Movimento</title>
+  <link rel="stylesheet" href="assets/css/navi-shared.css">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
+  <link rel="stylesheet" href="assets/css/movimento.css?v=56">
+</head>
+<body class="movimento-page">
+  <aside class="app-sidebar" id="admin-sidebar"></aside>
+  <main>
+    <header class="hero"><div class="eyebrow">NAVISUITE ADMIN</div><h1>Movimento</h1><p>Corse, navi e agenti giorno per giorno. Le modifiche valgono solo per il giorno scelto e vincono sull'O.d.S.; si salvano subito e le vedono tutti.</p></header>
+    <div class="toolbar mov-toolbar">
+      <span class="mov-day">
+        <button type="button" class="btn" id="mov-day-prev" aria-label="Giorno precedente">‹</button>
+        <label class="mov-day-current"><span id="mov-day-label"></span><input type="date" id="mov-day-input" aria-label="Scegli il giorno"></label>
+        <button type="button" class="btn" id="mov-day-next" aria-label="Giorno successivo">›</button>
+        <button type="button" class="btn ghost" id="mov-day-today">Oggi</button>
+      </span>
+      <span class="spacer"></span>
+      <span id="mov-status" class="mov-status" aria-live="polite"></span>
+    </div>
+    <div class="mov-avviso" id="mov-avviso" hidden role="status"></div>
+    <nav class="mov-tabs" id="mov-tabs" role="tablist">
+      <button type="button" role="tab" data-tab="corse">Corse</button>
+      <button type="button" role="tab" data-tab="navi">Navi</button>
+      <button type="button" role="tab" data-tab="agenti">Agenti</button>
+      <button type="button" role="tab" data-tab="richieste">Cambi richiesti</button>
+    </nav>
+
+    <section class="section mov-panel" id="mov-corse" data-panel="corse">
+      <div class="section-head"><div><h2>Corse</h2><p>Tocca una corsa per nave, ormeggi, rifornimento, ritardi ed equipaggio. «Sospendi corse» sospende tutte le corse del turno nave, «↺ O.d.S.» torna all'assegnazione dell'O.d.S. Le corse ferme sono in fondo.</p></div><span id="mov-count" class="count">0</span></div>
+      <div id="mov-list" class="mov-list"></div>
+    </section>
+
+    <section class="section mov-panel" id="mov-navi" data-panel="navi" hidden>
+      <div class="section-head"><div><h2>Navi</h2><p>Scegli una nave: indica l'equipaggio minimo e il grado di ogni posto, oppure assegnala a una corsa del giorno.</p></div><span id="fleet-count" class="count">0</span></div>
+      <div id="navi-view"></div>
+    </section>
+
+    <section class="section mov-panel" id="mov-agenti" data-panel="agenti" hidden>
+      <div class="section-head"><div><h2>Agenti</h2><p>Per residenza e grado, con il turno del giorno scelto: cambialo dal menu.</p></div><span id="agenti-count" class="count">0</span></div>
+      <div id="agenti-view"></div>
+    </section>
+
+    <section class="section mov-panel" id="mov-richieste" data-panel="richieste" hidden>
+      <div class="section-head"><div><h2>Cambi richiesti</h2><p>Tutti i cambi turno fatti dagli agenti dalla loro Distinta, da oggi in poi, ancora da decidere. Se non fai niente il cambio resta.</p></div><span id="richieste-count" class="count">0</span></div>
+      <div id="richieste-view"></div>
+    </section>
+  </main>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/firebase-auth.js?v=2"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/turni-giorno.js?v=8"></script>
+  <script src="assets/js/servizi-terra-a4.js?v=21"></script>
+  <script src="assets/js/orario-corse.js?v=1"></script>
+  <script src="assets/js/orario-corse-estate.js?v=1"></script>
+  <script src="assets/js/orario-giorno.js?v=7"></script>
+  <script src="assets/js/coincidenze-ufficiali.js?v=1"></script>
+  <script src="assets/js/orari-stagioni.js?v=9"></script>
+  <script src="assets/js/movimento-core.js?v=24"></script>
+  <script src="assets/js/movimento-corse.js?v=51"></script>
+  <script src="assets/js/movimento.js?v=3"></script>
+  <script src="assets/js/movimento-agenti.js?v=18"></script>
+  <script src="assets/js/movimento-richieste.js?v=4"></script>
+</body>
+</html>

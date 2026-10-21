@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
+const {readPage}=require('./read-page');
 const {execFileSync}=require('node:child_process');
 
 const popup=fs.readFileSync('assets/js/day-popup.js','utf8');
-const turni=fs.readFileSync('naviturni.html','utf8');
+const turni=readPage('naviturni.html');
 const diaria=fs.readFileSync('navidiaria.html','utf8');
 const monthly=fs.readFileSync('assets/js/navidiaria-monthly.js','utf8');
 const app=fs.readFileSync('assets/js/app.js','utf8');
@@ -24,12 +25,30 @@ assert.match(popup,/await save\(\);dismiss\(\);render\(\)/);
 assert.match(popup,/weekly-edit-close'\)\.onclick=\(\)=>form\.requestSubmit\(\)/);
 assert.match(popup,/if\(!draft\|\|snapshot\(draft\)===initialSnapshot\)\{finalizeClose\(\);return true\}/);
 assert.doesNotMatch(popup,/draft\.bank=0;draft\.overnight40=false/);
+// Cambio/Sentine con valore non standard non devono essere azzerati alla chiusura:
+// il <select> include il valore reale e syncDraftFromDom lo rilegge solo se
+// esiste un'opzione corrispondente.
+assert.match(popup,/options\.includes\(value\)\?options:\[\.\.\.options,value\]/);
+assert.match(popup,/optionFor\(changeSelect,change\(draft\)\)/);
+assert.match(popup,/optionFor\(sentineSelect,sentine\(draft\)\)/);
 assert.match(monthly,/await window\.NaviDiariaRuntime\?\.saveNow\?\.\(\)/);
+// La Distinta si ridisegna subito dopo un salvataggio dal popup, senza dover
+// uscire/rientrare: sia la riga Straordinari (persistEntry) sia il popup
+// giornata (saveEntry) richiamano direttamente refreshMonthly().
+assert.match(monthly,/function persistEntry\(\)\{persist\(\);refreshMonthly\(\);document\.dispatchEvent\(new CustomEvent\('navidiaria:render'\)\);window\.NaviDiariaRuntime\?\.saveNow\?\.\(\)\}/);
+assert.match(monthly,/Object\.assign\(existing,draft\);else entries\.push\(draft\)\}persist\(\);refreshMonthly\(\);document\.dispatchEvent\(new CustomEvent\('navidiaria:render'\)\);/);
+// La cella STRAORDINARI e il popup giornata convergono: l'editor Straordinari
+// ridisegna la Distinta anche alla chiusura (onClose), come fa il popup giornata.
+assert.match(popup,/document\.body\.classList\.toggle\('weekly-dialog-open',!modal\(\)\.hidden\);options\.onClose\?\.\(\)\};m\.querySelectorAll\('\[data-overtime-close\]'\)/);
+// La cella STRAORDINARI apre direttamente il popup giornata.
+assert.match(monthly,/row\.key==='overtime'\|\|row\.kind==='worked'\)\{openDayBubbleEditor\(dateIso\);return\}/);
+assert.match(diaria,/assets\/js\/navidiaria-monthly\.js\?v=142/);
+assert.match(diaria,/assets\/js\/day-popup\.js\?v=\d+/);
 assert.match(app,/saveNow:saveEntriesNow/);
 assert.ok(!popup.includes("onSave:value=>{overtime.setChanges(draft,value,service(draft));draft.changeDecision=value>0?'confirmed':'rejected';return save()}"));
-assert.ok(turni.indexOf('assets/js/overtime-components.js')<turni.indexOf('assets/js/day-popup.js'));
+// NaviTurni non ha piu' un popup proprio: il turno si modifica in NaviDiaria.
+assert.doesNotMatch(turni,/assets\/js\/day-popup\.js/);
+assert.match(fs.readFileSync('assets/js/naviturni-page.js','utf8'),/location\.href = `navidiaria\.html\?editDate=\$\{encodeURIComponent\(dateIso\)\}`/);
 assert.ok(diaria.indexOf('assets/js/overtime-components.js')<diaria.indexOf('assets/js/day-popup.js'));
-assert.match(turni,/assets\/js\/day-popup\.js\?v=15/);
-assert.match(diaria,/assets\/js\/day-popup\.js\?v=15/);
 
 console.log('Shared day popup regression test passed');

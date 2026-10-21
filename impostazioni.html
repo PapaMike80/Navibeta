@@ -12,19 +12,218 @@
   <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
   <link rel="apple-touch-startup-image" href="assets/images/splash_ios.png">
   <title>NaviSuite Impostazioni</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
   <link rel="stylesheet" href="assets/css/navi-shared.css">
-  <link rel="stylesheet" href="assets/css/navi-layout.css">
-  <link rel="stylesheet" href="assets/css/shared-menu.css">
+  <link rel="stylesheet" href="assets/css/navi-layout.css?v=2">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
   <style>
     :root{--nav:var(--navy);--nav-2:#102d37;--accent:#2dd4bf;--bg:#081a23;--card:#102833;--line:#22424d;--ink:#e8f3f4;--muted:#91aab2;--danger:#f47782;font-family:var(--navi-font-sans)}
     .switch-row{display:flex;align-items:center;justify-content:space-between;gap:20px;margin:24px 0 18px;padding:15px 0;border-top:1px solid #203e48;border-bottom:1px solid #203e48}.switch-copy strong{display:block;font-size:14px}.switch-copy span{color:var(--muted);font-size:12px}.switch{position:relative;width:48px;height:28px;flex:none}.switch input{position:absolute;opacity:0}.switch i{display:block;width:100%;height:100%;border-radius:999px;background:#49626a;transition:.2s}.switch i:after{content:"";position:absolute;top:4px;left:4px;width:20px;height:20px;border-radius:50%;background:#eaf5f5;box-shadow:0 2px 6px #0006;transition:.2s}.switch input:checked+i{background:var(--accent)}.switch input:checked+i:after{transform:translateX(20px)}
     .grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.field{display:grid;gap:7px}.field label{font-size:12px;font-weight:800;color:#b7cbd0}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#0b2029;color:var(--ink);outline:none;color-scheme:dark}.field input:focus,.field select:focus{border-color:var(--accent);box-shadow:0 0 0 3px #2dd4bf22}
-    .status{min-height:22px;margin-top:13px;color:#63dfca;font-size:13px;font-weight:700}.future{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}.future div{padding:16px;border:1px dashed #36545d;border-radius:10px;background:#0d232c;color:var(--muted);font-size:13px}.future strong{display:block;margin-bottom:4px;color:#c5d7da}
+    .status{min-height:22px;margin-top:13px;color:#63dfca;font-size:13px;font-weight:700}
     .admin-section[hidden]{display:none}.table-wrap{margin-top:20px;overflow:auto;border:1px solid var(--line);border-radius:10px}table{width:100%;border-collapse:collapse;min-width:650px}th,td{padding:12px 14px;border-bottom:1px solid #203e48;text-align:left;font-size:13px}th{background:#0b2029;color:#9db7be;font-size:11px;letter-spacing:.06em;text-transform:uppercase}tbody tr:hover{background:#14323d}tr:last-child td{border-bottom:0}.user-name{font-weight:800}.user-meta{display:block;margin-top:3px;color:var(--muted);font-size:11px}.pin-badge{display:inline-flex;padding:4px 8px;border-radius:999px;background:#123f3d;color:#6ce9d5;font-size:11px;font-weight:800}.reset-btn,.delete-user-btn{padding:7px 10px;border:1px solid #80424a;border-radius:8px;background:#351e24;color:#ff9ba4;font-size:11px;font-weight:800;cursor:pointer}.reset-btn:hover{background:#b83b45;color:#fff}.delete-user-btn{margin-left:6px;border-color:#b83b45;background:#6b2029;color:#fff}.delete-user-btn:hover{background:#dc3545}.empty-row{padding:25px!important;text-align:center;color:var(--muted)}
     .weeks-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:20px;flex-wrap:wrap}.weeks-legend{display:flex;gap:8px;flex-wrap:wrap}.weeks-legend span{display:inline-flex;align-items:center;gap:6px;color:var(--muted);font-size:11px;font-weight:800}.weeks-legend i{width:9px;height:9px;border-radius:3px}.weeks-legend .official{background:#22c55e}.weeks-legend .draft{background:#f59e0b}.weeks-legend .hidden{background:#64748b}.weeks-list{display:grid;gap:10px;margin-top:16px}.week-row{display:grid;grid-template-columns:minmax(190px,1fr) auto;gap:14px;align-items:center;padding:14px;border:1px solid #294b56;border-radius:11px;background:#0b2029}.week-label strong{display:block;font-size:14px}.week-label span{display:block;margin-top:4px;color:var(--muted);font-size:11px}.week-state{display:flex;gap:6px}.week-state button{padding:7px 9px;border:1px solid #31535e;border-radius:8px;background:#102833;color:#9fb8c2;font-size:10px;font-weight:900;cursor:pointer}.week-state button.active[data-state="ufficiale"]{border-color:#22c55e;background:#143622;color:#86efac}.week-state button.active[data-state="bozza"]{border-color:#f59e0b;background:#3a2910;color:#fcd34d}.week-state button.active[data-state="nascosta"]{border-color:#64748b;background:#202a36;color:#cbd5e1}.month-title{margin:20px 0 2px;color:#6ce9d5;font-size:11px;font-weight:900;letter-spacing:.1em;text-transform:uppercase}.weeks-loading{padding:20px;text-align:center;color:var(--muted)}
     .settings-foldable>.section-head{position:relative;cursor:pointer;user-select:none}.settings-foldable>.section-head:focus{outline:2px solid #2dd4bf;outline-offset:4px;border-radius:8px}.settings-foldable .settings-chevron{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;margin-left:8px;border:1px solid #31535e;border-radius:50%;color:var(--accent);font-size:16px;transition:transform .2s}.settings-foldable[data-collapsed="true"] .settings-chevron{transform:rotate(-90deg)}.settings-foldable[data-collapsed="true"]>:not(.section-head){display:none!important}.settings-foldable>.section-head p{padding-right:42px}
     .calendar-url{display:grid;gap:8px;margin-top:18px}.calendar-url input{width:100%;box-sizing:border-box;padding:11px 12px;border:1px solid #31535e;border-radius:9px;background:#071b23;color:#9fded6;font:600 12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace}.calendar-help{margin:12px 0 0;padding:12px 14px;border:1px solid #294b56;border-radius:9px;background:#0b2029;color:var(--muted);font-size:12px;line-height:1.5}.calendar-help strong{color:#d8e8ea}.calendar-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:15px}.calendar-actions[hidden],.calendar-url[hidden]{display:none!important}.calendar-login{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;margin-top:16px;padding:14px;border:1px solid #31535e;border-radius:10px;background:#0b2029}.calendar-login[hidden]{display:none!important}
-    @media(max-width:800px){.grid,.future,.calendar-login{grid-template-columns:1fr}.week-row{grid-template-columns:1fr}.week-state{display:grid;grid-template-columns:repeat(3,1fr)}.week-state button{padding:8px 4px}body.impostazioni-page .mobile-liquid-nav .nav-item{width:64px}body.impostazioni-page .mobile-liquid-nav .nav-item span:last-child{width:auto;font-size:9px;white-space:nowrap}}
+    @media(max-width:800px){.grid,.calendar-login{grid-template-columns:1fr}.week-row{grid-template-columns:1fr}.week-state{display:grid;grid-template-columns:repeat(3,1fr)}.week-state button{padding:8px 4px}body.impostazioni-page .mobile-liquid-nav .nav-item{width:64px}body.impostazioni-page .mobile-liquid-nav .nav-item span:last-child{width:auto;font-size:9px;white-space:nowrap}}
+    /* Proposta A · Tessere: preferenze personali a tessere tappabili. */
+    body.impostazioni-page{--pref-bg:#0d1a1c;--pref-card:#13262a;--pref-line:#1f3a3e;--pref-ink:#e6efed;--pref-muted:#9fb5b1;--pref-intro:#a7bcb8;--pref-accent:#7ce0c3;--pref-chip:#183a36;--pref-edge:#2d5a52;--pref-tile:#0f2023;--pref-tile-on:#173a36;--pref-icon:#1a3034;padding-left:0;background:var(--pref-bg);color:var(--pref-ink);font-family:'IBM Plex Sans',system-ui,sans-serif}
+    body.impostazioni-page>header{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:0;padding:28px 48px;background:var(--pref-bg);border-bottom:1px solid #1f3336}
+    body.impostazioni-page>header small{display:block;color:var(--pref-accent);font-size:12px;font-weight:600;letter-spacing:.18em}
+    body.impostazioni-page>header h1{margin:6px 0 0;font:700 30px/1.2 Sora,system-ui,sans-serif;letter-spacing:-.01em;color:var(--pref-ink)}
+    body.impostazioni-page>header h1 span{color:#8fa6a2;font-weight:500}
+    body.impostazioni-page>header #navisuite-header-menu{position:static!important;flex-shrink:0;width:48px!important;height:48px!important;border:1px solid var(--pref-edge)!important;border-radius:14px!important;background:var(--pref-card)!important;color:var(--pref-accent)!important;font-size:22px!important;font-weight:400!important}
+    body.impostazioni-page main{display:flex;flex-direction:column;gap:28px;width:min(900px,calc(100% - 32px));margin:44px auto 0}
+    body.impostazioni-page main>.intro{order:0;margin:0;color:var(--pref-intro);font-size:16px;line-height:1.6}
+    body.impostazioni-page main>.pref-card{order:1}
+    body.impostazioni-page main>section.section{order:2;margin-bottom:0}
+    body.settings-simple main>section.section{display:none!important}
+    .pref-card{display:flex;flex-direction:column;gap:24px;padding:32px;border:1px solid var(--pref-line);border-radius:22px;background:var(--pref-card)}
+    .pref-head{display:flex;gap:16px;align-items:flex-start}
+    .pref-num{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:44px;height:44px;border-radius:12px;background:var(--pref-chip);color:var(--pref-accent);font:600 15px Sora,system-ui,sans-serif}
+    .pref-head h2{margin:0 0 6px;font:600 20px/1.3 Sora,system-ui,sans-serif;color:var(--pref-ink)}
+    .pref-head p{margin:0;color:var(--pref-muted);font-size:14px;line-height:1.5}
+    .pref-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+    .pref-tiles.ticket{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .pref-tile{display:flex;flex-direction:column;align-items:flex-start;gap:14px;min-height:150px;box-sizing:border-box;padding:18px;border:2px solid var(--pref-line);border-radius:16px;background:var(--pref-tile);color:var(--pref-ink);font:inherit;text-align:left;cursor:pointer;transition:background .15s ease,border-color .15s ease}
+    .pref-tile:hover{border-color:var(--pref-edge)}
+    .pref-tile:focus-visible{outline:3px solid var(--pref-accent);outline-offset:3px}
+    .pref-tile[aria-pressed="true"]{border-color:var(--pref-accent);background:var(--pref-tile-on)}
+    .pref-tile-top{display:flex;align-items:center;justify-content:space-between;align-self:stretch}
+    .pref-icon{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:46px;height:46px;border-radius:12px;background:var(--pref-icon);color:var(--pref-accent)}
+    .pref-tile[aria-pressed="true"] .pref-icon{background:var(--pref-accent);color:var(--pref-bg)}
+    .pref-check{display:none;align-items:center;justify-content:center;width:26px;height:26px;border-radius:13px;background:var(--pref-accent);color:var(--pref-bg)}
+    .pref-tile[aria-pressed="true"] .pref-check{display:flex}
+    .pref-label{display:block;font:600 16px/1.3 Sora,system-ui,sans-serif}
+    .pref-desc{display:block;margin-top:5px;color:var(--pref-muted);font-size:13px;line-height:1.45}
+    .pref-tiles.ticket .pref-tile{flex-direction:row;align-items:center;gap:18px;min-height:0;padding:20px 22px;border-color:#2a4448}
+    .pref-tiles.ticket .pref-tile[aria-pressed="true"]{border-color:var(--pref-accent)}
+    .pref-tiles.ticket .pref-icon{width:52px;height:52px;border-radius:14px}
+    .pref-tiles.ticket .pref-text{flex-grow:1}
+    .pref-tiles.ticket .pref-label{font-size:17px}
+    .pref-radio{display:flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;box-sizing:border-box;border:2px solid #2a4448;border-radius:11px}
+    .pref-tile[aria-pressed="true"] .pref-radio{border-color:var(--pref-accent)}
+    .pref-tile[aria-pressed="true"] .pref-radio::after{content:'';width:10px;height:10px;border-radius:5px;background:var(--pref-accent)}
+    .pref-note{display:flex;gap:10px;align-items:center;margin:0;color:var(--pref-muted);font-size:13px}
+    .pref-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;width:min(900px,calc(100% - 32px));box-sizing:border-box;margin:28px auto calc(40px + env(safe-area-inset-bottom,0px));padding:8px 4px 0}
+    .pref-saved{display:flex;gap:10px;align-items:center;color:var(--pref-muted);font-size:13px}
+    .pref-saved i{width:8px;height:8px;border-radius:4px;background:var(--pref-accent)}
+    .pref-saved.ok{color:var(--pref-accent)}
+    .pref-saved.error{color:#f4a3a3}.pref-saved.error i{background:#f4a3a3}
+    .pref-support{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+    .pref-support span{color:var(--pref-intro);font-size:14px}
+    .pref-support a{display:inline-flex;gap:8px;align-items:center;height:44px;padding:0 18px;border:1px solid var(--pref-edge);border-radius:22px;background:var(--pref-chip);color:var(--pref-accent);font-size:14px;font-weight:600;text-decoration:none}
+    .pref-support a:hover{border-color:var(--pref-accent)}
+    .pref-support a:focus-visible{outline:3px solid var(--pref-accent);outline-offset:3px}
+    @media(max-width:800px){
+      body.impostazioni-page>header{padding:20px 16px}
+      body.impostazioni-page>header h1{font-size:21px}
+      body.impostazioni-page main{margin-top:28px}
+    }
+    @media(max-width:700px){
+      .pref-card{padding:22px 18px}
+      .pref-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .pref-tiles.ticket{grid-template-columns:1fr}
+      .pref-tile{min-height:132px;padding:16px}
+    }
+
+    /* Sezioni chiudibili, chiuse all'apertura, stile compatto */
+    body.impostazioni-page main{gap:12px!important}
+    body.impostazioni-page .intro{display:none}
+    .pref-card{padding:0!important;gap:0!important;overflow:hidden;border-radius:18px!important}
+    .pref-head{display:flex!important;align-items:center!important;gap:12px!important;padding:14px 16px!important;margin:0!important;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+    .pref-head>div{flex:1;min-width:0}
+    .pref-num{width:38px!important;height:38px!important;font-size:13px!important}
+    .pref-head h2{margin:0!important;font-size:17px!important;line-height:1.25!important}
+    .pref-head p{font-size:13px!important;margin:4px 0 0!important}
+    .ns-sez-riepilogo{display:none;margin-top:3px;color:var(--pref-accent,#7ce0c3);font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .ns-sez-freccia{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,.05);color:var(--pref-accent,#7ce0c3);font-size:16px;transition:transform .2s}
+    .ns-sez:not(.chiusa) .ns-sez-freccia{transform:rotate(180deg)}
+    .ns-sez.chiusa>:not(.pref-head){display:none!important}
+    .ns-sez.chiusa .pref-head p{display:none}
+    .ns-sez.chiusa .ns-sez-riepilogo{display:block}
+    .ns-sez:not(.chiusa)>:not(.pref-head){margin-left:16px!important;margin-right:16px!important}
+    .ns-sez:not(.chiusa)>:last-child{margin-bottom:16px!important}
+    .pref-tiles{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))!important;gap:10px!important}
+    .pref-tile{min-height:0!important;padding:12px!important;gap:8px!important;border-radius:14px!important}
+    .pref-icon{width:36px!important;height:36px!important}
+    .pref-label{font-size:15px!important}
+    .pref-desc{font-size:12px!important;margin-top:2px!important}
+    @media(max-width:520px){.pref-tiles{grid-template-columns:1fr 1fr!important}}
+
+    /* Stessi colori e caratteri del menu e della Home */
+    body.impostazioni-page{--pref-bg:#071923;--pref-card:#0f2b36;--pref-line:#234a55;--pref-ink:#e8f7f7;--pref-muted:#9fb8c2;--pref-intro:#9fb8c2;--pref-accent:#2dd4bf;--pref-chip:rgba(45,212,191,.14);--pref-edge:#2e6971;--pref-tile:#0b222c;--pref-tile-on:rgba(45,212,191,.14);--pref-icon:rgba(45,212,191,.12);--card:#0f2b36;--line:#234a55;--accent:#2dd4bf;
+      background:radial-gradient(900px 500px at 80% -10%,rgba(45,212,191,.10),transparent 60%),linear-gradient(165deg,#0c2631,#061820)!important;background-attachment:fixed!important;font-family:"DM Sans",system-ui,sans-serif!important}
+    body.impostazioni-page>header{background:transparent!important;border-bottom-color:#173542!important}
+    body.impostazioni-page>header small{color:#2dd4bf!important}
+    body.impostazioni-page>header h1,.pref-head h2,.pref-label,.pref-num,body.impostazioni-page .section-head h2,body.impostazioni-page h3{font-family:Manrope,system-ui,sans-serif!important;font-weight:800!important}
+    body.impostazioni-page>header h1 span{color:#9fb8c2!important;font-weight:700!important}
+    .pref-card,body.impostazioni-page main>section.section{background:linear-gradient(165deg,#102e39,#0a222c)!important;border:1px solid var(--pref-line)!important;border-radius:18px!important;box-shadow:0 10px 26px rgba(0,0,0,.22)}
+    .pref-num{background:var(--pref-chip)!important;color:#2dd4bf!important;border-radius:12px!important}
+    .ns-sez-riepilogo{color:#5eead4!important}
+    .ns-sez-freccia{background:rgba(45,212,191,.1)!important;color:#5eead4!important}
+    .pref-tile{background:var(--pref-tile)!important;border:1px solid #285560!important}
+    .pref-tile[aria-pressed="true"]{border-color:#45d9c7!important;background:var(--pref-tile-on)!important}
+    .pref-tile[aria-pressed="true"] .pref-icon,.pref-check{background:#2dd4bf!important;color:#04221f!important}
+    body.impostazioni-page .badge{background:rgba(45,212,191,.14)!important;color:#5eead4!important;border:0!important}
+    body.impostazioni-page .btn.primary,body.impostazioni-page #push-enable{background:#2dd4bf!important;color:#04221f!important;border:0!important}
+    body.impostazioni-page .btn{border-radius:12px!important}
+    body.impostazioni-page input:not([type=checkbox]):not([type=radio]),body.impostazioni-page select{background:#0b222c!important;border:1px solid #285560!important;border-radius:12px!important;color:#e8f7f7!important}
+
+    /* Stile della pagina Agenti: riquadri piatti, titolo + descrizione, freccina a destra; senza numeri */
+    body.impostazioni-page .pref-num{display:none!important}
+    body.impostazioni-page main{gap:14px!important}
+    .pref-card,body.impostazioni-page main>section.section{background:rgba(12,37,48,.94)!important;border:1px solid #234a55!important;border-radius:15px!important;box-shadow:none!important;padding:0!important}
+    .pref-head,body.impostazioni-page main>section.ns-sez>.section-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:16px 18px!important;margin:0!important;cursor:pointer}
+    .pref-head h2,body.impostazioni-page main>section.section .section-head h2{font:800 20px/1.2 "DM Sans",system-ui,sans-serif!important;margin:0!important;color:#e8f7f7!important}
+    .ns-sez .pref-head p,body.impostazioni-page main>section.section .section-head p{display:block!important;margin:4px 0 0!important;color:#9fb8c2!important;font-size:13.5px!important;line-height:1.35!important}
+    .ns-sez-riepilogo{margin-top:6px!important;font-size:12.5px!important}
+    .ns-sez-freccia{width:auto!important;height:auto!important;background:none!important;color:#9fb8c2!important;font-size:12px!important;transform:rotate(-90deg)}
+    .ns-sez:not(.chiusa) .ns-sez-freccia{transform:rotate(0deg)!important}
+    body.impostazioni-page main>section.ns-sez .badge{flex:none;align-self:center}
+    .ns-sez.chiusa>:not(.pref-head):not(.section-head){display:none!important}
+    .ns-sez:not(.chiusa)>:not(.pref-head):not(.section-head){margin-left:18px!important;margin-right:18px!important}
+    body.impostazioni-page main>section.section:not(.ns-sez){padding:16px 18px!important}
+    body.impostazioni-page main>section.section .section-head{flex-wrap:wrap}
+    body.impostazioni-page main>section.section .section-head>div{flex:1 1 200px;min-width:0}
+    body.impostazioni-page main>section.section .badge{white-space:normal!important;max-width:100%}
+    body.impostazioni-page .settings-chevron{border:0!important;width:auto!important;height:auto!important;color:#9fb8c2!important;font-size:12px!important}
+  </style>
+  <style>
+    /* Sezione Utente: tessera dell'agente (sola lettura) + telefono WhatsApp + PIN */
+    #utente{display:grid;gap:12px}
+    .ut-badge{border-radius:20px;padding:16px;background:linear-gradient(135deg,#0f3a40,#1a2d4a);border:1px solid rgba(45,212,191,.4);position:relative;overflow:hidden}
+    .ut-badge::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:150px;border-radius:50%;background:radial-gradient(rgba(45,212,191,.25),transparent 70%);pointer-events:none}
+    .ut-top{display:flex;gap:12px;align-items:center}
+    .ut-gr{--g:#e8f3f6;display:inline-grid;place-items:center;flex:none;width:46px;height:46px;border:3px solid var(--g);border-radius:50%;background:color-mix(in srgb,var(--g) 18%,transparent);color:var(--g);font-size:13px;font-weight:900}
+    .ut-gr.sm{width:28px;height:28px;font-size:10px;border-width:2px}
+    .ut-nm{font-size:20px;font-weight:800}.ut-id{color:#9fb8c2;font-size:13px;font-family:"DM Mono",ui-monospace,monospace}
+    .ut-dl{display:grid;grid-template-columns:1fr 1fr;gap:8px 12px;margin:14px 0 0}
+    .ut-dl dt{font-size:9px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#67d7e6}.ut-dl dd{margin:0;font-weight:700;text-transform:capitalize}
+    .ut-move{margin:10px 0 0;font-size:12px;color:#9fb8c2}.ut-move b{color:#fde68a}
+    .ut-ff{display:inline-flex;align-items:center;gap:6px;margin-top:10px;border-radius:999px;padding:5px 10px 5px 5px;background:#2a2148;border:1px solid #a78bfa;color:#ddd6fe;font-size:12px;font-weight:800}
+    .ut-tel{border-radius:14px;padding:10px 12px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.45)}
+    .ut-tel label{display:block;font-size:12px;font-weight:800;color:#86efac;margin-bottom:6px}
+    .ut-telrow{display:flex;gap:6px}.ut-telrow input{flex:1;min-width:0;border-radius:10px;border:1px solid #1f4250;background:#071923;color:inherit;padding:9px 10px;font:600 15px "DM Mono",ui-monospace,monospace}
+    .ut-telrow button{border:0;border-radius:10px;padding:9px 14px;font-weight:800;font-size:13px;background:#25d366;color:#06231f;cursor:pointer}
+    .ut-tel small{display:block;margin-top:6px;font-size:11px;color:#9fb8c2}
+    .ut-pin{display:flex;justify-content:space-between;align-items:center;border-radius:14px;padding:11px 12px;background:#102733;border:1px solid #1f4250}
+    .ut-dots{font:600 20px "DM Mono",ui-monospace,monospace;letter-spacing:.3em;color:#9fb8c2}
+    .ut-btn{display:block;text-align:center;border-radius:12px;padding:11px;font-weight:800;font-size:14px;color:#06231f;background:linear-gradient(90deg,#2dd4bf,#67d7e6);text-decoration:none}
+    .ut-lock{margin:0;font-size:11px;color:#9fb8c2}
+  </style>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <style>
+    /* ===== Stile a riquadri colorati (docs/STILE-NAVISUITE.md) ===== */
+    body.impostazioni-page{--s-bg:#071923;--s-surface:#0b1c26;--s-card:#102733;--s-card2:#143140;--s-line:#1f4250;--s-ink:#eaf2f4;--s-muted:#9fb8c2;--s-on:#06231f;--s-teal:#2dd4bf;--s-cyan:#67d7e6;--s-violet:#a78bfa;--s-amber:#fbbf24;--s-orange:#fb923c;--s-rose:#fb7185;--s-pink:#f472b6;font-family:Manrope,system-ui,sans-serif!important;background:linear-gradient(160deg,color-mix(in srgb,#2dd4bf 9%,#0b1c26),#0b1c26 40%,color-mix(in srgb,#a78bfa 9%,#0b1c26)) fixed!important;color:var(--s-ink)}
+    html:has(body.impostazioni-page){background:#0b1c26}
+    body.impostazioni-page>header{background:transparent!important;border:0!important;padding:22px max(16px,env(safe-area-inset-right,0px)) 6px max(16px,env(safe-area-inset-left,0px))!important}
+    body.impostazioni-page>header small{color:var(--s-teal)!important;font:800 11px Manrope,system-ui,sans-serif!important;letter-spacing:.22em!important}
+    body.impostazioni-page>header h1{font:800 24px Manrope,system-ui,sans-serif!important;background:linear-gradient(90deg,#2dd4bf,#67d7e6 50%,#a78bfa);-webkit-background-clip:text;background-clip:text;color:transparent!important}
+    body.impostazioni-page>header h1 span{color:inherit!important;-webkit-text-fill-color:transparent}
+    body.impostazioni-page main{display:grid!important;gap:12px!important;width:min(460px,calc(100% - 32px))!important;margin:8px auto 30px!important}
+    body.impostazioni-page main>.intro{display:none}
+    .imp-col{display:contents}
+    body.impostazioni-page main>*,.imp-col>*{min-width:0;max-width:100%}
+    body.impostazioni-page main .table-wrap{overflow-x:auto;max-width:100%}
+    .imp-gruppo{margin:10px 2px -2px;font:800 11px Manrope,system-ui,sans-serif;letter-spacing:.16em;text-transform:uppercase;color:var(--s-muted)}
+    /* riquadri */
+    body.impostazioni-page .pref-card,body.impostazioni-page main .section{--c:var(--s-teal);margin:0!important;padding:12px 12px!important;border-radius:16px!important;background:color-mix(in srgb,var(--c) 10%,var(--s-card))!important;border:1px solid color-mix(in srgb,var(--c) 38%,transparent)!important;box-shadow:none!important;color:var(--s-ink)}
+    #utente{--c:var(--s-teal)!important}#pagina-iniziale{--c:var(--s-cyan)!important}#ticket-preference{--c:var(--s-amber)!important}#notifiche-push{--c:var(--s-violet)!important}
+    #gestione-settimane{--c:var(--s-teal)!important}#gestione-avvisi{--c:var(--s-amber)!important}#gestione-utenti{--c:var(--s-pink)!important}#theme-test-setting{--c:var(--s-pink)!important}#data-source-setting{--c:var(--s-rose)!important}
+    body.impostazioni-page main section[class*="section"][id*="calendar"],body.impostazioni-page main section.settings-foldable:not(.admin-section):not(#theme-test-setting):not(#data-source-setting){--c:var(--s-cyan)}
+    body.impostazioni-page .pref-head,body.impostazioni-page .section-head{margin:0!important;padding:0!important;align-items:center!important}
+    body.impostazioni-page .pref-num{display:none!important}
+    body.impostazioni-page .pref-card h2,body.impostazioni-page main .section h2{margin:0!important;font:800 15px Manrope,system-ui,sans-serif!important;color:var(--c)!important;letter-spacing:0!important}
+    body.impostazioni-page .pref-head p,body.impostazioni-page .section-head p{margin:3px 0 0!important;font-size:12px!important;line-height:1.45!important;color:var(--s-muted)!important}
+    body.impostazioni-page .ns-sez-riepilogo{display:inline-block;margin-top:4px;font-size:11px!important;font-weight:800;padding:2px 8px;border-radius:999px;background:var(--c);color:var(--s-on)!important}
+    body.impostazioni-page .ns-sez-riepilogo:empty{display:none}
+    body.impostazioni-page .ns-sez-freccia,body.impostazioni-page .settings-chevron{color:var(--c)!important;border-color:color-mix(in srgb,var(--c) 45%,transparent)!important}
+    body.impostazioni-page .badge,body.impostazioni-page .section-head .tag{font-size:10px!important;font-weight:800!important;border-radius:999px!important;background:var(--c)!important;color:var(--s-on)!important;border:0!important;padding:2px 8px!important}
+    /* scelte a pastiglie al posto delle tessere grandi */
+    body.impostazioni-page .pref-tiles{display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:10px!important}
+    body.impostazioni-page .pref-tile{display:inline-flex!important;align-items:center!important;width:auto!important;min-height:0!important;padding:7px 12px!important;border-radius:999px!important;border:1px solid color-mix(in srgb,var(--c) 40%,transparent)!important;background:var(--s-card)!important;color:var(--s-ink)!important;box-shadow:none!important;font:700 13px Manrope,system-ui,sans-serif!important}
+    body.impostazioni-page .pref-tile .pref-icon,body.impostazioni-page .pref-tile .pref-check,body.impostazioni-page .pref-tile .pref-desc,body.impostazioni-page .pref-tile svg{display:none!important}
+    body.impostazioni-page .pref-tile .pref-label{font:700 13px Manrope,system-ui,sans-serif!important;color:inherit!important;margin:0!important}
+    body.impostazioni-page .pref-tile-top{display:none!important}
+    body.impostazioni-page .pref-tile[aria-pressed="true"]{background:var(--c)!important;color:var(--s-on)!important;border-color:var(--c)!important}
+    body.impostazioni-page .pref-note{font-size:11px!important;color:var(--s-muted)!important}
+    /* pulsanti e campi dentro i riquadri */
+    body.impostazioni-page main .btn{border-radius:10px!important;font:800 13px Manrope,system-ui,sans-serif!important}
+    body.impostazioni-page main .btn.primary{background:var(--c)!important;color:var(--s-on)!important;border-color:var(--c)!important}
+    body.impostazioni-page main input,body.impostazioni-page main select{border-radius:10px!important;border-color:var(--s-line)!important;background:#071923!important}
+    /* tessera Utente: meno margine dentro il riquadro */
+    #utente .ut-badge{margin-top:6px}
+    /* PC: tre colonne (Utente · Preferenze · Amministrazione) */
+    @media(min-width:1000px){
+      body.impostazioni-page main{width:min(1380px,calc(100% - 64px))!important;grid-template-columns:repeat(3,minmax(0,1fr));align-items:start;gap:18px!important}
+      .imp-col{display:grid;gap:12px;align-content:start}
+      .imp-col:empty{display:none}
+      body.impostazioni-page main:not(:has(.imp-col-admin>section:not([hidden]))){grid-template-columns:minmax(0,1fr) minmax(0,1.3fr)}
+      .imp-gruppo{margin:0 2px}
+    }
   </style>
 </head>
 <body class="impostazioni-page turni-page">
@@ -38,15 +237,58 @@
     </nav>
     <div class="user">PROFILO<strong id="profile-name">—</strong></div>
   </aside>
-  <header><small>AREA PERSONALE</small><h1>NaviSuite Impostazioni</h1></header>
+  <header><div><small>AREA PERSONALE</small><h1>NaviSuite <span>/ Impostazioni</span></h1></div></header>
   <main>
-    <p class="intro">Gestisci le preferenze personali di NaviTurni. Le impostazioni sono associate al tuo profilo.</p>
+    <p class="intro">I tuoi dati, dove aprire NaviSuite e come impostare il Ticket. Le preferenze sono associate al tuo profilo.</p>
+    <section class="pref-card" id="utente" aria-labelledby="utente-title">
+      <div class="pref-head"><span class="pref-num" aria-hidden="true">👤</span><div><h2 id="utente-title">Utente</h2><p>I tuoi dati in NaviSuite. Grado, residenza e FF li modifica solo l'amministratore.</p></div></div>
+      <div class="ut-badge">
+        <div class="ut-top"><span class="ut-gr" id="ut-gr">?</span><div><div class="ut-nm" id="ut-nome">—</div><div class="ut-id" id="ut-id"></div></div></div>
+        <dl class="ut-dl"><div><dt>Grado</dt><dd id="ut-grado">—</dd></div><div><dt>Residenza</dt><dd id="ut-res">—</dd></div><div><dt>Ruolo</dt><dd id="ut-ruolo">—</dd></div><div><dt>Registrato</dt><dd id="ut-reg">—</dd></div></dl>
+        <p class="ut-move" id="ut-move" hidden></p>
+        <span class="ut-ff" id="ut-ff" hidden></span>
+      </div>
+      <div class="ut-tel"><label for="ut-telefono">📱 Telefono per WhatsApp</label><div class="ut-telrow"><input id="ut-telefono" type="tel" inputmode="tel" autocomplete="tel" placeholder="+39 333 1234567"><button type="button" id="ut-tel-salva">Salva</button></div><small id="ut-tel-stato">Lo vedono gli amministratori per scriverti su WhatsApp. Puoi cambiarlo quando vuoi.</small></div>
+      <div class="ut-pin"><span>PIN</span><span class="ut-dots">••••</span></div>
+      <a class="ut-btn" href="navidiaria.html?pin=1">Cambia PIN</a>
+      <p class="ut-lock">🔒 Il PIN è salvato cifrato e non si può mostrare: se lo hai dimenticato chiedi un nuovo PIN iniziale a un amministratore.</p>
+    </section>
+    <section class="pref-card" id="pagina-iniziale" aria-labelledby="pagina-iniziale-title">
+      <div class="pref-head"><span class="pref-num" aria-hidden="true">01</span><div><h2 id="pagina-iniziale-title">Prima pagina di apertura</h2><p>Scegli dove aprire NaviSuite. Con «Automatica» (predefinita) apri Il mio turno, anche nei giorni a terra; dal menu puoi sempre tornare alla Home.</p></div></div>
+      <div class="pref-tiles" role="group" aria-labelledby="pagina-iniziale-title">
+        <button type="button" class="pref-tile" data-start-page="auto" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><circle cx="12" cy="12" r="4"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Automatica</span><span class="pref-desc">Il mio turno, anche a terra.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="index.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20h14V9.5"/><path d="M10 20v-6h4v6"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Home</span><span class="pref-desc">La panoramica di tutte le app.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="oggi.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Oggi</span><span class="pref-desc">Il tuo servizio della giornata.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="naviturni.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Turni</span><span class="pref-desc">Il calendario turni della residenza.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="navidiaria.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Distinta</span><span class="pref-desc">NaviDiaria: giornate e competenze.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="documenti.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Documenti</span><span class="pref-desc">I documenti di servizio.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="mio-turno.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21V4"/><path d="M5 4h11l-2 4 2 4H5"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Il mio turno</span><span class="pref-desc">Nave, colleghi e scali di oggi.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="orario.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Scali</span><span class="pref-desc">Navi sul lago e allo scalo, pontili e agenti.</span></span></button>
+        <button type="button" class="pref-tile" data-start-page="cambi_turno.html" aria-pressed="false"><span class="pref-tile-top"><span class="pref-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 4 3 8l4 4"/><path d="M3 8h14"/><path d="M17 20l4-4-4-4"/><path d="M21 16H7"/></svg></span><span class="pref-check"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span></span><span><span class="pref-label">Cambio</span><span class="pref-desc">Richieste di cambio turno.</span></span></button>
+      </div>
+      <div id="pagina-tutti" hidden style="margin-top:18px;padding-top:16px;border-top:1px dashed rgba(126,243,226,.3)">
+        <p style="display:inline-flex;align-items:center;gap:6px;margin:0 0 8px;padding:4px 10px;border:1px solid #f59e0b;border-radius:999px;background:rgba(245,158,11,.14);color:#fbbf24;font-size:12px;font-weight:800">🔒 Visibile solo agli admin</p><h3 style="margin:0 0 4px;font-size:16px">Prima pagina per tutti gli agenti</h3><p style="margin:0;color:#9fb8c2;font-size:13px">Azzera la prima pagina scelta da ogni agente e imposta questa. Chi non può aprirla per il suo ruolo avrà quella predefinita; gli scali aprono sempre il loro scalo. Ognuno potrà poi cambiarla.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px">
+          <select id="pagina-tutti-select" aria-label="Prima pagina per tutti" style="max-width:100%;flex:1 1 220px;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:#0b2129;color:inherit;font:inherit"></select>
+          <button type="button" id="pagina-tutti-btn" style="min-height:44px;padding:8px 16px;border-radius:10px;border:1px solid #2dd4bf;background:#103a3d;color:#a7fff0;font-weight:800;cursor:pointer">Reset per tutti</button>
+        </div>
+        <p id="pagina-tutti-stato" style="margin:10px 0 0;font-size:13px;color:#9fb8c2"></p>
+      </div>
+    </section>
+    <section class="pref-card" id="ticket-preference" aria-labelledby="ticket-preference-title">
+      <div class="pref-head"><span class="pref-num" aria-hidden="true">02</span><div><h2 id="ticket-preference-title">Ticket</h2><p>Come impostare il Ticket quando NaviDiaria crea o importa automaticamente una giornata.</p></div></div>
+      <div class="pref-tiles ticket" role="group" aria-labelledby="ticket-preference-title">
+        <button type="button" class="pref-tile" data-ticket-used="true" aria-pressed="false"><span class="pref-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M14 7v10" stroke-dasharray="2 2.5"/></svg></span><span class="pref-text"><span class="pref-label">Usato</span><span class="pref-desc">Ogni nuova giornata parte con il ticket usato.</span></span><span class="pref-radio" aria-hidden="true"></span></button>
+        <button type="button" class="pref-tile" data-ticket-used="false" aria-pressed="false"><span class="pref-icon"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M3 3l18 18"/></svg></span><span class="pref-text"><span class="pref-label">Non usato</span><span class="pref-desc">Le nuove giornate partono senza Ticket.</span></span><span class="pref-radio" aria-hidden="true"></span></button>
+      </div>
+      <p class="pref-note"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/></svg><span>Potrai sempre cambiarlo sul singolo giorno.</span></p>
+    </section>
     <section class="section admin-section" id="gestione-settimane" hidden>
       <div class="section-head"><div><h2>Pubblicazione settimane</h2><p>Scegli quali settimane Firebase considera ufficiali, in bozza oppure nascoste.</p></div><span class="badge">Solo amministratori</span></div>
-      <div class="calendar-login" id="draft-period-box">
+      <div class="calendar-login" id="draft-period-box" style="display:grid!important;grid-template-columns:1fr!important;gap:10px">
         <div class="grid">
-          <div class="field"><label for="draft-start">Inizio bozza</label><input id="draft-start" type="date" value="2026-08-10"></div>
-          <div class="field"><label for="draft-end">Fine bozza</label><input id="draft-end" type="date" value="2026-09-06"></div>
+          <div class="field"><label for="draft-start">Inizio bozza</label><input id="draft-start" type="date"></div>
+          <div class="field"><label for="draft-end">Fine bozza</label><input id="draft-end" type="date"></div>
         </div>
         <button class="btn primary" type="button" id="save-draft-period">Salva periodo bozza</button>
         <button class="btn" type="button" id="delete-draft-period" style="border-color:#80424a;background:#351e24;color:#ff9ba4">Elimina bozza</button>
@@ -68,15 +310,6 @@
       <div class="section-head"><div><h2>Tema grafico <small style="color:#2dd4bf">· prova personale</small></h2><p>Questa scelta è disponibile solo per il tuo profilo di prova.</p></div><span class="badge">Solo Pedro</span></div>
       <div class="field" style="max-width:320px"><label for="navisuite-theme-select">Aspetto</label><select id="navisuite-theme-select"><option value="dark">Scuro</option><option value="light">Chiaro</option></select></div>
     </section>
-    <section class="section" id="altre-preferenze">
-      <div class="section-head"><div><h2>Altre preferenze</h2><p>Questa pagina potrà raccogliere altre impostazioni senza aggiungere nuove pagine al portale.</p></div><span class="badge">In futuro</span></div>
-      <div class="future" style="margin-top:20px"><div><strong>Aspetto</strong>Tema e leggibilità</div><div><strong>NaviTurni</strong>Vista e filtri predefiniti</div><div><strong>Altri canali</strong>WhatsApp e nuove notifiche</div></div>
-      
-    </section>
-    <section class="section" id="pagina-iniziale">
-      <div class="section-head"><div><h2>Prima pagina di apertura</h2><p>Scegli dove aprire NaviSuite dopo l’accesso. Per impostazione predefinita rimani nella Home.</p></div><span class="badge">Personale</span></div>
-      <div class="field" style="max-width:360px;margin-top:16px"><label for="navisuite-start-page">Apri NaviSuite su</label><select id="navisuite-start-page"><option value="index.html">Home</option></select></div>
-    </section>
     <section class="section admin-section" id="gestione-utenti" hidden>
       <div class="section-head"><div><h2>Gestione utenti</h2><p>Agenti registrati, ultimo accesso e ultima pagina aperta rilevati direttamente da Firebase.</p></div><span class="badge">Firebase · Admin</span></div>
       <div class="table-wrap">
@@ -88,27 +321,89 @@
       <div class="status" id="users-status" aria-live="polite"></div>
     </section>
   </main>
-  <script src="assets/js/admin-firebase-rest.js?v=40"></script>
-  <script src="assets/js/draft-period.js?v=1"></script>
-  <script src="assets/js/shared-menu.js?v=1.55"></script>
+  <footer class="pref-footer" id="navisuite-support-footer">
+    <p class="pref-saved" id="pref-saved" role="status" aria-live="polite"><i aria-hidden="true"></i><span>Salvato automaticamente sul tuo profilo</span></p>
+    <div class="pref-support"><span>NaviSuite ti è utile?</span><a href="https://ko-fi.com/papamike80" target="_blank" rel="noopener noreferrer" aria-label="Offrimi un caffè e sostieni NaviSuite tramite Ko-fi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9h11v5a5 5 0 0 1-5 5h-1a5 5 0 0 1-5-5z"/><path d="M16 11h1.5a2.5 2.5 0 0 1 0 5H16"/><path d="M9 3v3M12 3v3"/></svg>Offrimi un caffè</a></div>
+  </footer>
+  <script src="assets/js/shared-roles.js?v=9"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=88"></script>
+  <script src="assets/js/draft-period.js?v=2"></script>
+  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/data-source-toggle.js?v=1"></script>
+  <script src="assets/js/calendar-settings-v2.js?v=6"></script>
   <script>
     const LOGIN_KEY="naviturni_logged_agent";
     const profile=JSON.parse(localStorage.getItem('navidiaria.activeAgent')||localStorage.getItem(LOGIN_KEY)||"null");
     if(!profile){location.replace("index.html");}
     const profileName=profile?.name||profile?.cognome||"Agente";
-    const startKey='navisuite.startPage.'+String(profile?.id||'');const startSelect=document.getElementById('navisuite-start-page');if(startSelect){
-      const labels={index:'Home',oggi:'☀ Oggi',naviturni:'NaviTurni',cambi_turno:'Cambio turno',navidiaria:'Distinta',documenti:'Documenti',Orario:'Orario',impostazioni:'Impostazioni',segnalazioni:'Segnalazioni',aggiornamenti:'Aggiornamenti',agenti:'Agenti',gestione_navi:'Navi'};
-      const known=new Set(['index.html']);
-      const navLinks=[...document.querySelectorAll('#settings-sidebar nav a[href]')].filter(link=>!link.hidden).filter(link=>/^[A-Za-z0-9_-]+\.html$/.test(link.getAttribute('href')||''));
-      navLinks.forEach(link=>{const value=link.getAttribute('href');if(known.has(value))return;known.add(value);const option=document.createElement('option');option.value=value;option.textContent=labels[value.replace(/\.html$/,'')]||link.textContent.trim();startSelect.appendChild(option);});
-      const saved=localStorage.getItem(startKey)||'index.html';
-      startSelect.value=known.has(saved)?saved:'index.html';
-      startSelect.addEventListener('change',()=>localStorage.setItem(startKey,startSelect.value));
+    // Preferenze personali a tessere: stesse chiavi di prima (startPage letta da
+    // portal.js dopo l'accesso, ticketDefaultUsed da ticket-personalization.js).
+    const savedNote=document.getElementById('pref-saved');const savedText=savedNote?.querySelector('span');let savedTimer=0;
+    function showSaved(ok,message){
+      if(!savedNote)return;
+      clearTimeout(savedTimer);
+      savedNote.classList.toggle('ok',ok);savedNote.classList.toggle('error',!ok);
+      savedText.textContent=message;
+      if(ok)savedTimer=setTimeout(()=>{savedNote.classList.remove('ok');savedText.textContent='Salvato automaticamente sul tuo profilo';},2200);
     }
+    function pressOnly(buttons,active){buttons.forEach(button=>button.setAttribute('aria-pressed',String(button===active)));}
+    const startKey='navisuite.startPage.'+String(profile?.id||'');
+    const roles=window.NaviRoles||{};
+    // Come nel menu unico: alle bariste (tranne Hiba) Oggi rimanda a Turni.
+    if(roles.isBaristaAgent?.(profile)&&!roles.isHibaBarista?.(profile)){document.querySelector('[data-start-page="oggi.html"]')?.remove();document.querySelector('[data-start-page="auto"]')?.remove();document.querySelector('[data-start-page="mio-turno.html"]')?.remove();document.querySelector('[data-start-page="orario.html"]')?.remove();}
+    // limiti per ruolo: solo le pagine che il profilo puo' aprire
+    document.querySelectorAll('[data-start-page]').forEach(tile=>{const f=tile.dataset.startPage;if(f!=='auto'&&roles.puoAprire&&!roles.puoAprire(f,profile))tile.remove();});
+    const startTiles=[...document.querySelectorAll('[data-start-page]')];
+    // Chi non ha mai scelto ha la prima pagina Automatica (le bariste la Home), come in portal.js.
+    const barista=roles.isBaristaAgent?.(profile)&&!roles.isHibaBarista?.(profile);
+    let savedStart=barista?'index.html':'auto';try{const v=localStorage.getItem(startKey);if(v!=null)savedStart=v.replace(/^servizi-terra\.html$/,'orario.html');}catch(_){}
+    pressOnly(startTiles,startTiles.find(tile=>tile.dataset.startPage===savedStart)||null);
+    startTiles.forEach(tile=>tile.addEventListener('click',()=>{
+      try{localStorage.setItem(startKey,tile.dataset.startPage);}
+      catch(_){showSaved(false,'Non riesco a salvare la prima pagina. Riprova.');return;}
+      pressOnly(startTiles,tile);
+      showSaved(true,`Salvato: NaviSuite si aprirà su ${tile.querySelector('.pref-label').textContent}.`);
+    }));
+    // Admin: prima pagina per tutti (menu a tendina con tutte le pagine; ruoli che la possono aprire tra parentesi)
+    (async()=>{
+      if(!roles.isAdminAgent?.(profile))return;
+      const box=document.getElementById('pagina-tutti'),sel=document.getElementById('pagina-tutti-select'),stato=document.getElementById('pagina-tutti-stato');
+      box.hidden=false;
+      const nomiRuoli=Object.fromEntries(roles.RUOLI||[]);
+      const pagine=[['auto','Automatica (Il mio turno)'],['index.html','Home'],...(roles.PAGINE||[]).filter(([f])=>!['impostazioni.html','quiz.html','verifica-busta.html'].includes(f))];
+      sel.innerHTML=pagine.map(([f,t])=>{const r=f==='auto'||f==='index.html'?'':` (${(roles.consentiti?.(f)||[]).map(x=>nomiRuoli[x]||x).join(', ')||'solo admin'})`;return `<option value="${f}">${t}${r}</option>`;}).join('');
+      const mostra=d=>{if(d?.ts)stato.textContent=`Ultimo reset: ${new Date(d.ts).toLocaleString('it-IT')}${d.da?` da ${d.da}`:''} → ${(pagine.find(([f])=>f.replace(/\.html$/,'')===d.pagina)||[,d.pagina])[1]}`;};
+      try{await NaviAdminFirebase.ready;mostra(await NaviAdminFirebase.getPaginaIniziale());}catch(_){}
+      document.getElementById('pagina-tutti-btn').addEventListener('click',async()=>{
+        const t=sel.options[sel.selectedIndex].textContent;
+        if(!confirm(`Impostare «${t}» come prima pagina per tutti gli agenti? Le scelte personali verranno azzerate.`))return;
+        try{const d=await NaviAdminFirebase.savePaginaIniziale(sel.value,profileName);mostra(d);showSaved(true,'Prima pagina impostata per tutti: vale alla prossima apertura dell\'app.');}
+        catch(error){showSaved(false,`Non salvato: ${error.message||error}`);}
+      });
+    })();
+    const ticketKey='navisuite.ticketDefaultUsed.'+String(profile?.id||'');
+    const readTicket=()=>{if(window.NaviTicketPreference)return window.NaviTicketPreference.get();try{const stored=localStorage.getItem(ticketKey);return stored===null?true:stored==='true';}catch(_){return true;}};
+    const writeTicket=used=>{
+      if(window.NaviTicketPreference){window.NaviTicketPreference.set(used);return;}
+      localStorage.setItem(ticketKey,used?'true':'false');
+      window.dispatchEvent(new CustomEvent('navisuite-ticket-default-changed',{detail:{used,agentId:String(profile?.id||'')}}));
+    };
+    const ticketTiles=[...document.querySelectorAll('[data-ticket-used]')];
+    const ticketUsed=readTicket();
+    pressOnly(ticketTiles,ticketTiles.find(tile=>tile.dataset.ticketUsed===String(ticketUsed)));
+    ticketTiles.forEach(tile=>tile.addEventListener('click',()=>{
+      const used=tile.dataset.ticketUsed==='true';
+      try{writeTicket(used);}
+      catch(_){showSaved(false,'Non riesco a salvare la preferenza Ticket. Riprova.');return;}
+      pressOnly(ticketTiles,tile);
+      showSaved(true,used?'Salvato: il Ticket sarà usato di default.':'Salvato: il Ticket sarà non usato di default.');
+    }));
     const profileNameElement=document.getElementById("profile-name");
     if(profileNameElement)profileNameElement.textContent=String(profileName).toLocaleUpperCase("it");
     const preferenceKey=`naviturni_settings_${profile?.id||profileName}`;
-    const isAdmin=['91','92'].includes(String(profile?.id||''))||String(profile?.role||'').toLowerCase()==='admin';
+    const isAdmin=window.NaviRoles.isAdminAgent(profile);
+    document.body.classList.toggle('settings-simple',!isAdmin);
     const isPedroThemeTest=['91','AG_PEDRONI_M'].includes(String(profile?.id||'').toUpperCase())||/\bPEDRONI\b/i.test(String(profile?.name||profile?.agente||profile?.cognome||''));
     const themeTestSection=document.getElementById('theme-test-setting');
     const themeSelect=document.getElementById('navisuite-theme-select');
@@ -202,7 +497,7 @@
       if(!isAdmin||!window.NaviDraftPeriod)return;
       const period=await NaviDraftPeriod.refresh();
       draftStart.value=period.start;draftEnd.value=period.end;
-      draftStatus.textContent=`Periodo attuale: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}.`;
+      draftStatus.textContent=period.start?`Periodo bozza attuale: ${formatWeekDate(period.start)} – ${formatWeekDate(period.end)}.`:'Nessun periodo in bozza: tutte le settimane sono ufficiali.';
     }
     saveDraftButton.addEventListener('click',async()=>{
       if(!draftStart.value||!draftEnd.value){draftStatus.textContent='Inserisci entrambe le date.';return;}
@@ -263,10 +558,99 @@
         head.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();toggle();}});
       });
     }
-    installSettingsAccordion();
+    if(isAdmin)installSettingsAccordion();
     loadWeeks();
     loadDraftPeriod();
   </script>
-  <script src="assets/js/announcements-recovered.js?v=1"></script>
+  <script src="assets/js/announcements-recovered.js?v=11"></script>
+
+  <script>
+  // Impostazioni: ogni sezione si apre e chiude toccando il titolo; all'apertura sono tutte chiuse.
+  (function(){
+    const riepilogo=sez=>sez.dataset.riepilogo||[...sez.querySelectorAll('[aria-pressed="true"] .pref-label,[aria-pressed="true"]')].map(el=>(el.querySelector?.('.pref-label')||el).textContent.trim()).filter((v,i,a)=>v&&a.indexOf(v)===i).slice(0,3).join(' · ');
+    function prepara(sez){
+      if(sez.classList.contains('ns-sez')||(sez.matches('section.section')&&sez.dataset.accordionReady))return;
+      if(sez.matches('section.section'))sez.dataset.accordionReady='true';
+      const head=sez.querySelector(':scope>.pref-head,:scope>.section-head');if(!head)return;
+      sez.classList.add('ns-sez','chiusa');
+      const titolo=head.querySelector('h2');
+      if(titolo&&!head.querySelector('.ns-sez-riepilogo')){const r=document.createElement('div');r.className='ns-sez-riepilogo';titolo.after(r);}
+      const f=document.createElement('span');f.className='ns-sez-freccia';f.setAttribute('aria-hidden','true');f.textContent='▾';head.appendChild(f);
+      head.setAttribute('role','button');head.tabIndex=0;head.setAttribute('aria-expanded','false');
+      const giro=()=>{const chiusa=sez.classList.toggle('chiusa');head.setAttribute('aria-expanded',String(!chiusa));aggiorna(sez);};
+      head.addEventListener('click',e=>{if(e.target.closest('a,button,select,input'))return;giro();});
+      head.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();giro();}});
+      new MutationObserver(()=>aggiorna(sez)).observe(sez,{subtree:true,attributes:true,attributeFilter:['aria-pressed','data-riepilogo']});
+      aggiorna(sez);
+    }
+    function aggiorna(sez){const r=sez.querySelector('.ns-sez-riepilogo');if(r)r.textContent=riepilogo(sez);}
+    const tutte=()=>document.querySelectorAll('body.impostazioni-page main>.pref-card,body.impostazioni-page main>.imp-col>.pref-card,body.impostazioni-page main>section.section:not(.settings-foldable)').forEach(prepara);
+    tutte();
+    new MutationObserver(tutte).observe(document.querySelector('main')||document.body,{childList:true,subtree:true});
+  })();
+  </script>
+  <script>
+  // Sezione Utente: dati in sola lettura dal profilo Firebase; si puo' cambiare solo il telefono
+  (function () {
+    const $ = id => document.getElementById(id);
+    let io = null; try { io = JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null'); } catch (_) {}
+    const box = $('utente'); if (!box) return;
+    if (!io?.id) { box.hidden = true; return; }
+    const GRADI = [[/capitano|comandante/i,'Cap','#facc15'],[/capo\s*tim|capotim/i,'CT','#fb923c'],[/aiuto\s*motorista|aiutomotorista/i,'AM','#3b82f6'],[/motorista/i,'Mot','#a855f7'],[/timoniere/i,'Tim','#22c55e'],[/marinaio/i,'Mar','#e8f3f6'],[/barista/i,'Bar','#f472b6']];
+    const distintivo = (el, q) => { const g = GRADI.find(([re]) => re.test(q || '')); el.textContent = g ? g[1] : '?'; el.style.setProperty('--g', g ? g[2] : '#9fb8c2'); el.title = q || ''; };
+    const data = v => String(v || '').slice(0, 10).split('-').reverse().join('/');
+    const oggi = new Date().toLocaleDateString('sv-SE');
+    const ruolo = r => ['admin', 'super_user', 'superuser'].includes(String(r || '').toLowerCase()) ? 'Amministratore' : 'Agente';
+    function mostra(p = {}, reg = {}) {
+      const grado = String(p.qualifica || io.qualifica || '').toLowerCase();
+      $('ut-nome').textContent = io.name || p.name || '—';
+      $('ut-id').textContent = `ID ${io.id}`;
+      distintivo($('ut-gr'), grado);
+      $('ut-grado').textContent = grado || '—';
+      const res = p.residenzaNuova && p.residenzaDal && oggi >= p.residenzaDal ? p.residenzaNuova : (p.residence || io.residence || '—');
+      $('ut-res').textContent = String(res).toLowerCase();
+      $('ut-ruolo').textContent = ruolo(p.role ?? io.role);
+      $('ut-reg').textContent = reg.registeredAt ? data(reg.registeredAt) : '—';
+      const mv = $('ut-move');
+      if (p.residenzaNuova && p.residenzaDal) { mv.hidden = false; mv.innerHTML = `${oggi >= p.residenzaDal ? 'Spostato' : 'Si sposta'} ${p.residenzaPrecedente ? `da ${p.residenzaPrecedente} ` : ''}a <b>${p.residenzaNuova}</b> dal ${data(p.residenzaDal)}`; } else mv.hidden = true;
+      const ff = p.ff, ffEl = $('ut-ff');
+      if (ff && ff.grado && ff.al && ff.al >= oggi) {
+        ffEl.hidden = false; ffEl.innerHTML = `<span class="ut-gr sm"></span>FF ${ff.grado} · ${ff.dal > oggi ? `dal ${data(ff.dal)} ` : ''}fino al ${data(ff.al)}`;
+        distintivo(ffEl.querySelector('.ut-gr'), ff.grado);
+      } else ffEl.hidden = true;
+      if (document.activeElement !== $('ut-telefono')) $('ut-telefono').value = p.telefono || '';
+    }
+    mostra();
+    (async () => {
+      try { await window.NaviAdminFirebase.ready; const r = await window.NaviAdminFirebase.getMioProfilo(io.id); mostra(r.profilo, r.registro); }
+      catch (error) { console.warn('Profilo non letto', error); }
+    })();
+    $('ut-tel-salva').addEventListener('click', async () => {
+      const stato = $('ut-tel-stato'), v = $('ut-telefono').value;
+      if (v && v.replace(/\D/g, '').length < 8) { stato.textContent = 'Numero troppo corto: scrivilo con il prefisso, per esempio +39 333 1234567.'; return; }
+      try { const s = await window.NaviAdminFirebase.saveAgentTelefono(io.id, v); $('ut-telefono').value = s; stato.textContent = s ? '✓ Telefono salvato.' : '✓ Telefono tolto.'; }
+      catch (error) { stato.textContent = `Telefono non salvato: ${error.message}`; }
+    });
+  })();
+  </script>
+  <script>
+  // Stile a riquadri: sezioni in tre gruppi (Utente · Preferenze · Amministrazione). Sul telefono una colonna, da PC tre.
+  (function(){
+    const main=document.querySelector('body.impostazioni-page main');if(!main)return;
+    const col=(cls,titolo)=>{const c=document.createElement('div');c.className='imp-col '+cls;if(titolo){const h=document.createElement('h3');h.className='imp-gruppo';h.textContent=titolo;c.appendChild(h);}main.appendChild(c);return c;};
+    const cUtente=col('imp-col-utente','Utente'),cPref=col('imp-col-pref','Preferenze'),cAdmin=col('imp-col-admin','Amministrazione 🔒');
+    const dove=sez=>{if(sez.id==='utente')return cUtente;if(sez.classList.contains('admin-section')||['data-source-setting','theme-test-setting'].includes(sez.id))return cAdmin;return cPref;};
+    const ordinePref=['pagina-iniziale','ticket-preference','notifiche-push'];
+    function distribuisci(){
+      [...main.children].forEach(el=>{if(el.classList.contains('imp-col')||el.classList.contains('intro'))return;if(el.matches('section,.pref-card'))dove(el).appendChild(el);});
+      ordinePref.forEach(id=>{const el=document.getElementById(id);if(el&&el.parentElement===cPref)cPref.appendChild(el);});
+      [...cPref.children].filter(el=>!ordinePref.includes(el.id)&&el.tagName!=='H3').forEach(el=>cPref.appendChild(el));
+      const adminVisibile=[...cAdmin.children].some(el=>el.tagName!=='H3'&&!el.hidden);
+      cAdmin.querySelector('.imp-gruppo').hidden=!adminVisibile;
+    }
+    // dopo le altre preparazioni della pagina (pieghevoli), che lavorano sui figli diretti di main
+    setTimeout(()=>{distribuisci();new MutationObserver(()=>setTimeout(distribuisci,0)).observe(main,{childList:true});new MutationObserver(distribuisci).observe(cAdmin,{subtree:true,attributes:true,attributeFilter:['hidden']});},0);
+  })();
+  </script>
 </body>
 </html>

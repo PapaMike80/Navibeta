@@ -18,7 +18,7 @@ routerAdd("GET", "/api/navisuite-v2/ponteradio/recipients", (e) => {
   const agents = e.app.findRecordsByFilter("agenti", "attivo = true", "", 500, 0);
   const recipients = [];
   for (const agent of agents) {
-    if (!agent || agent.id === me.id) continue;
+    if (!agent) continue;
     const name = String(
       agent.getString("nome_completo") ||
       [agent.getString("cognome"), agent.getString("nome")].filter(Boolean).join(" ") ||
@@ -138,7 +138,7 @@ routerAdd("POST", "/api/navisuite-v2/ponteradio/send", (e) => {
   queue.set("status", "pending");
   queue.set("title", ("Ponte Radio · " + senderName).slice(0, 120));
   queue.set("body", message);
-  queue.set("url", "ponteradio.html");
+  queue.set("url", "index.html");
   queue.set("meta", {
     senderAgentId: sender.id,
     senderName: senderName,
@@ -148,6 +148,72 @@ routerAdd("POST", "/api/navisuite-v2/ponteradio/send", (e) => {
 
   return e.json(202, { id: queue.id, status: "pending" });
 }, $apis.requireAuth());
+
+routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/sync-users", (e) => {
+  const expected = String($os.getenv("PONTERADIO_WORKER_SECRET") || "").trim();
+  const supplied = String(e.request.header.get("X-PonteRadio-Worker") || "").trim();
+  if (!expected || supplied !== expected) throw new ForbiddenError("Worker non autorizzato.");
+
+  const body = new DynamicModel({ users: [] });
+  e.bindBody(body);
+  const rows = Array.isArray(body.users) ? body.users.slice(0, 500) : [];
+  const usersCollection = e.app.findCollectionByNameOrId("users");
+  let created = 0;
+  let updated = 0;
+  let linked = 0;
+  let skipped = 0;
+
+  for (const row of rows) {
+    const loginId = String(row?.login_id || row?.id || "").trim();
+    const pinHash = String(row?.pin_hash || row?.pinHash || "").trim().toLowerCase();
+    if (!loginId || !/^[a-f0-9]{64}$/.test(pinHash)) {
+      skipped += 1;
+      continue;
+    }
+
+    let agent = null;
+    try {
+      agent = e.app.findFirstRecordByFilter("agenti", "legacy_id = {:login}", { login: loginId });
+    } catch (_) {
+      skipped += 1;
+      continue;
+    }
+
+    let user = null;
+    let existed = true;
+    try {
+      user = e.app.findFirstRecordByFilter("users", "login_id = {:login}", { login: loginId });
+    } catch (_) {
+      user = new Record(usersCollection);
+      user.set("email", loginId + "@navisuite.local");
+      user.set("login_id", loginId);
+      created += 1;
+      existed = false;
+    }
+
+    const suppliedRole = String(row?.role || "").trim();
+    const role = ["agente", "admin", "super_user"].includes(suppliedRole) ? suppliedRole : "agente";
+    user.set("password", pinHash);
+    user.set("passwordConfirm", pinHash);
+    user.set("verified", true);
+    user.set("emailVisibility", false);
+    user.set("attivo", true);
+    user.set("must_change_pin", row?.must_change_pin === true || row?.mustChangePin === true);
+    user.set("role", role);
+    user.set("name", String(row?.name || agent.getString("nome_completo") || loginId).slice(0, 120));
+    user.set("nome_visualizzato", String(row?.name || agent.getString("nome_completo") || loginId).slice(0, 120));
+    e.app.save(user);
+    if (existed) updated += 1;
+
+    if (agent.getString("user") !== user.id) {
+      agent.set("user", user.id);
+      e.app.save(agent);
+      linked += 1;
+    }
+  }
+
+  return e.json(200, { created: created, updated: updated, linked: linked, skipped: skipped });
+});
 
 routerAdd("GET", "/api/navisuite-v2/ponteradio/worker/jobs", (e) => {
   const expected = String($os.getenv("PONTERADIO_WORKER_SECRET") || "").trim();
@@ -213,7 +279,7 @@ routerAdd("POST", "/api/navisuite-v2/ponteradio/worker/result", (e) => {
   // operativo, non il contenuto della conversazione.
   job.set("title", "Ponte Radio");
   job.set("body", "[contenuto eliminato dopo l'invio]");
-  job.set("url", "ponteradio.html");
+  job.set("url", "index.html");
   job.set("meta", {});
   e.app.save(job);
 

@@ -8,13 +8,49 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v206-ponteradio-pocketbase';
+const CACHE_VERSION = 'navisuite-v675-agenti-turno-giorno';
+// JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
+// della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
+// nell'HTML, altrimenti il precache non viene usato.
+const PAGE_ASSETS = [
+  './assets/css/naviturni-page.css?v=4',
+  './assets/css/naviturni-page-fixes.css?v=1',
+  './assets/js/naviturni-page.js?v=16',
+  './assets/js/naviturni-change-requests.js?v=1',
+  './assets/css/cambi-turno-page.css?v=3',
+  './assets/css/cambi-turno-page-fixes.css?v=1',
+  './assets/js/cambi-turno-page.js?v=4',
+  './assets/css/cambi-turno-logic.css?v=1',
+  './assets/js/cambi-turno-logic.js?v=2',
+  './assets/css/cambi-turno-layout.css?v=1'
+];
+const PAGE_ASSET_PATHS = PAGE_ASSETS.map(asset => asset.slice(1).replace(/\?.*$/, ''));
 const CORE_ASSETS = [
   './',
   './index.html',
   './oggi.html',
   './naviturni.html',
-  './ponteradio.html',
+  './cambi_turno.html',
+  './navidiaria.html',
+  // pagine principali: Scali e Il mio turno (e Documenti), disponibili anche senza rete
+  './orario.html',
+  './mio-turno.html',
+  './documenti.html',
+  './navidistinta.html',
+  './verifica-busta.html',
+  './stampa-partenze.html',
+  './orari.html',
+  './assets/js/orario-corse-estate.js',
+  './assets/js/orari-stagioni.js',
+  './assets/js/coincidenze-ufficiali.js',
+  './assets/images/logo-nlg.png',
+  './assets/images/logo-mit.png',
+  './assets/fonts/roboto-latin-400-normal.woff2',
+  './assets/fonts/roboto-latin-500-normal.woff2',
+  './assets/fonts/roboto-latin-700-normal.woff2',
+  './assets/fonts/roboto-latin-900-normal.woff2',
+  './assets/fonts/roboto-latin-400-italic.woff2',
+  './assets/fonts/roboto-latin-500-italic.woff2',
   './manifest.json',
   './assets/css/portal.css',
   './assets/css/navi-shared.css',
@@ -24,19 +60,30 @@ const CORE_ASSETS = [
   './assets/js/admin-firebase-rest.js',
   './assets/js/shared-data.js',
   './assets/js/firebase-auth.js',
+  './assets/js/shared-roles.js',
   './assets/js/portal.js',
   './assets/js/shared-menu.js',
+  './assets/js/section-memory.js',
   './assets/js/oggi.js',
+  './assets/js/course-info.js',
   './assets/js/announcements-recovered.js',
-  './assets/js/effective-schedule.js',
-  './assets/js/push-notifications.js',
-  './assets/js/push-settings.js',
-  './assets/js/ponteradio.js',
+  './assets/js/push-notifications-v3.js',
+  './assets/js/push-center.js',
+  './assets/js/push-summary.js',
+  './assets/js/busta-parser.js',
+  './assets/js/distinta-totals.js',
+  './assets/js/busta-compare.js',
+  './assets/js/verifica-busta.js',
   './v2/assets/pb.js',
+  './assets/css/orario.css', './assets/css/mio-turno.css', './assets/css/servizi-terra.css', './assets/css/turni.css',
+  './assets/js/orario-page.js', './assets/js/orario-giorno.js', './assets/js/orario-corse.js', './assets/js/orario-lago.js',
+  './assets/js/mio-turno.js', './assets/js/turni-giorno.js', './assets/js/servizi-terra-a4.js', './assets/js/arrivi-avvisi.js',
+  './assets/js/push-arrivi.js', './assets/js/shift-competence.js', './assets/js/documenti.js', './assets/js/offline.js',
   './assets/images/favicon.svg',
   './assets/images/icona_192.png',
   './assets/images/icona_512.png',
-  './assets/images/icona_apple_180.png'
+  './assets/images/icona_apple_180.png',
+  ...PAGE_ASSETS
 ];
 
 async function cachePut(request, response) {
@@ -58,9 +105,17 @@ async function fetchAndCache(request, options = {}) {
   return cachePut(request, response);
 }
 
+// Rete prima, ma con segnale debole non si aspetta: dopo LENTO ms si usa la copia salvata (se c'e')
+// e la risposta della rete, quando arriva, aggiorna la copia per la prossima apertura.
+const LENTO = 1000; // oltre 1 secondo la rete conta come assente: si usa la copia salvata
 async function networkFirst(request, fallbackUrl = '') {
+  const rete = fetchAndCache(request);
   try {
-    return await fetchAndCache(request);
+    const veloce = await Promise.race([rete, new Promise(resolve => setTimeout(() => resolve('lento'), LENTO))]);
+    if (veloce !== 'lento') return veloce;
+    const cached = await cachedResponse(request);
+    if (cached) { rete.catch(() => null); return cached; }
+    return await rete;
   } catch (error) {
     const cached = await cachedResponse(request);
     if (cached) return cached;
@@ -73,12 +128,44 @@ async function networkFirst(request, fallbackUrl = '') {
   }
 }
 
+// Pagine: SEMPRE la copia in memoria subito; la rete aggiorna in silenzio la copia per la prossima apertura.
+async function paginaDaMemoria(event, fallbackUrl = '') {
+  try { return await staleWhileRevalidate(event); } catch (error) {
+    const cache = await caches.open(CACHE_VERSION);
+    const fallback = fallbackUrl && await cache.match(fallbackUrl, { ignoreSearch:true });
+    if (fallback) return fallback;
+    throw error;
+  }
+}
+
+// Font Google (altro dominio): copia salvata subito; senza copia e con rete lenta la pagina
+// non aspetta, si usa il font del telefono (stile vuoto).
+const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+async function fontDaMemoria(event) {
+  const request = event.request;
+  const cache = await caches.open(CACHE_VERSION);
+  const cached = await cache.match(request);
+  const rete = fetch(request).then(async response => {
+    if (response && (response.ok || response.type === 'opaque')) { try { await cache.put(request, response.clone()); } catch (_) {} }
+    return response;
+  });
+  if (cached) { event.waitUntil(rete.catch(() => null)); return cached; }
+  const vuoto = () => new Response('', { status:200, headers:{ 'Content-Type': request.destination === 'style' ? 'text/css' : 'font/woff2' } });
+  try {
+    const veloce = await Promise.race([rete, new Promise(resolve => setTimeout(() => resolve('lento'), LENTO))]);
+    if (veloce !== 'lento') return veloce;
+    event.waitUntil(rete.catch(() => null));
+    return vuoto();
+  } catch (_) { return vuoto(); }
+}
+
 async function staleWhileRevalidate(event) {
   const request = event.request;
   const cache = await caches.open(CACHE_VERSION);
   const exact = await cache.match(request);
   const fallback = exact || await cache.match(request, { ignoreSearch:true });
-  const refresh = fetch(request, { cache:'reload' })
+  // una richiesta di navigazione non si puo' rifare con opzioni: si usa il suo indirizzo
+  const refresh = (request.mode === 'navigate' ? fetch(request.url, { cache:'reload', credentials:'same-origin' }) : fetch(request, { cache:'reload' }))
     .then(response => cachePut(request, response))
     .catch(() => null);
   if (fallback) {
@@ -88,6 +175,28 @@ async function staleWhileRevalidate(event) {
   const fresh = await refresh;
   if (fresh) return fresh;
   throw new Error('Risorsa non disponibile offline');
+}
+
+// File versionati (?v=) estratti dalle pagine: la copia locale si usa solo se
+// ha esattamente la stessa versione richiesta dall'HTML. Senza rete si ripiega
+// su qualsiasi versione salvata, come per gli altri asset.
+async function versionedCacheFirst(request) {
+  const cache = await caches.open(CACHE_VERSION);
+  const exact = await cache.match(request);
+  if (exact) return exact;
+  const rete = fetchAndCache(request);
+  try {
+    // rete lenta: dopo LENTO ms si usa la versione salvata precedente, la nuova si salva quando arriva
+    const veloce = await Promise.race([rete, new Promise(resolve => setTimeout(() => resolve('lento'), LENTO))]);
+    if (veloce !== 'lento') return veloce;
+    const any = await cache.match(request, { ignoreSearch:true });
+    if (any) { rete.catch(() => null); return any; }
+    return await rete;
+  } catch (error) {
+    const any = await cache.match(request, { ignoreSearch:true });
+    if (any) return any;
+    throw error;
+  }
 }
 
 self.addEventListener('install', event => {
@@ -108,7 +217,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter(name => name.startsWith('navibeta-') && name !== CACHE_VERSION)
+      .filter(name => name.startsWith('navisuite-') && name !== CACHE_VERSION)
       .map(name => caches.delete(name)));
     await self.clients.claim();
   })());
@@ -142,15 +251,18 @@ async function transformedScript(request, transform) {
 self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
+  if (FONT_HOSTS.includes(url.hostname)) { event.respondWith(fontDaMemoria(event)); return; }
   if (url.origin !== self.location.origin) return;
 
   if (url.pathname.endsWith('/assets/css/shared-menu.css')) {
-    event.respondWith(networkFirst(event.request));
+    event.respondWith(staleWhileRevalidate(event));
     return;
   }
 
-  if (url.pathname.endsWith('/assets/js/orario-lucide-init.js')) {
-    event.respondWith(networkFirst(event.request));
+  // oggi.js: sempre rete-prima, cosi' il selettore giornata e le altre
+  // modifiche arrivano subito senza aspettare la rotazione della cache.
+  if (url.pathname.endsWith('/assets/js/oggi.js')) {
+    event.respondWith(staleWhileRevalidate(event));
     return;
   }
 
@@ -169,14 +281,6 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  if (url.pathname.endsWith('/assets/js/portal.js')) {
-    event.respondWith(transformedScript(event.request, text => text.replace(
-      "if(preferred&&preferred!=='index.html'){location.href=preferred;return;}",
-      "const explicitHome=new URLSearchParams(location.search).get('home')==='1';if(!explicitHome&&preferred&&preferred!=='index.html'){location.href=preferred;return;}"
-    )));
-    return;
-  }
-
   if (url.pathname.endsWith('/assets/js/shared-menu.js')) {
     event.respondWith(transformedScript(event.request, text => {
       text = text.replace(
@@ -187,10 +291,7 @@ self.addEventListener('fetch', event => {
         "links.forEach(link=>{const clone=link.cloneNode(true);clone.innerHTML=clone.innerHTML.replace(/NaviDiaria/g,'Distinta');if(/navidiaria\\.html/.test(clone.getAttribute('href')||''))clone.setAttribute('aria-label','Apri Distinta');target.appendChild(clone);});",
         "links.forEach(link=>{const clone=link.cloneNode(true);clone.className=link.classList.contains('active')?'active':'';clone.removeAttribute('id');clone.removeAttribute('style');clone.innerHTML=clone.innerHTML.replace(/NaviDiaria/g,'Distinta');if(/navidiaria\\.html/.test(clone.getAttribute('href')||''))clone.setAttribute('aria-label','Apri Distinta');target.appendChild(clone);});"
       );
-      text = text.replace(
-        "item('index.html','⌂','Home')",
-        "item('index.html?home=1','⌂','Home')"
-      );
+      // La voce Home punta gia' a index.html?home=1 direttamente in shared-menu.js.
       text += `
 ;(()=>{
   if(!/(?:^|\\/)(?:naviturni|cambi_turno)\\.html$/i.test(location.pathname)) return;
@@ -240,6 +341,8 @@ self.addEventListener('fetch', event => {
       if(popup.hidden) return;
       const dialog=popup.querySelector('.ns-menu-dialog');
       if(!dialog) return;
+      // da computer il menu resta centrato come nelle altre pagine
+      if((window.visualViewport?.width||window.innerWidth)>850){['position','left','right','top','bottom','width','min-width','max-width','height','max-height','margin','transform'].forEach(prop=>dialog.style.removeProperty(prop));return;}
       const vv=window.visualViewport;
       const vw=Math.max(240,Math.floor(vv?.width || document.documentElement.clientWidth || window.innerWidth));
       const vh=Math.max(320,Math.floor(vv?.height || document.documentElement.clientHeight || window.innerHeight));
@@ -319,11 +422,16 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // Le pagine HTML provano prima la rete per ricevere subito gli aggiornamenti;
-  // se manca la connessione, usano la copia locale. Se la pagina richiesta non
-  // e' mai stata aperta, torniamo almeno all'Index gia' precaricato.
+  if (PAGE_ASSET_PATHS.some(path => url.pathname.endsWith(path))) {
+    event.respondWith(versionedCacheFirst(event.request));
+    return;
+  }
+
+  // Le pagine HTML si aprono SEMPRE dalla copia in memoria (istantanee) e la rete
+  // aggiorna la copia in silenzio. Se la pagina non e' mai stata aperta, si scarica;
+  // senza rete si torna almeno all'Index gia' precaricato.
   if (event.request.mode === 'navigate') {
-    event.respondWith(networkFirst(event.request, './index.html'));
+    event.respondWith(paginaDaMemoria(event, './index.html'));
     return;
   }
 
@@ -336,7 +444,6 @@ self.addEventListener('fetch', event => {
   // Altre risorse same-origin: rete con fallback locale se gia' viste.
   event.respondWith(networkFirst(event.request));
 });
-
 
 function saveIncomingPonteRadio(payload) {
   if (payload?.data?.kind !== 'ponteradio') return Promise.resolve();
@@ -367,8 +474,8 @@ function saveIncomingPonteRadio(payload) {
   });
 }
 
-// Web Push reale NaviSuite. Il payload viene inviato dal backend/worker e può
-// risvegliare la PWA anche quando è completamente chiusa.
+// Web Push reale NaviSuite. Il worker TrueNAS invia il payload e questo Service
+// Worker mostra l'avviso anche quando la PWA e' chiusa o l'iPhone e' bloccato.
 self.addEventListener('push', event => {
   event.waitUntil((async () => {
     let payload = {};
@@ -395,13 +502,15 @@ self.addEventListener('push', event => {
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil((async () => {
-    const target = new URL(event.notification?.data?.url || 'naviturni.html', self.registration.scope).href;
+    const relative = String(event.notification?.data?.url || 'naviturni.html');
+    const target = new URL(relative, self.registration.scope).href;
     const windows = await self.clients.matchAll({ type:'window', includeUncontrolled:true });
     for (const client of windows) {
-      if (!('focus' in client)) continue;
-      try { await client.navigate(target); } catch (_) { }
-      return client.focus();
+      try {
+        if ('navigate' in client) await client.navigate(target);
+        if ('focus' in client) return client.focus();
+      } catch (_) { }
     }
-    return self.clients.openWindow(target);
+    return self.clients.openWindow ? self.clients.openWindow(target) : null;
   })());
 });

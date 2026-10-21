@@ -1,6 +1,7 @@
 (() => {
   const CACHE_KEY = 'navisuite.draftPeriod.v1';
-  const DEFAULT_PERIOD = {start:'2026-08-10', end:'2026-09-06'};
+  // Nessuna bozza finche' un admin non salva un periodo (prima c'era un periodo fisso 10/08-06/09 che tornava dopo ogni "Elimina bozza")
+  const DEFAULT_PERIOD = {start:'', end:''};
   let current = readCache();
 
   function validDate(value) {
@@ -10,6 +11,7 @@
   function normalize(value) {
     const start = validDate(value?.start) ? String(value.start) : DEFAULT_PERIOD.start;
     const end = validDate(value?.end) ? String(value.end) : DEFAULT_PERIOD.end;
+    if (!start || !end) return {...DEFAULT_PERIOD};
     return start <= end ? {start, end, updatedAt:String(value?.updatedAt || '')} : {...DEFAULT_PERIOD};
   }
 
@@ -27,7 +29,7 @@
 
   function contains(iso) {
     const date = String(iso || '').slice(0, 10);
-    return validDate(date) && date >= current.start && date <= current.end;
+    return validDate(date) && !!current.start && date >= current.start && date <= current.end;
   }
 
   async function refresh() {
@@ -56,12 +58,21 @@
   window.NaviDraftPeriod = {get:() => ({...current}), contains, refresh, save, reset, defaults:{...DEFAULT_PERIOD}};
   window.addEventListener('DOMContentLoaded', () => setTimeout(refresh, 150));
 
-  // Le Impostazioni caricano qui anche il modulo Calendario personale, così
-  // la funzione resta confinata alla pagina senza appesantire il resto di NaviSuite.
+  // Le Impostazioni caricano qui le preferenze personali collegate alla pagina.
   if (document.body?.classList.contains('impostazioni-page')) {
-    const script = document.createElement('script');
-    script.src = 'assets/js/calendar-settings.js?v=1';
-    script.defer = true;
-    document.head.appendChild(script);
+    const ticketScript = document.createElement('script');
+    ticketScript.src = 'assets/js/ticket-personalization.js?v=1';
+    ticketScript.defer = true;
+    document.head.appendChild(ticketScript);
+
+    const calendarScript = document.createElement('script');
+    calendarScript.src = 'assets/js/calendar-settings-v2.js?v=3';
+    calendarScript.defer = true;
+    document.head.appendChild(calendarScript);
+
+    const calendarActivationScript = document.createElement('script');
+    calendarActivationScript.src = 'assets/js/calendar-activation-v3.js?v=1';
+    calendarActivationScript.defer = true;
+    document.head.appendChild(calendarActivationScript);
   }
 })();
