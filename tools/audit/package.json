@@ -1,0 +1,7 @@
+{
+  "name": "navibeta-audit",
+  "private": true,
+  "description": "Strumenti di verifica UI per Navibeta (non fanno parte dell'app)",
+  "scripts": { "screenshots": "node screenshots.js", "audit": "node audit.js" },
+  "devDependencies": { "playwright": "^1.49.0", "@axe-core/playwright": "^4.10.0", "lighthouse": "^12.2.0" }
+}
