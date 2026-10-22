@@ -344,17 +344,41 @@
     const oggi = iso(new Date());
     const giorni = Array.from({ length: 29 }, (_, k) => addDays(oggi, k - 14));
     if (!giorni.includes(day)) giorni.push(day), giorni.sort();
-    box.innerHTML = giorni.map(d => {
-      let t = ''; try { t = state.schedule ? String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim() : ''; } catch (_) { t = ''; }
-      t = lavoroDi(t) || t;
-      const dist = Math.abs((parseIso(d) - parseIso(day)) / 864e5), rip = RIPOSO.test(t);
-      const stile = `--o:${dist === 0 ? 1 : d === oggi ? .85 : dist === 1 ? .62 : dist === 2 ? .45 : .3};--s:${dist === 0 ? 1 : dist === 1 ? .94 : .88}`;
-      const c = G.coloreTurno(t);
-      return `<button type="button" class="mt-g${d === day ? ' on' : ''}${d === oggi ? ' oggi' : ''}" data-giorno="${d}" style="${stile}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
-        `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
-    }).join('');
+    // la striscia si ricostruisce solo quando cambiano i giorni o i turni: cambiando giorno le tessere restano e scorrono
+    const chiave = `${oggi}|${me?.id || ''}|${state.schedule ? 1 : 0}|${giorni[0]}|${giorni[giorni.length - 1]}|${giorni.length}`;
+    if (box.dataset.chiave !== chiave) {
+      box.dataset.chiave = chiave;
+      box.innerHTML = giorni.map(d => {
+        let t = ''; try { t = state.schedule ? String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim() : ''; } catch (_) { t = ''; }
+        t = lavoroDi(t) || t;
+        const rip = RIPOSO.test(t), c = G.coloreTurno(t);
+        return `<button type="button" class="mt-g${d === oggi ? ' oggi' : ''}" data-giorno="${d}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
+          `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
+      }).join('');
+    }
+    box.querySelectorAll('.mt-g').forEach(g => g.classList.toggle('on', g.dataset.giorno === day));
     const sel = box.querySelector('.mt-g.on');
-    if (sel) { giorniBloccati = true; box.scrollTo({ left: sel.offsetLeft - (box.clientWidth - sel.offsetWidth) / 2, behavior: box.dataset.pronto ? 'smooth' : 'auto' }); box.dataset.pronto = '1'; clearTimeout(giorniTimer); giorniTimer = setTimeout(() => { giorniBloccati = false; }, 500); }
+    if (sel) {
+      giorniBloccati = true;
+      box.scrollTo({ left: sel.offsetLeft - (box.clientWidth - sel.offsetWidth) / 2, behavior: box.dataset.pronto ? 'smooth' : 'auto' });
+      box.dataset.pronto = '1';
+      clearTimeout(giorniTimer); giorniTimer = setTimeout(() => { giorniBloccati = false; }, 900);
+    }
+    scalaGiorni();
+  }
+  // le tessere crescono e si accendono man mano che passano al centro della striscia
+  let scalaRaf = 0;
+  function scalaGiorni() {
+    cancelAnimationFrame(scalaRaf);
+    scalaRaf = requestAnimationFrame(() => {
+      const box = $('turno-giorni'); if (!box) return;
+      const centro = box.scrollLeft + box.clientWidth / 2;
+      box.querySelectorAll('.mt-g').forEach(g => {
+        const k = Math.min(Math.abs(g.offsetLeft + g.offsetWidth / 2 - centro) / (g.offsetWidth + 8), 3);
+        g.style.setProperty('--s', (1 - Math.min(k, 1) * .12).toFixed(3));
+        g.style.setProperty('--o', Math.max(g.classList.contains('oggi') ? .85 : .3, 1 - k * .38).toFixed(2));
+      });
+    });
   }
   function render() {
     const day = today(), shown = parseIso(day), realToday = day === iso(new Date());
@@ -437,16 +461,31 @@
     $('turno-notice').textContent = text || '';
   }
 
-  // cambio giorno con l'effetto di scorrimento del turno (da destra se avanti, da sinistra se indietro)
+  // cambio giorno: il turno esce dal lato opposto e quello nuovo entra scorrendo, con le righe una dopo l'altra
+  let cambioTimer = 0;
   const goToDay = day => {
     const prima = today();
-    state.day = day === iso(new Date()) ? '' : day; state.showPast = false; render();
     if (day === prima) return;
-    ['turno-content', 'turno-after'].forEach(id => { const el = $(id); if (!el) return; el.classList.remove('da-destra', 'da-sinistra'); void el.offsetWidth; el.classList.add(day > prima ? 'da-destra' : 'da-sinistra'); });
+    const verso = day > prima ? 'sx' : 'dx', els = ['turno-content', 'turno-after'].map($).filter(Boolean);
+    clearTimeout(cambioTimer);
+    els.forEach(el => { el.classList.remove('mt-entra-sx', 'mt-entra-dx', 'mt-esce-sx', 'mt-esce-dx'); void el.offsetWidth; el.classList.add(`mt-esce-${verso}`); });
+    const strip = $('turno-giorni');
+    // la striscia parte subito, il turno cambia a meta' animazione
+    if (strip) { strip.querySelectorAll('.mt-g').forEach(g => g.classList.toggle('on', g.dataset.giorno === day)); const sel = strip.querySelector('.mt-g.on'); if (sel) { giorniBloccati = true; strip.scrollTo({ left: sel.offsetLeft - (strip.clientWidth - sel.offsetWidth) / 2, behavior: 'smooth' }); } }
+    cambioTimer = setTimeout(() => {
+      state.day = day === iso(new Date()) ? '' : day; state.showPast = false; render();
+      els.forEach(el => {
+        el.classList.remove('mt-esce-sx', 'mt-esce-dx'); void el.offsetWidth; el.classList.add(`mt-entra-${verso}`);
+        [...el.children].slice(0, 10).forEach((c, i) => c.style.setProperty('--i', i));
+      });
+      // finita l'entrata si toglie la classe, cosi' gli aggiornamenti successivi non rifanno l'animazione
+      cambioTimer = setTimeout(() => els.forEach(el => el.classList.remove('mt-entra-sx', 'mt-entra-dx')), 900);
+    }, 150);
   };
   // striscia dei giorni: tocco su un giorno, oppure scorrimento (si sceglie il giorno al centro)
   $('turno-giorni')?.addEventListener('click', event => { const g = event.target.closest('[data-giorno]'); if (g) goToDay(g.dataset.giorno); });
   $('turno-giorni')?.addEventListener('scroll', () => {
+    scalaGiorni();
     if (giorniBloccati) return;
     clearTimeout(giorniTimer);
     giorniTimer = setTimeout(() => {
@@ -456,6 +495,7 @@
       if (scelto && scelto.dataset.giorno !== today()) goToDay(scelto.dataset.giorno);
     }, 140);
   }, { passive: true });
+  $('turno-giorni')?.addEventListener('scrollend', () => { setTimeout(() => { giorniBloccati = false; }, 60); });
   // scorrimento del turno col dito: a sinistra il giorno dopo, a destra il giorno prima
   let tocco = null;
   ['turno-content', 'turno-after'].forEach(id => {
