@@ -1,6 +1,6 @@
 /*
  * NaviBeta - sola lettura.
- * Blocca ogni scrittura (POST/PUT/PATCH/DELETE, sendBeacon, override di metodo)
+ * Blocca ogni scrittura in rete e nel localStorage (POST/PUT/PATCH/DELETE, sendBeacon, override di metodo)
  * verso Firebase Realtime Database e PocketBase. Il login anonimo Firebase
  * (identitytoolkit/securetoken) e l'autenticazione PocketBase restano permessi,
  * perche' servono solo per leggere.
@@ -88,4 +88,32 @@
       return nativeBeacon.apply(null, arguments);
     };
   }
+  /*
+   * Storage del browser: su papamike80.github.io il localStorage e' condiviso con
+   * NaviSuite (produzione), quindi niente va scritto davvero. Le scritture restano
+   * solo in memoria finche' la pagina e' aperta e spariscono al ricaricamento.
+   * Passano solo le chiavi di accesso (login) e la cache del token anonimo Firebase.
+   */
+  const PASS_KEYS = /^(naviturni_logged_agent|navidiaria.activeAgent|navisuite.adminFirebaseAuth.v1|navisuite.pageAccess)$/;
+  try {
+    const proto = Storage.prototype;
+    const nGet = proto.getItem, nSet = proto.setItem, nRem = proto.removeItem, nClear = proto.clear, nKey = proto.key;
+    const nLen = Object.getOwnPropertyDescriptor(proto, 'length');
+    const overlays = new WeakMap();
+    const ov = (st) => { let m = overlays.get(st); if (!m) { m = new Map(); overlays.set(st, m); } return m; };
+    const isLocal = (st) => { try { return st === window.localStorage; } catch (_) { return false; } };
+    const keysOf = (st) => {
+      const real = []; const n = nLen.get.call(st);
+      for (let i = 0; i < n; i++) real.push(nKey.call(st, i));
+      const m = ov(st); const out = real.filter((k) => !(m.has(k) && m.get(k) === null));
+      m.forEach((v, k) => { if (v !== null && out.indexOf(k) < 0) out.push(k); });
+      return out;
+    };
+    proto.getItem = function (k) { if (isLocal(this)) { const m = ov(this); k = String(k); if (m.has(k)) return m.get(k); } return nGet.call(this, k); };
+    proto.setItem = function (k, v) { if (isLocal(this) && !PASS_KEYS.test(String(k))) { ov(this).set(String(k), String(v)); return; } return nSet.call(this, k, v); };
+    proto.removeItem = function (k) { if (isLocal(this) && !PASS_KEYS.test(String(k))) { ov(this).set(String(k), null); return; } return nRem.call(this, k); };
+    proto.clear = function () { if (isLocal(this)) { keysOf(this).forEach((k) => { if (!PASS_KEYS.test(k)) ov(this).set(k, null); }); return; } return nClear.call(this); };
+    proto.key = function (i) { return isLocal(this) ? (keysOf(this)[i] === undefined ? null : keysOf(this)[i]) : nKey.call(this, i); };
+    Object.defineProperty(proto, 'length', { configurable: true, get: function () { return isLocal(this) ? keysOf(this).length : nLen.get.call(this); } });
+  } catch (_) {}
 })();
