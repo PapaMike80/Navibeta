@@ -102,6 +102,7 @@
     const PRINCIPALI={'navidiaria.html':['Ore, ritardi e competenze','#fb923c',0],'mio-turno.html':['Nave, corse e colleghi','#2dd4bf',1],'naviturni.html':['Turni di tutti gli agenti','#2dd4bf',2],'oggi.html':['Navi ed equipaggi del giorno','#facc15',3],'orario.html':['Navi allo scalo, pontili, ritardi','#38bdf8',4]};
     const COLORI={'index.html':'#94a3b8','cambi_turno.html':'#a78bfa','documenti.html':'#f59e0b','impostazioni.html':'#94a3b8','quiz.html':'#f472b6','agenti.html':'#fb7185','aggiornamenti.html':'#4ade80','movimento.html':'#38bdf8','collegamenti.html':'#f59e0b','verifica-busta.html':'#4ade80','backup-dati.html':'#67d7e6','orari.html':'#fbbf24','comitive.html':'#67d7e6','controllo_cassa.html':'#27a9b6'};
     const linkHtml=([href,icon,label])=>{
+      if(href==='condividi.html')return condividi;
       const key=href.split('?')[0].toLowerCase(),active=key===file,main=sezioneDi(key)==='principali'?PRINCIPALI[key]:undefined;
       const colore=main?.[1]||COLORI[key]||'#94a3b8';
       return `<a data-file="${key}" class="nav-link ns-tile${main?' ns-main':''}${main&&key==='navidiaria.html'?' ns-wide':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
@@ -109,13 +110,14 @@
     const pastHtml='<a href="#" data-turni-main-past><span>◷</span><b>Mostra passato</b></a>';
     const sezioneDi=key=>roles.sezioneDi?roles.sezioneDi(key):(PRINCIPALI[key]?'principali':'altre');
     const ordine=e=>PRINCIPALI[e[0].split('?')[0].toLowerCase()]?.[2]??99;
-    const inSezione=nome=>entries.filter(e=>sezioneDi(e[0].split('?')[0].toLowerCase())===nome);
+    const voci=[...entries,['condividi.html','','']];
+    const inSezione=nome=>voci.filter(e=>sezioneDi(e[0].split('?')[0].toLowerCase())===nome);
     const pos=e=>roles.ordineDi?roles.ordineDi(e[0].split('?')[0].toLowerCase()):1e6,ordinati=lista=>lista.sort((a,b)=>pos(a)-pos(b));
     const principali=ordinati(inSezione('principali').sort((a,b)=>ordine(a)-ordine(b))),altre=ordinati(inSezione('altre')),amministrazione=ordinati(inSezione('amministrazione'));
     const modifica=isAdmin&&!roles.isScaloAgent?.(agent)&&!!roles.salvaMenu;
     const pastTile=onTurni?pastHtml.replace('<a ','<a class="ns-tile" style="--c:#2dd4bf" ').replace('<b>','<i><b>').replace('</b>','</b></i>'):'';
-    const condividi=`<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a>`;
-    const linksHtml=`<div class="ns-grid ns-grid-main" data-sez="principali">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile||modifica?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small" data-sez="altre">${pastTile}${altre.map(linkHtml).join('')}${condividi}</div>`:''}${amministrazione.length||modifica?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small" data-sez="amministrazione">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
+    const condividi=`<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi data-file="condividi.html"><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a>`;
+    const linksHtml=`<div class="ns-grid ns-grid-main" data-sez="principali">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile||modifica?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small" data-sez="altre">${pastTile}${altre.map(linkHtml).join('')}</div>`:''}${amministrazione.length||modifica?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small" data-sez="amministrazione">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
 
     const style=document.createElement('style');
     style.id='navisuite-unified-menu-style';
@@ -190,7 +192,7 @@
         tile.classList.toggle('ns-main',!!main);tile.classList.toggle('ns-wide',!!main&&key==='navidiaria.html');
         i.querySelector('small')?.remove();
         if(main){const sm=document.createElement('small');sm.textContent=main[0];i.append(sm);}
-        tile.style.setProperty('--c',main?.[1]||COLORI[key]||'#94a3b8');
+        if(key!=='condividi.html')tile.style.setProperty('--c',main?.[1]||COLORI[key]||'#94a3b8');
       };
       const avviso=testo=>{hint.textContent=testo;clearTimeout(avviso.t);avviso.t=setTimeout(()=>{hint.textContent=testoHint;},3500);};
       const salva=()=>{
@@ -214,7 +216,7 @@
           const r=sotto.getBoundingClientRect(),orizz=r.width<nr.width*0.9,prima=orizz?e.clientX<r.left+r.width/2:e.clientY<r.top+r.height/2;
           sotto.parentNode.insertBefore(drag.t,prima?sotto:sotto.nextSibling);estetica(drag.t,sotto.parentNode.dataset.sez);
         }else if(!sotto&&griglia&&!griglia.contains(drag.t)){
-          griglia.insertBefore(drag.t,griglia.querySelector('[data-ns-condividi]')||null);estetica(drag.t,griglia.dataset.sez);
+          griglia.append(drag.t);estetica(drag.t,griglia.dataset.sez);
         }
       };
       const finisci=()=>{
