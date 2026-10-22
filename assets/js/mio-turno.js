@@ -368,7 +368,7 @@
         // settimane separate: prima di ogni lunedi' uno spazio con il numero della settimana; domenica in rosso
         const wd = parseIso(d).getDay(), sett = wd === 1 ? `<span class="mt-sett" aria-hidden="true"><em>sett. ${settimanaIso(d)}</em></span>` : '';
         return `${sett}<button type="button" class="mt-g${d === oggi ? ' oggi' : ''}${wd === 0 ? ' dom' : ''}" data-giorno="${d}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
-          `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
+          `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'rip' : '—') : esc(t)}</span></button>`;
       }).join('');
     }
     box.querySelectorAll('.mt-g').forEach(g => g.classList.toggle('on', g.dataset.giorno === day));
@@ -395,9 +395,9 @@
       const box = $('turno-giorni'); if (!box) return;
       const centro = box.scrollLeft + box.clientWidth / 2;
       box.querySelectorAll('.mt-g').forEach(g => {
-        const k = Math.min(Math.abs(g.offsetLeft + g.offsetWidth / 2 - centro) / (g.offsetWidth + 8), 3);
-        g.style.setProperty('--s', (1 - Math.min(k, 1) * .12).toFixed(3));
-        g.style.setProperty('--o', Math.max(g.classList.contains('oggi') ? .85 : .3, 1 - k * .38).toFixed(2));
+        const k = Math.min(Math.abs(g.offsetLeft + g.offsetWidth / 2 - centro) / (g.offsetWidth + 4), 3);
+        g.style.setProperty('--s', (1 - Math.min(k, 1) * .08).toFixed(3));
+        g.style.setProperty('--o', Math.max(g.classList.contains('oggi') ? .9 : .5, 1 - k * .17).toFixed(2));
       });
     });
   }
