@@ -65,8 +65,13 @@
     const attuali = new Map((typeof entries !== 'undefined' ? entries : []).filter(Boolean).map(e => [e.date, e]));
     const nuovi = dati.entries.filter(e => e?.date && !attuali.has(e.date));
     const doppi = dati.entries.filter(e => e?.date && attuali.has(e.date) && canonica(attuali.get(e.date)) !== canonica(e));
+    // quali campi cambiano nei giorni diversi (nel messaggio i primi, tutti in console)
+    const campiDiversi = e => { const v = attuali.get(e.date); return [...new Set([...Object.keys(v), ...Object.keys(e)])].filter(k => k !== 'modificatoIl' && canonica(v[k]) !== canonica(e[k])); };
+    const dettaglio = doppi.map(e => ({ data: e.date, campi: campiDiversi(e).join(', '), attuale: campiDiversi(e).map(k => canonica(attuali.get(e.date)[k])).join(' | '), backup: campiDiversi(e).map(k => canonica(e[k])).join(' | ') }));
+    if (dettaglio.length) console.table(dettaglio);
+    const elencoDiversi = dettaglio.slice(0, 5).map(d => `\n• ${d.data}: ${d.campi || 'solo formato'}`).join('');
     if (!nuovi.length && !doppi.length && !Object.keys(dati.conversioni || {}).length) return avviso('Niente da ripristinare: la distinta è già uguale al backup');
-    if (!confirm(`Backup del ${String(dati.creato || '').slice(0, 10)}: ${nuovi.length} giorni da aggiungere${doppi.length ? `, ${doppi.length} giorni diversi da quelli attuali` : ''}. Procedere?`)) return;
+    if (!confirm(`Backup del ${String(dati.creato || '').slice(0, 10)}: ${nuovi.length} giorni da aggiungere${doppi.length ? `, ${doppi.length} giorni diversi da quelli attuali${elencoDiversi}${dettaglio.length > 5 ? '\n…' : ''}` : ''}. Procedere?`)) return;
     const sostituisci = doppi.length ? confirm(`Sostituire anche i ${doppi.length} giorni già presenti con quelli del backup?\nOK = sostituisci · Annulla = tieni quelli attuali`) : false;
     nuovi.forEach(e => attuali.set(e.date, e));
     if (sostituisci) doppi.forEach(e => attuali.set(e.date, e));
