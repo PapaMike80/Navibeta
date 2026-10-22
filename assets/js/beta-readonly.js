@@ -35,16 +35,7 @@
 
   function warn(url, method) {
     try { console.warn('[NaviBeta] scrittura bloccata (sola lettura):', method, String(url)); } catch (_) {}
-    try {
-      if (!document.getElementById('navibeta-ro-badge') && document.body) {
-        const b = document.createElement('div');
-        b.id = 'navibeta-ro-badge';
-        b.textContent = 'BETA · sola lettura: salvataggio bloccato';
-        b.style.cssText = 'position:fixed;left:50%;bottom:12px;transform:translateX(-50%);z-index:2147483000;background:#7c2d12;color:#fff;font:600 12px Manrope,system-ui,sans-serif;padding:8px 14px;border-radius:999px;box-shadow:0 4px 14px rgba(0,0,0,.4);pointer-events:none';
-        document.body.appendChild(b);
-        setTimeout(() => { try { b.remove(); } catch (_) {} }, 4000);
-      }
-    } catch (_) {}
+    // nessun avviso a schermo: la scrittura resta bloccata e viene segnata solo nella console
   }
 
   const nativeFetch = window.fetch;
