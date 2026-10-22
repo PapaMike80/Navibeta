@@ -118,13 +118,35 @@
     box.replaceChildren(intestazione, barra, elenco, conv, applica);
   }
 
+  // Stessi colori e bolle del popup della giornata (day-popup.js / navidiaria-monthly.css)
+  const COLORI_TURNO = { D1: '#2563eb', D2: '#059669', D3: '#ea580c', D4: '#c026d3', BIS: '#0891b2', BIS2: '#0891b2', DT: '#d4a900', AGB: '#2563eb', AGB2: '#2563eb', POND: '#dc2626', T1: '#2563eb', T2: '#059669', M1: '#ea580c', AGM: '#2563eb', AGT: '#d4a900', AGT1: '#d4a900', AGT2: '#d4a900', PONM: '#dc2626', R1: '#2563eb', R2: '#059669', R3: '#ea580c', R4: '#c026d3', CAR: '#0891b2', CAR1: '#0891b2', P1: '#2563eb', P2: '#059669', P3: '#ea580c', CAP: '#0891b2', CAP1: '#0891b2', SR1: '#7c3aed', SR2: '#c026d3', IE: '#64748b', PT: '#64748b', LD: '#64748b', LAV: '#64748b' };
+  const COLORE_CAMPO = { straordinario: '245,158,11', cambi: '245,158,11', sentine: '245,158,11', bank: '34,197,94', allowanceRate: '168,85,247', overnight40: '99,102,241',
+    ticket: '6,182,212', secondMeal: '14,165,233', embark: '249,115,22', cashHandling: '45,212,191', holidayWorked: '239,68,68', travel: '148,163,184', refuel: '245,158,11', note: '148,163,184' };
+  const GRUPPO_STRAORD = ['straordinario', 'cambi', 'sentine', 'bank', 'refuel'];
+  const VUOTO = v => v === '' || v === 0 || v === false;
+
+  function bolla(c, nuovoGiorno) {
+    const col = COLORE_CAMPO[c.key] || '148,163,184';
+    return el('div', { class: `bd-bolla${nuovoGiorno ? '' : ' cambiata'}`, style: `--cc:${col}` },
+      el('span', {}, c.label),
+      el('strong', {}, c.testoDopo),
+      nuovoGiorno ? null : el('small', {}, 'era ', c.testoPrima === '—' ? 'vuoto' : el('s', {}, c.testoPrima)));
+  }
+
   function riga(r) {
-    return el('label', { class: `bd-riga ${r.stato}` },
-      el('input', { type: 'checkbox', checked: state.scelte.has(r.date), onchange: e => { if (e.target.checked) state.scelte.add(r.date); else state.scelte.delete(r.date); $('bdDiff').querySelector('.bd-applica').textContent = `Applica ${state.scelte.size} giorni`; } }),
-      el('div', {},
-        el('b', {}, data(r.date)), el('span', { class: `bd-tag ${r.stato}` }, r.stato === 'nuovo' ? 'Nuovo' : 'Diverso'),
-        r.stato === 'nuovo' ? el('small', {}, `Turno ${r.entry.shift || '—'}`)
-          : el('ul', {}, ...r.campi.map(c => el('li', {}, el('span', {}, c.label), ' ', el('s', {}, c.testoPrima), ' → ', el('strong', {}, c.testoDopo))))));
+    const nuovoGiorno = r.stato === 'nuovo';
+    const campi = nuovoGiorno ? D.CAMPI.map(([key, label, leggi, testo]) => ({ key, label, dopo: leggi(r.entry), testoDopo: testo(leggi(r.entry)) })).filter(c => c.key !== 'shift' && !VUOTO(c.dopo)) : r.campi;
+    const turno = nuovoGiorno ? { testoDopo: r.entry.shift } : r.campi.find(c => c.key === 'shift');
+    const codice = String(turno?.testoDopo || r.entry.shift || '').toUpperCase();
+    const colore = COLORI_TURNO[codice] || '#64748b';
+    const straord = campi.filter(c => GRUPPO_STRAORD.includes(c.key)), altre = campi.filter(c => !GRUPPO_STRAORD.includes(c.key) && c.key !== 'shift');
+    return el('label', { class: `bd-giorno ${r.stato}` },
+      el('div', { class: 'bd-giorno-testa' },
+        el('input', { type: 'checkbox', 'aria-label': `Applica ${data(r.date)}`, checked: state.scelte.has(r.date), onchange: e => { if (e.target.checked) state.scelte.add(r.date); else state.scelte.delete(r.date); $('bdDiff').querySelector('.bd-applica').textContent = `Applica ${state.scelte.size} giorni`; } }),
+        el('b', {}, data(r.date)), el('span', { class: `bd-tag ${r.stato}` }, nuovoGiorno ? 'Nuovo' : 'Diverso')),
+      el('div', { class: 'bd-turno', style: `--c:${colore}` }, el('b', {}, turno?.testoDopo || r.entry.shift || '—'), turno?.testoPrima ? el('small', {}, 'era ', el('s', {}, turno.testoPrima)) : null),
+      straord.length ? el('section', { class: 'bd-straord' }, el('small', {}, 'STRAORDINARI'), el('div', { class: 'bd-bolle' }, straord.map(c => bolla(c, nuovoGiorno)))) : null,
+      altre.length ? el('div', { class: 'bd-bolle' }, altre.map(c => bolla(c, nuovoGiorno))) : null);
   }
 
   // ---------- Applicazione ----------
