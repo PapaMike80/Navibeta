@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Equipaggio e Mappa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root{--surface:#0b1c26;--card:#102733;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#071923;color:var(--ink);font:500 14px/1.4 Manrope,system-ui,sans-serif}
+h1{margin:0 0 4px;font-size:18px}.nota{margin:0 0 14px;color:var(--muted);font-size:12px;max-width:900px}
+.wrap{display:grid;grid-template-columns:repeat(3,300px);gap:16px}
+.tel{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:12px;display:grid;gap:10px;align-content:start}
+.cap{font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.1em}
+.hd{display:grid;gap:4px;padding-bottom:10px;border-bottom:1px solid var(--line);position:relative}
+.eb{color:var(--teal);font-size:10px;font-weight:800;letter-spacing:.2em}
+.btns{position:absolute;top:0;right:0;display:flex;gap:6px}.btns span{height:30px;padding:0 9px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--teal) 60%,transparent);border-radius:10px;color:var(--teal);font-weight:800;font-size:11px;background:var(--surface)}
+.tt{display:flex;align-items:center;gap:8px;font-size:21px;font-weight:800;white-space:nowrap;overflow:hidden;padding-right:130px}
+.tt span.n{overflow:hidden;text-overflow:ellipsis}
+.chip{flex:none;padding:2px 10px;border-radius:999px;font-size:13px;font-weight:900;color:#fdba74;border:1.5px solid #c2410c;background:#431407}
+.ctx{color:var(--muted);font-size:12px}.srv{font-size:14px}.srv b{font-family:'DM Mono',monospace;font-weight:500}
+.sez{border-radius:16px;background:var(--card);border:1px solid var(--line)}
+.sez h3{margin:0;padding:10px 12px;font-size:16px;font-weight:800;border-bottom:1px solid var(--line)}
+.sez h3:before{content:'▾ ';font-size:11px;color:var(--muted)}
+.sez.chiusa h3{border:0}.sez.chiusa h3:before{content:'▸ '}
+.sez h3 small{float:right;color:var(--muted);font-size:12px;font-weight:700}
+.crew{display:grid;gap:6px;padding:10px}
+.crew div{display:flex;justify-content:space-between;padding:8px 10px;border-radius:10px;background:#0d2230;font-weight:800}
+.crew small{color:var(--muted);font-weight:700}.crew .me{border:1.5px solid var(--teal)}
+.mappa{padding:10px;display:grid;gap:8px}
+.tempo{display:grid;grid-template-columns:34px 1fr auto;gap:10px;align-items:center}
+.play{height:34px;border-radius:10px;border:1.5px solid var(--teal);display:grid;place-items:center;color:var(--teal)}
+.bar{height:6px;border-radius:9px;background:#dbe7ea;position:relative}.bar:before{content:'';position:absolute;left:0;width:18%;height:100%;border-radius:9px;background:var(--teal)}.bar:after{content:'';position:absolute;left:15%;top:-7px;width:26px;height:20px;border-radius:10px;background:#fff}
+.tempo b{font:500 18px 'DM Mono',monospace}
+.lago{height:250px;border-radius:12px;background:radial-gradient(60px 120px at 60% 40%,#1b7f99 60%,transparent 62%),radial-gradient(90px 60px at 45% 80%,#1b7f99 70%,transparent 72%);display:grid;place-items:center;color:#9fb8c2;font-size:11px}
+.via{text-decoration:line-through;color:#fb7185;font-size:11px}
+</style></head><body>
+<h1>Il mio turno: Equipaggio e Mappa</h1>
+<p class="nota">1) Nel riquadro sotto, la riga «M1 8.15 → 19.25 11h25min» viene tolta perché è già nell'intestazione, e il riquadro si chiama <b>Equipaggio</b>. 2) Nella Mappa sparisce l'intestazione «Lago · la mia corsa all'ora scelta»: restano solo il cursore del tempo e la mappa. 3) In più, il titolo lungo («Nave non indicata») si ferma prima dei pulsanti Distinta e ☰ invece di finirci sotto.</p>
+<div class="wrap">
+ <div class="tel"><span class="cap">INTESTAZIONE</span>
+  <div class="hd"><span class="eb">IL MIO TURNO</span><div class="btns"><span>≈ Distinta</span><span>☰</span></div>
+   <div class="tt"><span class="chip">M1</span><span class="n">Nave non indicata</span></div><div class="ctx">FERTONANI GL. · corse 91–94</div><div class="srv">Servizio <b>8.15 – 19.25</b> (11 h 25')</div></div>
+  <div class="sez chiusa"><h3>Corse e scali<small>4 corse</small></h3></div>
+  <div class="sez chiusa"><h3>Mappa</h3></div>
+ </div>
+ <div class="tel"><span class="cap">EQUIPAGGIO</span>
+  <div class="sez"><h3>Equipaggio</h3><div class="crew">
+   <span class="via">M1 8.15 → 19.25 11h25min (tolta)</span>
+   <div><span style="color:#facc15">FERTONANI GL.</span><small>Capitano</small></div>
+   <div><span style="color:#a855f7">CIVETTINI G.</span><small>Motorista</small></div>
+   <div class="me"><span>PEDRONI M. <span style="color:#2dd4bf">(tu)</span></span><small>Marinaio</small></div></div></div>
+ </div>
+ <div class="tel"><span class="cap">MAPPA</span>
+  <div class="sez"><h3>Mappa</h3><div class="mappa">
+   <span class="via">Lago · la mia corsa all'ora scelta (tolta)</span>
+   <div class="tempo"><span class="play">▶</span><span class="bar"></span><b>8.30</b></div>
+   <div class="lago">mappa del lago</div></div></div>
+ </div>
+</div></body></html>
