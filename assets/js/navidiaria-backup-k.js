@@ -31,7 +31,9 @@
         if (!base || !lavora(base.shift)) { if (lav || diaria) saltati.push(data); continue; }
         const e = JSON.parse(JSON.stringify(base));
         const serv = servizio ? servizio(e) : Number(e.serviceMinutes) || 0;
-        if (lav && ovt) ovt.setOrdinary(e, Math.max(0, lav - serv), serv);
+        // lo straordinario totale e' ore - servizio; cambio e sentine gia' presenti in Distinta restano, il resto e' ritardo
+        const altri = (Number(e.overtimeComponents?.cambi) || 0) + (Number(e.overtimeComponents?.sentine) || 0);
+        if (lav && ovt) ovt.setOrdinary(e, Math.max(0, lav - serv - altri), serv);
         const parti = diaria.split('+');
         if (parti.includes('40')) e.overnight40 = true;
         const perc = parti.map(Number).find(n => [9, 24, 50].includes(n));
