@@ -372,7 +372,7 @@
       const box=document.getElementById('pagina-tutti'),sel=document.getElementById('pagina-tutti-select'),stato=document.getElementById('pagina-tutti-stato');
       box.hidden=false;
       const nomiRuoli=Object.fromEntries(roles.RUOLI||[]);
-      const pagine=[['auto','Automatica (Il mio turno)'],['index.html','Home'],...(roles.PAGINE||[]).filter(([f])=>!['impostazioni.html','quiz.html','verifica-busta.html'].includes(f))];
+      const pagine=[['auto','Automatica (Il mio turno)'],['index.html','Home'],...(roles.PAGINE||[]).filter(([f])=>!['impostazioni.html','quiz.html','verifica-busta.html','comitive.html','backup-dati.html'].includes(f))];
       sel.innerHTML=pagine.map(([f,t])=>{const r=f==='auto'||f==='index.html'?'':` (${(roles.consentiti?.(f)||[]).map(x=>nomiRuoli[x]||x).join(', ')||'solo admin'})`;return `<option value="${f}">${t}${r}</option>`;}).join('');
       const mostra=d=>{if(d?.ts)stato.textContent=`Ultimo reset: ${new Date(d.ts).toLocaleString('it-IT')}${d.da?` da ${d.da}`:''} → ${(pagine.find(([f])=>f.replace(/\.html$/,'')===d.pagina)||[,d.pagina])[1]}`;};
       try{await NaviAdminFirebase.ready;mostra(await NaviAdminFirebase.getPaginaIniziale());}catch(_){}

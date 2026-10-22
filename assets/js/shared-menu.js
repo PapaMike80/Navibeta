@@ -91,7 +91,7 @@
       ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
       ['backup-dati.html','⤓','Backup'],
       ['impostazioni.html','⚙','Impostazioni'],
-      ...(isAdmin||String(agent?.qualifica||'').toLowerCase()==='movimento'?[['comitive.html','⛴','Comitive']]:[]),
+      ...(roles.puoAprire?.('comitive.html',agent)?[['comitive.html','⛴','Comitive']]:[]),
       ...(isAdmin?[['agenti.html','♙','Agenti'],['aggiornamenti.html','↻','Aggiornamenti'],['movimento.html','⚓','Movimento'],['collegamenti.html','⇆','Collegamenti']]:[])
     ];
     const escapeText=value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
