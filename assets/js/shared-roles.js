@@ -58,19 +58,19 @@
   // L'ultima scelta nota resta sul telefono, cosi' il controllo vale subito; poi si rilegge da Firebase.
   const PAGINE = [['oggi.html', 'Oggi'], ['naviturni.html', 'NaviTurni'], ['navidiaria.html', 'Distinta'], ['documenti.html', 'Documenti'],
     ['mio-turno.html', 'Il mio turno'], ['orario.html', 'Scali'], ['orari.html', 'Orari'], ['cambi_turno.html', 'Cambio turno'], ['quiz.html', 'Quiz'],
-    ['impostazioni.html', 'Impostazioni'], ['verifica-busta.html', 'Verifica busta'], ['comitive.html', 'Comitive'], ['backup-dati.html', 'Backup e fonti'], ['controllo_cassa.html', 'Controllo cassa']];
+    ['impostazioni.html', 'Impostazioni'], ['verifica-busta.html', 'Verifica busta'], ['comitive.html', 'Comitive'], ['agenti.html', 'Agenti'], ['movimento.html', 'Movimento'], ['collegamenti.html', 'Collegamenti'], ['backup-dati.html', 'Backup e fonti'], ['controllo_cassa.html', 'Controllo cassa']];
   const RUOLI = [['agenti', 'Agenti'], ['uffici', 'Uffici'], ['scali', 'Scali'], ['bariste', 'Bariste']];
   const ruoloDi = agent => (isScaloAgent(agent) ? 'scali' : isBaristaAgent(agent) ? 'bariste'
     : String(agent?.residence || agent?.residenza || '').toLowerCase() === 'uffici' ? 'uffici' : 'agenti');
   // Verifica busta: di norma solo admin
-  const predefiniti = file => (['orario.html', 'orari.html'].includes(file) ? ['agenti', 'uffici', 'scali', 'bariste'] : ['verifica-busta.html', 'comitive.html'].includes(file) ? [] : ['agenti', 'uffici', 'bariste']);
+  const predefiniti = file => (['orario.html', 'orari.html'].includes(file) ? ['agenti', 'uffici', 'scali', 'bariste'] : ['verifica-busta.html', 'comitive.html', 'agenti.html', 'movimento.html', 'collegamenti.html'].includes(file) ? [] : ['agenti', 'uffici', 'bariste']);
   const ACCESS_KEY = 'navisuite.pageAccess';
   const accesso = () => { try { return JSON.parse(localStorage.getItem(ACCESS_KEY) || '{}') || {}; } catch { return {}; } };
   const sessione = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null'); } catch { return null; } };
   // ruoli che possono aprire la pagina ('admin' = la vecchia scelta "solo admin")
   const consentiti = (file, access = accesso()) => { const v = access[file]; return Array.isArray(v) ? v : v === 'admin' ? [] : predefiniti(file); };
   // Sezioni del menu e della Home: di default come sempre, ma gli admin possono spostare le pagine (pagina Agenti > Accesso alle pagine)
-  const SEZIONI = [['principali', 'PAGINE PRINCIPALI'], ['altre', 'ALTRE PAGINE'], ['amministrazione', 'AMMINISTRAZIONE']];
+  const SEZIONI = [['principali', 'PRINCIPALI'], ['altre', 'UTENTI'], ['amministrazione', 'AMMINISTRAZIONE']];
   const SEZIONE_PREDEFINITA = { 'mio-turno.html': 'principali', 'orario.html': 'principali', 'naviturni.html': 'principali', 'oggi.html': 'principali', 'navidiaria.html': 'principali',
     'quiz.html': 'amministrazione', 'comitive.html': 'amministrazione', 'verifica-busta.html': 'amministrazione', 'agenti.html': 'amministrazione', 'aggiornamenti.html': 'amministrazione',
     'movimento.html': 'amministrazione', 'collegamenti.html': 'amministrazione' };

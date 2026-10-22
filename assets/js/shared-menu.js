@@ -92,7 +92,10 @@
       ['backup-dati.html','⤓','Backup'],
       ['impostazioni.html','⚙','Impostazioni'],
       ...(roles.puoAprire?.('comitive.html',agent)?[['comitive.html','⛴','Comitive']]:[]),
-      ...(isAdmin?[['agenti.html','♙','Agenti'],['aggiornamenti.html','↻','Aggiornamenti'],['movimento.html','⚓','Movimento'],['collegamenti.html','⇆','Collegamenti']]:[])
+      ...(roles.puoAprire?.('agenti.html',agent)?[['agenti.html','♙','Agenti']]:[]),
+      ...(isAdmin?[['aggiornamenti.html','↻','Aggiornamenti']]:[]),
+      ...(roles.puoAprire?.('movimento.html',agent)?[['movimento.html','⚓','Movimento']]:[]),
+      ...(roles.puoAprire?.('collegamenti.html',agent)?[['collegamenti.html','⇆','Collegamenti']]:[])
     ];
     const escapeText=value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
     // Riquadri come nella Home: le 5 pagine principali grandi (Distinta per prima, larga), le altre piccole.

@@ -142,14 +142,14 @@ function showChoice(agent) {
   if (orariTabella) orariTabella.hidden = isBaristaAgent(agent);
   if (settings) settings.hidden = isBaristaAgent(agent);
   if (updates) updates.hidden = !(isAdminAgent(agent) || isHibaBarista(agent));
-  if (agentAdmin) agentAdmin.hidden = !isAdminAgent(agent);
-  if (movimento) movimento.hidden = !isAdminAgent(agent);
+  if (agentAdmin) agentAdmin.hidden = !window.NaviRoles?.puoAprire?.('agenti.html', agent);
+  if (movimento) movimento.hidden = !window.NaviRoles?.puoAprire?.('movimento.html', agent);
   if (shipManagement) shipManagement.hidden = !isAdminAgent(agent);
   // come nel menu: Orari a tutti tranne le bariste, Comitive ad admin e Ufficio Movimento, Collegamenti agli admin
   const orariPag = document.querySelector('.app-card.orari-pag'), comitive = document.querySelector('.app-card.comitive'), collegamenti = document.querySelector('.app-card.collegamenti');
   if (orariPag) orariPag.hidden = isBaristaAgent(agent) && !isHibaBarista(agent);
   if (comitive) comitive.hidden = !window.NaviRoles?.puoAprire?.('comitive.html', agent);
-  if (collegamenti) collegamenti.hidden = !isAdminAgent(agent);
+  if (collegamenti) collegamenti.hidden = !window.NaviRoles?.puoAprire?.('collegamenti.html', agent);
   const quiz = document.querySelector('.app-card.quiz');
   if (quiz) quiz.hidden = !isAdminAgent(agent);
   const backup = document.querySelector('.app-card.backup');
