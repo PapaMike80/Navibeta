@@ -30,6 +30,8 @@
   </style>
 <script src="assets/js/beta-readonly.js?v=4"></script>
   <style>
+    /* niente barra della data: si cambia giorno solo dalla striscia dei giorni */
+    #mio-turno .terra-bar .terra-day{display:none!important}
     /* striscia dei giorni (Il mio turno): il giorno scelto al centro, gli altri in trasparenza */
     .mt-giorni{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:8px calc(50% - 40px) 10px;scrollbar-width:none;-webkit-overflow-scrolling:touch}
     .mt-giorni::-webkit-scrollbar{display:none}
