@@ -486,7 +486,7 @@
   const goToDay = day => {
     const prima = today();
     if (day === prima) return;
-    const verso = day > prima ? 'sx' : 'dx', els = ['turno-content', 'turno-after'].map($).filter(Boolean);
+    const verso = day > prima ? 'sx' : 'dx', els = ['turno-content', 'turno-scali', 'turno-after'].map($).filter(el => el && !el.hidden);
     clearTimeout(cambioTimer);
     els.forEach(el => { el.classList.remove('mt-entra-sx', 'mt-entra-dx', 'mt-esce-sx', 'mt-esce-dx'); void el.offsetWidth; el.classList.add(`mt-esce-${verso}`); });
     const strip = $('turno-giorni');
@@ -516,16 +516,15 @@
     }, 140);
   }, { passive: true });
   $('turno-giorni')?.addEventListener('scrollend', () => { setTimeout(() => { giorniBloccati = false; }, 60); });
-  // scorrimento del turno col dito: a sinistra il giorno dopo, a destra il giorno prima
+  // scorrimento col dito in qualunque punto della pagina: a sinistra il giorno dopo, a destra il giorno prima
+  // (non sulla striscia dei giorni, che scorre da sola, ne' sui comandi come il cursore del tempo della mappa)
   let tocco = null;
-  ['turno-content', 'turno-after'].forEach(id => {
-    const el = $(id); if (!el) return;
-    el.addEventListener('touchstart', e => { const t = e.touches[0]; tocco = { x: t.clientX, y: t.clientY }; }, { passive: true });
-    el.addEventListener('touchend', e => {
-      if (!tocco) return; const t = e.changedTouches[0], dx = t.clientX - tocco.x, dy = t.clientY - tocco.y; tocco = null;
-      if (Math.abs(dx) > 70 && Math.abs(dy) < 45 && !e.target.closest('input,select,.graf-wrap')) goToDay(addDays(today(), dx < 0 ? 1 : -1));
-    }, { passive: true });
-  });
+  const pagina = $('mio-turno') || document.body;
+  pagina.addEventListener('touchstart', e => { const t = e.touches[0]; tocco = e.touches.length === 1 && !e.target.closest('#turno-giorni,input,select,textarea,.graf-wrap,.or-time') ? { x: t.clientX, y: t.clientY } : null; }, { passive: true });
+  pagina.addEventListener('touchend', e => {
+    if (!tocco) return; const t = e.changedTouches[0], dx = t.clientX - tocco.x, dy = t.clientY - tocco.y; tocco = null;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 45) goToDay(addDays(today(), dx < 0 ? 1 : -1));
+  }, { passive: true });
   $('turno-day-prev').addEventListener('click', () => goToDay(addDays(today(), -1)));
   $('turno-day-next').addEventListener('click', () => goToDay(addDays(today(), 1)));
   $('turno-day-today').addEventListener('click', () => goToDay(iso(new Date())));
