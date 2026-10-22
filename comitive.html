@@ -137,18 +137,6 @@
     .form .sub{padding-top:6px;border-top:1px solid var(--line);font-size:10px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--violet)}
     textarea{width:100%;min-width:0;font:600 14px Manrope,system-ui,sans-serif;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);color:var(--ink);resize:vertical}
     @media(min-width:1000px){.ag-l{grid-template-columns:repeat(2,minmax(0,1fr))}}
-    <div class="tabs" role="tablist"><button type="button" role="tab" id="t-com" aria-selected="true" data-tab="comitive">Comitive</button><button type="button" role="tab" id="t-age" aria-selected="false" data-tab="agenzie">Agenzie</button></div>
-    <div id="tab-comitive">
-    <details class="adm" id="cerca-box" style="--c:var(--teal)">
-      <summary><span>🔍 Cerca comitiva</span><b class="cnt" id="cerca-cnt"></b></summary>
-      <form class="form" id="cerca-form" autocomplete="off" onsubmit="return false">
-        <label>Data<input type="date" id="c-data"></label>
-        <label>Agenzia<input type="text" id="c-ag" list="dl-clienti" placeholder="Ag. Michelangelo"></label>
-        <label>Partenza<input type="text" id="c-da" list="dl-scali" placeholder="Riva del Garda"></label>
-        <label>Arrivo<input type="text" id="c-a" list="dl-scali" placeholder="Malcesine"></label>
-        <button class="btn w annulla" type="button" id="c-azzera">Azzera ricerca</button>
-      </form>
-    </details>
   </style>
 <script src="assets/js/beta-readonly.js?v=4"></script>
 </head>
@@ -156,6 +144,8 @@
   <aside class="app-sidebar" id="comitive-sidebar"></aside>
   <header class="page-header"><div><small>MOVIMENTO</small><h1>Comitive</h1></div></header>
   <main id="pagina" hidden>
+    <div class="tabs" role="tablist"><button type="button" role="tab" id="t-com" aria-selected="true" data-tab="comitive">Comitive</button><button type="button" role="tab" id="t-age" aria-selected="false" data-tab="agenzie">Agenzie</button></div>
+    <div id="tab-comitive">
     <div class="bar"><p id="fonte"></p><select class="sett" id="settimana" aria-label="Settimana da stampare"></select><button class="btn" id="stampa-btn" type="button">🖨 Stampa OdS Comitive</button></div>
     <div class="kpi" id="kpi"></div>
     <details class="adm" id="cerca-box" style="--c:var(--teal)">
@@ -294,8 +284,6 @@
 
     // Stampa: tabella dell'allegato «Comitive O.d.S.» su fondo bianco
     function stampa(){
-    [['data','c-data'],['ag','c-ag'],['da','c-da'],['a','c-a']].forEach(([k,id])=>$(id).addEventListener('input',()=>{state.f[k]=$(id).value.trim();render();}));
-    $('c-azzera').addEventListener('click',()=>{state.f={data:'',ag:'',da:'',a:''};['c-data','c-ag','c-da','c-a'].forEach(id=>{$(id).value='';});render();});
       const s0=$('settimana').value,s1=piuGiorni(s0,6);
       const lista=tutte().filter(c=>c.data>=s0&&c.data<=s1),giorni=[...new Set(lista.map(c=>c.data))];
       const vuoto=v=>esc(v||'');
