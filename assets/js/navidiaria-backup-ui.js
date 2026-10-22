@@ -45,6 +45,12 @@
         dati = JSON.parse(files[json]);
       } else dati = JSON.parse(await f.text());
     } catch (error) { return avviso(`File non leggibile: ${error.message}`); }
+    if (window.NaviDiariaBackupK?.riconosci(dati)) { // backup di Ore NaviG (K): si applica sui turni gia' in Distinta
+      const gia = new Map((typeof entries !== 'undefined' ? entries : []).filter(Boolean).map(e => [e.date, e]));
+      const k = window.NaviDiariaBackupK.converti(dati, gia, { servizio: e => Math.round((Number(shiftFor(e.shift, e.date).hours) || 0) * 60) });
+      if (k.saltati.length) avviso(`${k.saltati.length} giorni del backup senza turno in Distinta: saltati`);
+      dati = { tipo: 'navidiaria-backup', creato: '', entries: k.entries, conversioni: k.conversioni };
+    }
     if (dati?.tipo !== 'navidiaria-backup' || !Array.isArray(dati.entries)) return avviso('Non è un backup della Distinta');
     const a = agente();
     if (dati.agente?.id && a?.id && String(dati.agente.id) !== String(a.id) &&
