@@ -365,7 +365,9 @@
         let t = ''; try { t = state.schedule ? String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim() : ''; } catch (_) { t = ''; }
         t = lavoroDi(t) || t;
         const rip = RIPOSO.test(t), c = G.coloreTurno(t);
-        return `<button type="button" class="mt-g${d === oggi ? ' oggi' : ''}" data-giorno="${d}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
+        // settimane separate: prima di ogni lunedi' uno spazio con il numero della settimana; domenica in rosso
+        const wd = parseIso(d).getDay(), sett = wd === 1 ? `<span class="mt-sett" aria-hidden="true">sett. ${settimanaIso(d)}</span>` : '';
+        return `${sett}<button type="button" class="mt-g${d === oggi ? ' oggi' : ''}${wd === 0 ? ' dom' : ''}" data-giorno="${d}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
           `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
       }).join('');
     }
@@ -378,6 +380,12 @@
       clearTimeout(giorniTimer); giorniTimer = setTimeout(() => { giorniBloccati = false; }, 900);
     }
     scalaGiorni();
+  }
+  // numero della settimana (ISO, da lunedi')
+  function settimanaIso(d) {
+    const x = parseIso(d); x.setDate(x.getDate() + 3 - (x.getDay() + 6) % 7);
+    const g4 = new Date(x.getFullYear(), 0, 4);
+    return 1 + Math.round(((x - g4) / 864e5 - 3 + (g4.getDay() + 6) % 7) / 7);
   }
   // le tessere crescono e si accendono man mano che passano al centro della striscia
   let scalaRaf = 0;

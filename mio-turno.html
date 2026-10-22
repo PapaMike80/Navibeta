@@ -42,6 +42,10 @@
     /* oggi: tessera piu' alta con la scritta OGGI, sempre in evidenza; scorrendo ci si ferma sempre su oggi */
     .mt-g.oggi{scroll-snap-stop:always;padding-top:5px;padding-bottom:10px;border:2px dashed rgba(45,212,191,.7)}
     .mt-g.oggi.on{border-style:solid}
+    /* settimane separate: domenica in rosso, prima del lunedi' spazio con il numero della settimana */
+    .mt-g.dom:not(.on){border-color:rgba(251,113,133,.55);background:color-mix(in srgb,#fb7185 12%,#102733)}
+    .mt-g.dom small,.mt-g.dom b{color:#fb7185}
+    .mt-sett{flex:0 0 22px;align-self:stretch;display:grid;place-items:center;writing-mode:vertical-rl;transform:rotate(180deg);font:800 9px Manrope,system-ui,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#2dd4bf;border-left:1px solid rgba(45,212,191,.35);white-space:nowrap}
     .mt-oggi{font:900 10px Manrope,system-ui,sans-serif;font-style:normal;letter-spacing:.14em;text-transform:uppercase;color:#06231f;background:#2dd4bf;border-radius:999px;padding:1px 8px}
     .mt-g b{font:500 19px 'DM Mono',ui-monospace,monospace}
     .mt-g .t{min-width:40px;padding:1px 7px;border-radius:999px;background:var(--c,#334155);color:#06231f;font:900 11px Manrope,system-ui,sans-serif;text-align:center}
@@ -131,7 +135,7 @@
   <script src="assets/js/admin-pocketbase-rest.js?v=6"></script>
   <script src="assets/js/comitive-ods.js?v=1"></script>
   <script src="assets/js/comitive.js?v=8"></script>
-  <script src="assets/js/mio-turno.js?v=53"></script>
+  <script src="assets/js/mio-turno.js?v=54"></script>
   <script src="assets/js/push-arrivi.js?v=9"></script>
   <script src="assets/js/arrivi-avvisi.js?v=1"></script>
 </body>
