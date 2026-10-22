@@ -55,6 +55,7 @@
     .bd-tag{margin-left:auto;padding:1px 10px;border-radius:999px;font-size:11px;font-weight:800;background:var(--amber);color:#1a1100}.bd-tag.nuovo{background:var(--green)}
     .bd-conv{display:flex;gap:8px;align-items:flex-start;font-size:13px}
     .bd-applica{align-self:flex-start;min-height:44px}
+    .bd-nota{color:var(--muted);font-size:13px;margin:4px 0 10px}
     #bdMain{display:flex;flex-direction:column;gap:14px}#bdMain[hidden]{display:none}.bd-vuoto{color:var(--muted);padding:8px}
   </style>
   <script src="assets/js/beta-readonly.js?v=2"></script>
@@ -67,21 +68,26 @@
     <p class="bd-box bd-warn" id="bdBeta" hidden>NaviBeta è in sola lettura: puoi caricare un backup e vedere le differenze, ma non applicarle.</p>
     <div id="bdMain" hidden>
       <section class="bd-box">
-        <h2>Carica un backup</h2>
-        <p style="color:var(--muted);font-size:13px;margin:4px 0 10px">Il file di NaviSuite (.zip o .json) oppure quello di Ore NaviG (.json): lo riconosco da solo. Prima vedi le differenze, poi scegli quali giorni applicare.</p>
+        <h2>Carica backup</h2>
+        <p class="bd-nota">Scegli da dove arriva il file. Prima vedi le differenze giorno per giorno, poi scegli quali applicare.</p>
         <div class="bd-barra">
-          <label class="chip up" for="bdFile">＋ Scegli il file</label><input class="sr-only" type="file" id="bdFile" accept=".zip,.json,application/zip,application/json">
-          <button type="button" class="chip" id="bdScarica">⤓ Scarica backup</button>
+          <label class="chip up" for="bdFileNavi">＋ Da NaviSuite</label><input class="sr-only" type="file" id="bdFileNavi" accept=".zip,.json,application/zip,application/json">
+          <label class="chip up" for="bdFileK">＋ Da Ore NaviG 4.3</label><input class="sr-only" type="file" id="bdFileK" accept=".json,application/json">
         </div>
         <p id="bdFileInfo" aria-live="polite" class="bd-warn"></p>
       </section>
       <section id="bdDiff" class="bd-box" hidden></section>
-      <section><h2 style="margin-bottom:8px">Fonti dei dati</h2><div class="bd-fonti" id="bdFonti"></div></section>
+      <section class="bd-box">
+        <h2>Scarica backup</h2>
+        <p class="bd-nota">Un file .zip con il backup della tua Distinta (per ripristinarla) e il CSV da aprire con Excel.</p>
+        <div class="bd-barra"><button type="button" class="chip on" id="bdScarica">⤓ Scarica backup NaviSuite</button></div>
+      </section>
+      <section id="bdAdmin" hidden><h2 style="margin-bottom:8px">Fonti dei dati</h2><p class="bd-nota" style="margin-bottom:8px">Solo amministratori: controlla che il database sul dispositivo e quello su Firebase siano uguali.</p><div class="bd-fonti" id="bdFonti"></div></section>
     </div>
   </main>
   <script src="assets/js/shared-roles.js?v=9"></script>
   <script src="assets/js/admin-firebase-rest.js?v=88"></script>
-  <script src="assets/js/shared-menu.js?v=1.83"></script>
+  <script src="assets/js/shared-menu.js?v=1.84"></script>
   <script src="assets/js/offline.js?v=2"></script>
   <script src="assets/js/overtime-components.js?v=11"></script>
   <script src="assets/js/shift-competence.js?v=4"></script>

@@ -152,6 +152,11 @@ function showChoice(agent) {
   if (collegamenti) collegamenti.hidden = !isAdminAgent(agent);
   const quiz = document.querySelector('.app-card.quiz');
   if (quiz) quiz.hidden = !isAdminAgent(agent);
+  const backup = document.querySelector('.app-card.backup');
+  if (backup) backup.hidden = isBaristaAgent(agent);
+  // sezione Amministrazione: solo se c'e' almeno una voce visibile
+  const adminGrid = document.getElementById('adminGrid'), adminTitolo = document.getElementById('adminTitolo');
+  if (adminGrid) { const vuota = !adminGrid.querySelector('.app-card:not([hidden])'); adminGrid.hidden = vuota; if (adminTitolo) adminTitolo.hidden = vuota; }
 }
 
 function applyDirectory(directory) {

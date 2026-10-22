@@ -38,36 +38,31 @@
     return { entries: local, origine: 'questo telefono (copia online non raggiungibile)' };
   }
 
-  // ---------- Fonti dei dati ----------
-  function disegnaFonti() {
-    const lista = state.attuali.entries, meta = leggi(K.meta, {}), sporco = localStorage.getItem(K.dirty) === '1';
-    const storia = leggi(K.history, []);
+  // ---------- Fonti dei dati (solo admin): il database del telefono e quello su Firebase sono uguali? ----------
+  async function verificaFonti() {
+    const sezione = $('bdFonti'), meta = leggi(K.meta, {}), sporco = localStorage.getItem(K.dirty) === '1', locale = locali();
     const pb = (() => { try { return localStorage.getItem('navisuite.pbBase') || ''; } catch { return ''; } })();
     const card = (titolo, righe, azioni) => el('article', { class: 'bd-card' }, el('h3', {}, titolo), el('p', {}, ...righe), azioni ? el('div', { class: 'bd-azioni' }, azioni) : null);
-    const sezione = $('bdFonti');
-    sezione.replaceChildren(
-      card('📱 Distinta attuale', [`${lista.length} giorni da: ${state.attuali.origine} · ultimo salvataggio sul telefono ${quando(meta.updatedAt)}`, sporco ? el('b', { class: 'bd-warn' }, ' · modifiche non ancora online') : ' · allineato'], null),
-      card('☁ Copia online (Firebase)', [el('span', { id: 'bdCloudInfo' }, 'Non ancora controllata')],
-        [el('button', { type: 'button', class: 'chip', onclick: () => caricaCloud() }, 'Confronta con la copia online')]),
-      card('🕘 Copie automatiche del telefono', [Array.isArray(storia) && storia.length ? `${storia.length} copie conservate` : 'Nessuna copia conservata'], null),
-      pb ? card('🗄 Server PocketBase', [pb], null) : null,
-      ...(Array.isArray(storia) ? storia.slice(-8).reverse().map((s, i) => card(`Copia del ${quando(s.savedAt)}`, [`${s.entryCount ?? s.entries?.length ?? 0} giorni · ${s.reason || 'salvataggio'}`],
-        [el('button', { type: 'button', class: 'chip', onclick: () => impostaFonte({ nome: `Copia del ${quando(s.savedAt)}`, tipo: 'copia', entries: (s.entries || []).filter(Boolean), conversioni: {} }) }, 'Confronta')])) : []));
-  }
-
-  async function caricaCloud() {
-    const info = $('bdCloudInfo');
-    info.textContent = 'Lettura in corso…';
-    try {
-      await window.NaviAdminFirebase.ready;
-      const remoto = await window.NaviAdminFirebase.loadDiaria(id);
-      info.textContent = `${remoto.entries.length} giorni · aggiornata ${quando(remoto.updatedAt)}`;
-      impostaFonte({ nome: 'Copia online', tipo: 'cloud', entries: remoto.entries, conversioni: {} });
-    } catch (errore) { info.textContent = `Non raggiungibile: ${errore.message || errore}`; }
+    sezione.replaceChildren(el('p', {}, 'Controllo in corso…'));
+    let remoto = null, errore = '';
+    try { await window.NaviAdminFirebase.ready; remoto = await window.NaviAdminFirebase.loadDiaria(id); } catch (e) { errore = e.message || String(e); }
+    const schede = [card('📱 Questo dispositivo', [`${locale.length} giorni · ultimo salvataggio ${quando(meta.updatedAt)}`, sporco ? el('b', { class: 'bd-warn' }, ' · modifiche non ancora online') : ''])];
+    if (!remoto) schede.push(card('☁ Firebase', [`Non raggiungibile: ${errore}`]));
+    else {
+      const online = remoto.entries.filter(Boolean), { righe, uguali } = D.confronta(online, locale);
+      const soloTelefono = righe.filter(r => r.stato === 'nuovo').length, diversi = righe.length - soloTelefono;
+      const date = new Set(locale.map(e => e.date)), soloOnline = online.filter(e => !date.has(e.date)).length;
+      const ok = !righe.length && !soloOnline;
+      schede.push(card('☁ Firebase', [`${online.length} giorni · aggiornato ${quando(remoto.updatedAt)}`]),
+        card(ok ? '✅ Database uguali' : '⚠ Database diversi', [ok ? `I ${uguali} giorni sul dispositivo coincidono con Firebase.` : `${diversi} giorni diversi · ${soloTelefono} solo sul dispositivo · ${soloOnline} solo su Firebase`],
+          righe.length ? [el('button', { type: 'button', class: 'chip', onclick: () => impostaFonte({ nome: 'Dispositivo ↔ Firebase: il dispositivo ha…', tipo: 'dispositivo', entries: locale, conversioni: {}, soloLettura: true }, online) }, 'Vedi le differenze')] : null));
+    }
+    if (pb) schede.push(card('🗄 Server PocketBase', [pb]));
+    sezione.replaceChildren(...schede);
   }
 
   // ---------- File ----------
-  async function leggiFile(file) {
+  async function leggiFile(file, atteso) {
     const B = window.NaviDiariaBackup;
     let dati;
     if (/\.zip$/i.test(file.name) || file.type.includes('zip')) {
@@ -75,7 +70,10 @@
       if (!nome) throw new Error('Nello zip non c’è il file .json del backup');
       dati = JSON.parse(files[nome]);
     } else dati = JSON.parse(await file.text());
-    if (window.NaviDiariaBackupK.riconosci(dati)) {
+    const daK = window.NaviDiariaBackupK.riconosci(dati);
+    if (atteso === 'navisuite' && daK) throw new Error('Questo è un backup di Ore NaviG 4.3: usa “Da Ore NaviG 4.3”');
+    if (atteso === 'k' && !daK) throw new Error('Questo non è un backup di Ore NaviG 4.3: usa “Da NaviSuite”');
+    if (daK) {
       const gia = new Map(state.attuali.entries.map(e => [e.date, e]));
       const totali = window.NaviDistintaTotals.create();
       const k = window.NaviDiariaBackupK.converti(dati, gia, { servizio: e => totali.serviceMinutes(e) });
@@ -86,8 +84,8 @@
   }
 
   // ---------- Differenze ----------
-  function impostaFonte(fonte) {
-    const { righe, uguali } = D.confronta(state.attuali.entries, fonte.entries);
+  function impostaFonte(fonte, base = state.attuali.entries) {
+    const { righe, uguali } = D.confronta(base, fonte.entries);
     const conv = leggi(K.conv, { map: {} }).map || {};
     fonte.convDiverse = Object.entries(fonte.conversioni || {}).filter(([m, v]) => Number(conv[m]) !== Number(v));
     Object.assign(state, { fonte, righe, uguali, scelte: new Set(righe.map(r => r.date)), mese: '', conv: fonte.convDiverse.length > 0 });
@@ -108,14 +106,14 @@
     const barra = el('div', { class: 'bd-barra' },
       mesi.length > 1 ? el('select', { 'aria-label': 'Mese', onchange: e => { state.mese = e.target.value; disegnaDiff(); } },
         el('option', { value: '' }, 'Tutti i mesi'), ...mesi.map(m => el('option', { value: m, selected: m === state.mese }, nomeMese(m)))) : null,
-      el('button', { type: 'button', class: 'chip', onclick: () => { viste.forEach(r => state.scelte.add(r.date)); disegnaDiff(); } }, 'Seleziona tutti'),
-      el('button', { type: 'button', class: 'chip', onclick: () => { viste.forEach(r => state.scelte.delete(r.date)); disegnaDiff(); } }, 'Nessuno'));
+      fonte.soloLettura ? null : el('button', { type: 'button', class: 'chip', onclick: () => { viste.forEach(r => state.scelte.add(r.date)); disegnaDiff(); } }, 'Seleziona tutti'),
+      fonte.soloLettura ? null : el('button', { type: 'button', class: 'chip', onclick: () => { viste.forEach(r => state.scelte.delete(r.date)); disegnaDiff(); } }, 'Nessuno'));
     const elenco = el('div', { class: 'bd-lista' }, ...(viste.length ? viste.map(riga) : [el('p', { class: 'bd-vuoto' }, righe.length ? 'Nessun giorno in questo mese.' : 'Nessuna differenza: la Distinta è già uguale a questa fonte.')]));
-    const conv = fonte.convDiverse.length ? el('label', { class: 'bd-conv' },
+    const conv = fonte.convDiverse.length && !fonte.soloLettura ? el('label', { class: 'bd-conv' },
       el('input', { type: 'checkbox', checked: state.conv, onchange: e => { state.conv = e.target.checked; } }),
       ` Applica anche le ore trasformate in banca ore: ${fonte.convDiverse.map(([m, v]) => `${nomeMese(m)} ${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`).join(', ')}`) : null;
-    const applica = el('button', { type: 'button', class: 'chip on bd-applica', disabled: !righe.length && !fonte.convDiverse.length, onclick: applicaScelte }, `Applica ${state.scelte.size} giorni`);
-    box.replaceChildren(intestazione, barra, elenco, conv, applica);
+    const applica = fonte.soloLettura ? null : el('button', { type: 'button', class: 'chip on bd-applica', disabled: !righe.length && !fonte.convDiverse.length, onclick: applicaScelte }, `Applica ${state.scelte.size} giorni`);
+    box.replaceChildren(...[intestazione, barra, elenco, conv, applica].filter(Boolean));
   }
 
   // Stessi colori e bolle del popup della giornata (day-popup.js / navidiaria-monthly.css)
@@ -142,7 +140,7 @@
     const straord = campi.filter(c => GRUPPO_STRAORD.includes(c.key)), altre = campi.filter(c => !GRUPPO_STRAORD.includes(c.key) && c.key !== 'shift');
     return el('label', { class: `bd-giorno ${r.stato}` },
       el('div', { class: 'bd-giorno-testa' },
-        el('input', { type: 'checkbox', 'aria-label': `Applica ${data(r.date)}`, checked: state.scelte.has(r.date), onchange: e => { if (e.target.checked) state.scelte.add(r.date); else state.scelte.delete(r.date); $('bdDiff').querySelector('.bd-applica').textContent = `Applica ${state.scelte.size} giorni`; } }),
+        state.fonte?.soloLettura ? null : el('input', { type: 'checkbox', 'aria-label': `Applica ${data(r.date)}`, checked: state.scelte.has(r.date), onchange: e => { if (e.target.checked) state.scelte.add(r.date); else state.scelte.delete(r.date); $('bdDiff').querySelector('.bd-applica').textContent = `Applica ${state.scelte.size} giorni`; } }),
         el('b', {}, data(r.date)), el('span', { class: `bd-tag ${r.stato}` }, nuovoGiorno ? 'Nuovo' : 'Diverso')),
       el('div', { class: 'bd-turno', style: `--c:${colore}` }, el('b', {}, turno?.testoDopo || r.entry.shift || '—'), turno?.testoPrima ? el('small', {}, 'era ', el('s', {}, turno.testoPrima)) : null),
       straord.length ? el('section', { class: 'bd-straord' }, el('small', {}, 'STRAORDINARI'), el('div', { class: 'bd-bolle' }, straord.map(c => bolla(c, nuovoGiorno)))) : null,
@@ -178,18 +176,20 @@
     try { await window.NaviAdminFirebase.ready; await window.NaviAdminFirebase.saveDiaria(id, entries); localStorage.removeItem(K.dirty); esito = 'salvate anche online'; }
     catch (errore) { console.warn(errore); esito = 'salvate sul telefono, online al prossimo accesso alla Distinta'; }
     $('bdDiff').replaceChildren(el('p', { class: 'bd-ok' }, `✓ ${quanti} giorni applicati, ${esito}.`), el('a', { class: 'chip on', href: 'navidiaria.html' }, 'Apri la Distinta'));
-    disegnaFonti();
+    if (!$('bdAdmin').hidden) verificaFonti();
   }
 
-  $('bdFile').addEventListener('change', async e => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    if (!state.attuali.origine) { $('bdFileInfo').textContent = 'Aspetta: sto leggendo la Distinta.'; e.target.value = ''; return; }
-    $('bdFileInfo').textContent = 'Lettura…';
-    try { const fonte = await leggiFile(f); $('bdFileInfo').textContent = ''; impostaFonte(fonte); }
-    catch (errore) { $('bdFileInfo').textContent = `File non leggibile: ${errore.message || errore}`; }
-    e.target.value = '';
-  });
+  for (const [campo, atteso] of [['bdFileNavi', 'navisuite'], ['bdFileK', 'k']]) {
+    $(campo).addEventListener('change', async e => {
+      const f = e.target.files?.[0];
+      if (!f) return;
+      if (!state.attuali.origine) { $('bdFileInfo').textContent = 'Aspetta: sto leggendo la Distinta.'; e.target.value = ''; return; }
+      $('bdFileInfo').textContent = 'Lettura…';
+      try { const fonte = await leggiFile(f, atteso); $('bdFileInfo').textContent = ''; impostaFonte(fonte); }
+      catch (errore) { $('bdFileInfo').textContent = `File non leggibile: ${errore.message || errore}`; }
+      e.target.value = '';
+    });
+  }
   $('bdScarica').addEventListener('click', () => {
     const B = window.NaviDiariaBackup, lista = locali();
     const base = `Distinta-${B.nomeFile(agent.name)}-${B.oggi()}`;
@@ -200,6 +200,6 @@
   if (!window.NaviDiariaOvertime) window.NaviDiariaOvertime = { setOrdinary: (e, v, s) => window.NaviOvertimeComponents.setOrdinary(e, v, s) };
   root.hidden = false;
   if (window.__naviBetaReadOnly) $('bdBeta').hidden = false;
-  $('bdFonti').textContent = 'Lettura della Distinta…';
-  caricaAttuali().then(a => { state.attuali = a; disegnaFonti(); });
+  caricaAttuali().then(a => { state.attuali = a; });
+  if (window.NaviRoles?.isAdminAgent?.(agent)) { $('bdAdmin').hidden = false; verificaFonti(); }
 })();
