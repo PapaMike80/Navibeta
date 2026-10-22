@@ -167,6 +167,13 @@ function showChoice(agent) {
     document.querySelectorAll('#appChoice .app-grid').forEach(g => [...g.querySelectorAll(':scope > .app-card')].map((c, i) => [c, i])
       .sort((x, y) => (window.NaviRoles.ordineDi(x[0].getAttribute('href')) - window.NaviRoles.ordineDi(y[0].getAttribute('href'))) || (x[1] - y[1])).forEach(([c]) => g.append(c)));
   }
+  // la prima scheda delle principali occupa tutta la riga
+  const grigliaPrincipali = document.querySelector('#appChoice .app-principali');
+  if (grigliaPrincipali) {
+    const schede = [...grigliaPrincipali.querySelectorAll(':scope > .app-card')];
+    schede.forEach(c => c.classList.remove('primo'));
+    schede.find(c => !c.hidden)?.classList.add('primo');
+  }
   // sezione Amministrazione: solo se c'e' almeno una voce visibile
   const adminGrid = document.getElementById('adminGrid'), adminTitolo = document.getElementById('adminTitolo');
   if (adminGrid) { const vuota = !adminGrid.querySelector('.app-card:not([hidden])'); adminGrid.hidden = vuota; if (adminTitolo) adminTitolo.hidden = vuota; }

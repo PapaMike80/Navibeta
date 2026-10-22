@@ -105,7 +105,7 @@
       if(href==='condividi.html')return condividi;
       const key=href.split('?')[0].toLowerCase(),active=key===file,main=sezioneDi(key)==='principali'?PRINCIPALI[key]:undefined;
       const colore=main?.[1]||COLORI[key]||'#94a3b8';
-      return `<a data-file="${key}" class="nav-link ns-tile${main?' ns-main':''}${main&&key==='navidiaria.html'?' ns-wide':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
+      return `<a data-file="${key}" class="nav-link ns-tile${main?' ns-main':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
     };
     const pastHtml='<a href="#" data-turni-main-past><span>◷</span><b>Mostra passato</b></a>';
     const sezioneDi=key=>roles.sezioneDi?roles.sezioneDi(key):(PRINCIPALI[key]?'principali':'altre');
@@ -176,6 +176,9 @@
     popup.hidden=true;
     popup.innerHTML=`<section class="ns-menu-dialog" role="dialog" aria-modal="true" aria-label="Menu NaviSuite"><div class="ns-menu-head">${saluto} <button type="button" class="ns-menu-close" aria-label="Chiudi menu">×</button></div><nav class="ns-menu-links">${linksHtml}</nav><div class="ns-menu-foot"><a href="navidiaria.html?open-pin=1">Cambia PIN</a><button type="button" class="ns-menu-exit">Esci</button></div></section>`;
     document.body.appendChild(popup);
+    // la prima tessera delle principali occupa sempre tutta la riga, le altre sono quadrate su due colonne
+    const marcaPrimo=()=>{const g=popup.querySelector('.ns-grid-main');if(!g)return;g.querySelectorAll('.ns-tile').forEach(t=>t.classList.remove('ns-wide'));g.querySelector('.ns-tile')?.classList.add('ns-wide');};
+    marcaPrimo();
     // Admin: tenendo premuta un'icona si sposta tra le sezioni o si riordina; la disposizione vale per tutti (in beta solo su questo dispositivo)
     function abilitaRiordino(){
       const nav=popup.querySelector('.ns-menu-links');
@@ -189,7 +192,7 @@
       const annulla=()=>{clearTimeout(attesa);attesa=null;start=null;};
       const estetica=(tile,sez)=>{
         const key=tile.dataset.file,main=sez==='principali'?PRINCIPALI[key]:undefined,i=tile.querySelector('i');
-        tile.classList.toggle('ns-main',!!main);tile.classList.toggle('ns-wide',!!main&&key==='navidiaria.html');
+        tile.classList.toggle('ns-main',!!main);
         i.querySelector('small')?.remove();
         if(main){const sm=document.createElement('small');sm.textContent=main[0];i.append(sm);}
         if(key!=='condividi.html')tile.style.setProperty('--c',main?.[1]||COLORI[key]||'#94a3b8');
@@ -214,9 +217,9 @@
         const el=document.elementFromPoint(e.clientX,e.clientY),sotto=el?.closest('a.ns-tile[data-file]'),griglia=el?.closest('.ns-grid[data-sez]');
         if(sotto&&sotto!==drag.t){
           const r=sotto.getBoundingClientRect(),orizz=r.width<nr.width*0.9,prima=orizz?e.clientX<r.left+r.width/2:e.clientY<r.top+r.height/2;
-          sotto.parentNode.insertBefore(drag.t,prima?sotto:sotto.nextSibling);estetica(drag.t,sotto.parentNode.dataset.sez);
+          sotto.parentNode.insertBefore(drag.t,prima?sotto:sotto.nextSibling);estetica(drag.t,sotto.parentNode.dataset.sez);marcaPrimo();
         }else if(!sotto&&griglia&&!griglia.contains(drag.t)){
-          griglia.append(drag.t);estetica(drag.t,griglia.dataset.sez);
+          griglia.append(drag.t);estetica(drag.t,griglia.dataset.sez);marcaPrimo();
         }
       };
       const finisci=()=>{
