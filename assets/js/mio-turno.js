@@ -154,6 +154,8 @@
     });
     return out;
   }
+  // da dove arrivano (sopra «scendono») e dove vanno (sotto «salgono»): scali diversi separati da virgola
+  const luoghi = (nomi, pre) => { const u = [...new Set(nomi.filter(Boolean))]; return u.length ? `<small class="com-luogo">${pre} ${esc(u.join(', '))}</small>` : ''; };
   const paxDi = list => list.reduce((n, c) => n + (parseInt(c.pax, 10) || 0), 0);
 
   // Riquadro rosa «Comitive sulle tue corse»: sempre in vista, sparisce quando sono tutte salite e scese
@@ -239,7 +241,7 @@
         return `${sep}<div class="${cls}"${paxSu || paxGiu ? ` data-com-go="${i}"` : ''}><span class="ora">${esc(row.orario)}${row.rit ? `<small class="rit" title="Ritardo">${esc(testoRitardo(row.rit))}</small>` : ''}</span>` +
           `<span class="tipo ${row.kind}">${KIND[row.kind]}<small>corsa ${esc(row.run)}</small></span>${chip(row.per || code)}` +
           `<span class="dove"><span class="ship-line"><span class="ship-name">${esc(row.nome)}</span></span>` +
-          `${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}${paxSu || paxGiu ? `<span class="com-bolle" data-com-go="${i}" role="button" tabindex="0" title="Vedi la comitiva">${paxSu ? `<b class="com-tag">👥 ${paxSu} salgono</b>` : ''}${paxGiu ? `<b class="com-tag giu">👥 ${paxGiu} scendono</b>` : ''}</span>` : ''}${coincidenzeRiga(row, day)}</span></div>`;
+          `${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}${paxSu || paxGiu ? `<span class="com-bolle" data-com-go="${i}" role="button" tabindex="0" title="Vedi la comitiva">${paxGiu ? `<span class="com-g">${luoghi(com[i].scendono.map(c => c.sale), 'da')}<b class="com-tag giu">👥 ${paxGiu} scendono</b></span>` : ''}${paxSu ? `<span class="com-g"><b class="com-tag">👥 ${paxSu} salgono</b>${luoghi(com[i].salgono.map(c => c.scende), 'per')}</span>` : ''}</span>` : ''}${coincidenzeRiga(row, day)}</span></div>`;
       }).join('')}</div>` : '<p class="legend">Orario delle corse non disponibile per questo turno.</p>';
     // regola delle coincidenze sotto la lista, se ce ne sono
     const regola = listaCorse.includes('mt-coinc') ? '<p class="mt-regola">↪ Coincidenze solo tra Alto e Basso lago (O.d.S., punti 4–5): dentro l’Alto o il Basso lago si fa un biglietto per ogni nave.</p>' : '';

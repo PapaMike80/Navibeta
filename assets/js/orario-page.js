@@ -536,6 +536,8 @@
     riga.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
+  // da dove arrivano (sopra «scendono») e dove vanno (sotto «salgono»): scali diversi separati da virgola
+  const luoghi = (nomi, pre) => { const u = [...new Set(nomi.filter(Boolean))]; return u.length ? `<small class="com-luogo">${pre} ${esc(u.join(', '))}</small>` : ''; };
   const paxDi = list => list.reduce((n, c) => n + (parseInt(c.pax, 10) || 0), 0);
   // Riquadro rosa «Comitive oggi»: in ordine di orario, con turno; sparisce quando sono tutte partite o arrivate
   function riquadroComitive(g, righe, t) {
@@ -610,7 +612,7 @@
         `<span class="ora">${arrivo}${esc(r.ora)}${badgeRitardo(g, code, r.corsa, state.scalo)}</span>` +
         `<span class="tipo ${r.kind}">${KIND[r.kind]}<small>${r.corsa ? `corsa ${esc(r.corsa)}` : '–'}</small></span>${chip(code)}` +
         `<span class="dove"><span class="ship-line"><span class="ship-name">${esc(r.dove)}</span>${badgeManca(manca)}${code !== 'BIS' && chi(g, code, r.corsa) === 'BIS' ? '<b class="sosp-tag bis" title="La corsa e\' sostituita dal BIS">SOSTITUITA DAL BIS</b>' : code !== 'BIS' && (g.incarichi || []).some(inc => inc.tipo === 'aiuto' && inc.turno === code && O.corseIncarico(inc, g.day).some(x => x.numero === String(r.corsa))) ? '<b class="sosp-tag bis" title="Il BIS fa la corsa in aiuto">BIS IN AIUTO</b>' : ''}${info ? `<span class="cte">${esc(info)}</span>` : ''}</span>` +
-        `${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}${paxCom ? `<span class="com-bolle" data-com-go="${i}" role="button" tabindex="0" title="Vedi la comitiva">${paxSu ? `<b class="com-tag">👥 ${paxSu} salgono</b>` : ''}${paxGiu ? `<b class="com-tag giu">👥 ${paxGiu} scendono</b>` : ''}</span>` : ''}</span></div>`;
+        `${badges.length ? `<span class="badges">${badges.join('')}</span>` : ''}${paxCom ? `<span class="com-bolle" data-com-go="${i}" role="button" tabindex="0" title="Vedi la comitiva">${paxGiu ? `<span class="com-g">${luoghi(com.scendono.map(c => c.da), 'da')}<b class="com-tag giu">👥 ${paxGiu} scendono</b></span>` : ''}${paxSu ? `<span class="com-g"><b class="com-tag">👥 ${paxSu} salgono</b>${luoghi(com.salgono.map(c => c.verso), 'per')}</span>` : ''}</span>` : ''}</span></div>`;
     }).join('');
     const toggle = nascoste ? `<button type="button" class="past-toggle" data-past-lago>${state.showPastLago ? '▴ Nascondi le navi già passate' : `▾ Mostra le navi già passate (${nascoste})`}</button>` : '';
     const vuoto = righe.length ? '' : '<p class="legend">Nessuna nave in questo scalo nel giorno scelto.</p>';
