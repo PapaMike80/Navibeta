@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup · Intestazione fissa</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+<style>
+:root{--surface:#0b1c26;--card:#102733;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf}
+*{box-sizing:border-box}body{margin:0;padding:16px;background:#071923;color:var(--ink);font:500 14px/1.4 Manrope,system-ui,sans-serif}
+h1{margin:0 0 4px;font-size:18px}.nota{margin:0 0 14px;color:var(--muted);font-size:12px;max-width:1100px}
+.wrap{display:grid;grid-template-columns:repeat(4,300px);gap:14px;position:relative}
+.tel{background:var(--surface);border:1px solid var(--line);border-radius:22px;overflow:hidden;position:relative}
+.cap{position:absolute;top:-1px;left:50%;transform:translate(-50%,-100%);font-size:11px;color:var(--teal);font-weight:800;white-space:nowrap}
+/* INTESTAZIONE: altezza fissa, 4 righe sempre presenti */
+.hd{height:150px;display:grid;grid-template-rows:16px 40px 20px 26px;gap:6px;padding:14px 14px 12px;border-bottom:1px solid var(--line);position:relative}
+.r1{display:flex;justify-content:space-between;align-items:center}
+.eb{color:var(--teal);font-size:10px;font-weight:800;letter-spacing:.2em}
+.btns{position:absolute;top:12px;right:12px;display:flex;gap:8px}.btns span{height:34px;padding:0 10px;display:grid;place-items:center;border:1px solid color-mix(in srgb,var(--teal) 60%,transparent);border-radius:11px;color:var(--teal);font-weight:800;font-size:12px}
+.tt{display:flex;align-items:center;gap:8px;font-size:23px;font-weight:800;white-space:nowrap;overflow:hidden}
+.chip{padding:3px 10px;border-radius:999px;font-size:14px;font-weight:900;color:var(--on)}
+.ctx{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srv{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.srv b{font-family:'DM Mono',monospace;font-weight:500}.srv i{font-style:normal;color:var(--muted)}
+.srv.vuoto{color:var(--muted);font-size:13px}
+.guida{position:absolute;left:0;right:0;top:150px;border-top:2px dashed #fb7185;z-index:2}
+/* striscia */
+.str{display:flex;gap:6px;justify-content:center;padding:14px 0 10px}
+.g{width:54px;display:grid;justify-items:center;gap:2px;padding:6px 2px;border-radius:13px;border:1px solid var(--line);background:var(--card);opacity:.5;transform:scale(.9)}
+.g.on{opacity:1;transform:none;border:2px solid var(--teal)}.g small{font-size:9px;font-weight:800;color:var(--muted)}.g b{font:500 16px 'DM Mono',monospace}
+.g u{text-decoration:none;font-size:9px;font-weight:900;padding:0 6px;border-radius:99px;color:var(--on)}
+.corpo{padding:0 12px 14px;display:grid;gap:8px}.box{height:46px;border-radius:14px;background:var(--card);border:1px solid var(--line)}
+</style></head><body>
+<h1>Intestazione di Il mio turno ad altezza fissa</h1>
+<p class="nota">L'intestazione ha sempre la stessa altezza e le stesse 4 righe: etichetta, titolo, persone/corse, orario del servizio. Quando una riga non ha dati viene riempita con una frase breve, mai lasciata vuota. Testi troppo lunghi finiscono con «…» invece di andare a capo. La linea rossa tratteggiata è alla stessa altezza in tutti e quattro i telefoni: la striscia dei giorni non si muove mai.</p>
+<div class="wrap">
+ <div class="tel"><span class="cap">T1 · servizio</span><div class="hd"><span class="eb">IL MIO TURNO</span><div class="btns"><span>≈ Distinta</span><span>☰</span></div>
+  <div class="tt"><span class="chip" style="background:#3b82f6">T1</span>BRESCIA</div><div class="ctx">SCARMIGLIATI M. · corse 201–214</div><div class="srv">Servizio <b>7.10 – 18.30</b> <i>(11 h 30')</i></div></div><span class="guida"></span>
+  <div class="str"><div class="g"><small>GIO</small><b>22</b><u style="border:1px solid #1f4250;color:#9fb8c2">rip</u></div><div class="g on"><small>VEN</small><b>23</b><u style="background:#3b82f6">T1</u></div><div class="g"><small>SAB</small><b>24</b><u style="background:#f472b6">AGM</u></div></div><div class="corpo"><div class="box"></div><div class="box"></div></div></div>
+ <div class="tel"><span class="cap">Riposo</span><div class="hd"><span class="eb">IL MIO TURNO</span><div class="btns"><span>≈ Distinta</span><span>☰</span></div>
+  <div class="tt">Riposo</div><div class="ctx">Nessuna corsa in questo giorno</div><div class="srv vuoto">Giornata libera · poi ven 23 T1</div></div><span class="guida"></span>
+  <div class="str"><div class="g"><small>MER</small><b>21</b><u style="border:1px solid #1f4250;color:#9fb8c2">rip</u></div><div class="g on"><small>GIO</small><b>22</b><u style="border:1px solid #1f4250;color:#9fb8c2">riposo</u></div><div class="g"><small>VEN</small><b>23</b><u style="background:#3b82f6">T1</u></div></div><div class="corpo"><div class="box"></div></div></div>
+ <div class="tel"><span class="cap">A terra</span><div class="hd"><span class="eb">IL MIO TURNO</span><div class="btns"><span>≈ Distinta</span><span>☰</span></div>
+  <div class="tt"><span class="chip" style="background:#f472b6">AGM</span>A terra</div><div class="ctx">Desenzano · biglietteria</div><div class="srv">Servizio <b>8.00 – 14.40</b> <i>(6 h 40')</i></div></div><span class="guida"></span>
+  <div class="str"><div class="g"><small>VEN</small><b>23</b><u style="background:#3b82f6">T1</u></div><div class="g on"><small>SAB</small><b>24</b><u style="background:#f472b6">AGM</u></div><div class="g"><small>DOM</small><b>25</b><u style="border:1px solid #1f4250;color:#9fb8c2">rip</u></div></div><div class="corpo"><div class="box"></div><div class="box"></div></div></div>
+ <div class="tel"><span class="cap">Nome lungo</span><div class="hd"><span class="eb">IL MIO TURNO</span><div class="btns"><span>≈ Distinta</span><span>☰</span></div>
+  <div class="tt"><span class="chip" style="background:#2dd4bf">D1</span>SAN MARCO EVANGEL…</div><div class="ctx">ROSSI A. · BIANCHI G. · corse 2, 7, 17, 2…</div><div class="srv">Servizio <b>6.20 – 19.55</b> <i>(12 h 05')</i></div></div><span class="guida"></span>
+  <div class="str"><div class="g"><small>SAB</small><b>24</b><u style="background:#f472b6">AGM</u></div><div class="g on"><small>DOM</small><b>25</b><u style="background:#2dd4bf">D1</u></div><div class="g"><small>LUN</small><b>26</b><u style="background:#3b82f6">T1</u></div></div><div class="corpo"><div class="box"></div></div></div>
+</div></body></html>

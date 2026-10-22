@@ -84,11 +84,24 @@
     return card('Il mio turno', '', head + crewHtml);
   }
 
+  function prossimoServizio(day) {
+    try {
+      const me = profile();
+      for (let k = 1; k <= 21 && state.schedule; k++) {
+        const d = addDays(day, k);
+        let x = String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim(); x = lavoroDi(x) || x;
+        if (x && !RIPOSO.test(x)) return `Prossimo servizio: ${GIORNI[parseIso(d).getDay()].slice(0, 3).toLowerCase()} ${parseIso(d).getDate()} · ${x}`;
+      }
+    } catch (_) { /* dati non pronti */ }
+    return 'Nessun servizio in questo giorno';
+  }
   // Intestazione: ore del servizio e, oggi, quanto manca all'inizio o alla fine della giornata.
   function servizioHeader(inizio, fine, day, code = '') {
     const el = $('turno-servizio');
     if (!el) return;
-    if (!inizio || !fine) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false; el.classList.remove('vuoto');
+    // senza orari la riga resta (altezza fissa) e mostra il prossimo giorno di servizio
+    if (!inizio || !fine) { el.classList.add('vuoto'); el.textContent = prossimoServizio(day); return; }
     const durata = m => `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}'` : ''}`;
     let resto = '';
     if (day === iso(new Date())) {
