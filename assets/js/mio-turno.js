@@ -313,6 +313,27 @@
     render();
   }
 
+  // Striscia dei giorni: due settimane prima e dopo oggi, con il mio turno; il giorno scelto al centro
+  const COLORI_TERRA = { DT: '#d4a900', AGB: '#60a5fa', POND: '#f87171', AGM: '#60a5fa', AGT: '#d4a900', AGT1: '#d4a900', AGT2: '#d4a900', PONM: '#f87171', IE: '#94a3b8' };
+  const RIPOSO = /^(R|RIP|RIPOSO|RF|CON|F|FE|FERIE|M|MAL|MALATTIA|L\.?D\.?|=+|-+|LIBERO)?$/i;
+  let giorniBloccati = false, giorniTimer = 0;
+  function renderGiorni(day, me) {
+    const box = $('turno-giorni');
+    if (!box) return;
+    const oggi = iso(new Date()), colori = window.NaviOrariStagioni?.COLORI || {};
+    const giorni = Array.from({ length: 29 }, (_, k) => addDays(oggi, k - 14));
+    if (!giorni.includes(day)) giorni.push(day), giorni.sort();
+    box.innerHTML = giorni.map(d => {
+      let t = ''; try { t = state.schedule ? String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim() : ''; } catch (_) { t = ''; }
+      const dist = Math.abs((parseIso(d) - parseIso(day)) / 864e5), rip = RIPOSO.test(t);
+      const stile = `--o:${dist === 0 ? 1 : dist === 1 ? .62 : dist === 2 ? .45 : .3};--s:${dist === 0 ? 1 : dist === 1 ? .94 : .88}`;
+      const c = colori[t.toUpperCase()] || COLORI_TERRA[t.toUpperCase().replace(/\s+/g, '')] || '#9fb8c2';
+      return `<button type="button" class="mt-g${d === day ? ' on' : ''}${d === oggi ? ' oggi' : ''}" data-giorno="${d}" style="${stile}"><small>${d === oggi ? 'oggi' : GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
+        `<span class="t${rip ? ' rip' : ''}" style="--c:${c}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
+    }).join('');
+    const sel = box.querySelector('.mt-g.on');
+    if (sel) { giorniBloccati = true; box.scrollTo({ left: sel.offsetLeft - (box.clientWidth - sel.offsetWidth) / 2, behavior: box.dataset.pronto ? 'smooth' : 'auto' }); box.dataset.pronto = '1'; clearTimeout(giorniTimer); giorniTimer = setTimeout(() => { giorniBloccati = false; }, 500); }
+  }
   function render() {
     const day = today(), shown = parseIso(day), realToday = day === iso(new Date());
     const clock = new Date();
@@ -328,6 +349,7 @@
     $('turno-after').innerHTML = '';
     servizioHeader('', '', day);
     const me = profile();
+    renderGiorni(day, me);
     const found = state.schedule ? G.turnoAgente(state.schedule, me, day) : null;
     if (state._dayLoaded !== day) {
       state._dayLoaded = day;
@@ -393,7 +415,35 @@
     $('turno-notice').textContent = text || '';
   }
 
-  const goToDay = day => { state.day = day === iso(new Date()) ? '' : day; state.showPast = false; render(); };
+  // cambio giorno con l'effetto di scorrimento del turno (da destra se avanti, da sinistra se indietro)
+  const goToDay = day => {
+    const prima = today();
+    state.day = day === iso(new Date()) ? '' : day; state.showPast = false; render();
+    if (day === prima) return;
+    ['turno-content', 'turno-after'].forEach(id => { const el = $(id); if (!el) return; el.classList.remove('da-destra', 'da-sinistra'); void el.offsetWidth; el.classList.add(day > prima ? 'da-destra' : 'da-sinistra'); });
+  };
+  // striscia dei giorni: tocco su un giorno, oppure scorrimento (si sceglie il giorno al centro)
+  $('turno-giorni')?.addEventListener('click', event => { const g = event.target.closest('[data-giorno]'); if (g) goToDay(g.dataset.giorno); });
+  $('turno-giorni')?.addEventListener('scroll', () => {
+    if (giorniBloccati) return;
+    clearTimeout(giorniTimer);
+    giorniTimer = setTimeout(() => {
+      const box = $('turno-giorni'), centro = box.scrollLeft + box.clientWidth / 2;
+      let scelto = null, dist = 1e9;
+      box.querySelectorAll('.mt-g').forEach(g => { const d = Math.abs(g.offsetLeft + g.offsetWidth / 2 - centro); if (d < dist) { dist = d; scelto = g; } });
+      if (scelto && scelto.dataset.giorno !== today()) goToDay(scelto.dataset.giorno);
+    }, 140);
+  }, { passive: true });
+  // scorrimento del turno col dito: a sinistra il giorno dopo, a destra il giorno prima
+  let tocco = null;
+  ['turno-content', 'turno-after'].forEach(id => {
+    const el = $(id); if (!el) return;
+    el.addEventListener('touchstart', e => { const t = e.touches[0]; tocco = { x: t.clientX, y: t.clientY }; }, { passive: true });
+    el.addEventListener('touchend', e => {
+      if (!tocco) return; const t = e.changedTouches[0], dx = t.clientX - tocco.x, dy = t.clientY - tocco.y; tocco = null;
+      if (Math.abs(dx) > 70 && Math.abs(dy) < 45 && !e.target.closest('input,select,.graf-wrap')) goToDay(addDays(today(), dx < 0 ? 1 : -1));
+    }, { passive: true });
+  });
   $('turno-day-prev').addEventListener('click', () => goToDay(addDays(today(), -1)));
   $('turno-day-next').addEventListener('click', () => goToDay(addDays(today(), 1)));
   $('turno-day-today').addEventListener('click', () => goToDay(iso(new Date())));
