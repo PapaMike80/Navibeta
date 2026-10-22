@@ -115,7 +115,7 @@
       el('input', { type: 'checkbox', checked: state.conv, onchange: e => { state.conv = e.target.checked; } }),
       ` Applica anche le ore trasformate in banca ore: ${fonte.convDiverse.map(([m, v]) => `${nomeMese(m)} ${Math.floor(v / 60)}:${String(v % 60).padStart(2, '0')}`).join(', ')}`) : null;
     const applica = el('button', { type: 'button', class: 'chip on bd-applica', disabled: !righe.length && !fonte.convDiverse.length, onclick: applicaScelte }, `Applica ${state.scelte.size} giorni`);
-    box.replaceChildren(intestazione, barra, elenco, conv, applica);
+    box.replaceChildren(...[intestazione, barra, elenco, conv, applica].filter(Boolean));
   }
 
   // Stessi colori e bolle del popup della giornata (day-popup.js / navidiaria-monthly.css)
