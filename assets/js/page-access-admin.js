@@ -50,7 +50,6 @@
     const diversa = !uguali(ruoli, R.predefiniti(file)) || spostata, [icona, colore] = VOCI[file] || ['•', '#94a3b8'];
     const principale = sezione === 'principali';
     return { diversa, html: `<div class="pa-tile${diversa ? ' diversa' : ''}${principale && file === 'navidiaria.html' ? ' pa-wide' : ''}" data-file="${esc(file)}" style="--c:${colore}" title="${diversa ? 'Diversa dal normale' : ''}">` +
-      `<button type="button" class="pa-grip" aria-label="Sposta ${esc(nome)} in un'altra sezione" title="Trascina in un'altra sezione">⠿</button>` +
       `<div class="pa-head"><span>${esc(icona)}</span><div><b>${esc(nome)}</b>${principale && SOTTOTITOLI[file] ? `<small>${SOTTOTITOLI[file]}</small>` : ''}</div></div><div class="page-access-roles">` +
       R.RUOLI.map(([ruolo, etichetta]) => `<label class="pa-role${ruoli.includes(ruolo) ? ' on' : ''}"><input type="checkbox" data-page="${esc(file)}" data-ruolo="${ruolo}"${ruoli.includes(ruolo) ? ' checked' : ''}>${esc(etichetta)}</label>`).join('') +
       '</div></div>' };
@@ -58,11 +57,11 @@
   function render() {
     let cambiate = 0;
     const sezioni = R.SEZIONI.map(([chiave, titolo]) => {
-      const t = R.PAGINE.filter(([f]) => sezioneDi(f) === chiave).sort((x, y) => (ORDINE.indexOf(x[0]) + 99) % 99 - (ORDINE.indexOf(y[0]) + 99) % 99).map(p => tessera(p, chiave));
+      const t = R.PAGINE.filter(([f]) => sezioneDi(f) === chiave).sort((x, y) => (R.ordineDi(x[0], access) - R.ordineDi(y[0], access)) || ((ORDINE.indexOf(x[0]) + 99) % 99 - (ORDINE.indexOf(y[0]) + 99) % 99)).map(p => tessera(p, chiave));
       cambiate += t.filter(x => x.diversa).length;
       return `<p class="pa-titolo">${titolo}</p><div class="pa-grid" data-sez="${chiave}">${t.map(x => x.html).join('')}</div>`;
     });
-    list.innerHTML = '<p class="pa-guida">Trascina ⠿ per spostare una pagina tra le sezioni. Le spunte dicono chi la può aprire (gli admin sempre).</p>' + sezioni.join('');
+    list.innerHTML = '<p class="pa-guida">Le spunte dicono chi può aprire ogni pagina (gli admin sempre). Per spostare le pagine tra le sezioni: dal menu, tenendo premuta un\'icona (solo admin).</p>' + sezioni.join('');
     count.textContent = String(cambiate);
   }
   async function salva(prima) {
@@ -88,41 +87,6 @@
     if (uguali(ruoli, R.predefiniti(file))) delete access[file]; // come di default: niente da salvare
     await salva(prima);
   });
-
-  // Trascinamento (mouse e dito): si afferra ⠿, si rilascia su una sezione
-  let drag = null;
-  const zonaSotto = e => document.elementFromPoint(e.clientX, e.clientY)?.closest('.pa-grid') || null;
-  const fine = () => { if (!drag) return; drag.ghost.remove(); drag.tile.classList.remove('pa-dragging'); list.querySelectorAll('.pa-over').forEach(z => z.classList.remove('pa-over')); drag = null; };
-  list.addEventListener('pointerdown', e => {
-    const grip = e.target.closest('.pa-grip');
-    if (!grip || (e.button !== undefined && e.button > 0)) return;
-    e.preventDefault();
-    const tile = grip.closest('.pa-tile'), r = tile.getBoundingClientRect(), ghost = tile.cloneNode(true);
-    ghost.classList.add('pa-ghost');
-    ghost.style.cssText = `position:fixed;left:${r.left}px;top:${r.top}px;width:${r.width}px;pointer-events:none;z-index:9999`;
-    document.body.append(ghost);
-    tile.classList.add('pa-dragging');
-    drag = { tile, ghost, file: tile.dataset.file, dx: e.clientX - r.left, dy: e.clientY - r.top };
-  });
-  window.addEventListener('pointermove', e => {
-    if (!drag) return;
-    drag.ghost.style.left = `${e.clientX - drag.dx}px`;
-    drag.ghost.style.top = `${e.clientY - drag.dy}px`;
-    const zona = zonaSotto(e);
-    list.querySelectorAll('.pa-grid').forEach(z => z.classList.toggle('pa-over', z === zona));
-  });
-  window.addEventListener('pointerup', async e => {
-    if (!drag) return;
-    const file = drag.file, zona = zonaSotto(e);
-    fine();
-    if (!zona || zona.dataset.sez === sezioneDi(file)) return;
-    const prima = { ...access, sezioni: { ...(access.sezioni || {}) } };
-    const sezioni = { ...(access.sezioni || {}), [file]: zona.dataset.sez };
-    if (zona.dataset.sez === R.sezionePredefinita(file)) delete sezioni[file]; // come di default: niente da salvare
-    access = { ...access, sezioni };
-    await salva(prima);
-  });
-  window.addEventListener('pointercancel', fine);
 
   (async () => {
     try {

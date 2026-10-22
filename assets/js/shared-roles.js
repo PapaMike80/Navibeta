@@ -75,11 +75,32 @@
     'quiz.html': 'amministrazione', 'comitive.html': 'amministrazione', 'verifica-busta.html': 'amministrazione', 'agenti.html': 'amministrazione', 'aggiornamenti.html': 'amministrazione',
     'movimento.html': 'amministrazione', 'collegamenti.html': 'amministrazione' };
   const sezionePredefinita = file => SEZIONE_PREDEFINITA[String(file || '').toLowerCase().split('?')[0]] || 'altre';
+  // NaviBeta e' in sola lettura: la disposizione provata li' resta solo sul dispositivo (non si scrive su Firebase)
+  const LOCALE_KEY = 'navisuite.menuLocale';
+  const disposizione = (access = accesso()) => {
+    if (window.__naviBetaReadOnly) { try { const l = JSON.parse(localStorage.getItem(LOCALE_KEY) || 'null'); if (l) return l; } catch { /* nessuna prova locale */ } }
+    return { sezioni: access?.sezioni || {}, ordine: Array.isArray(access?.ordine) ? access.ordine : [] };
+  };
+  const ordineDi = (file, access = accesso()) => { const i = disposizione(access).ordine.indexOf(String(file || '').toLowerCase().split('?')[0]); return i < 0 ? 1e6 : i; };
   const sezioneDi = (file, access = accesso()) => {
     file = String(file || '').toLowerCase().split('?')[0];
-    const scelta = access?.sezioni?.[file];
+    const scelta = disposizione(access).sezioni?.[file];
     return SEZIONI.some(([k]) => k === scelta) ? scelta : sezionePredefinita(file);
   };
+  // Salva la disposizione scelta dall'admin nel menu: ordine = elenco delle pagine, sezioni = pagina -> sezione (solo se diversa dal normale)
+  async function salvaMenu({ ordine, sezioni }) {
+    const rimasta = Object.fromEntries(Object.entries(sezioni).filter(([f, sez]) => sez !== sezionePredefinita(f)));
+    if (window.__naviBetaReadOnly) { localStorage.setItem(LOCALE_KEY, JSON.stringify({ ordine, sezioni: rimasta })); return { locale: true }; }
+    const api = window.NaviAdminFirebase;
+    await api.ready;
+    const remoto = (await api.getPageAccess()) || {};
+    const sezioniFinali = { ...(remoto.sezioni || {}) };
+    Object.keys(sezioni).forEach(f => { delete sezioniFinali[f]; });
+    Object.assign(sezioniFinali, rimasta);
+    const salvato = await api.savePageAccess({ ...remoto, ordine, sezioni: sezioniFinali });
+    localStorage.setItem(ACCESS_KEY, JSON.stringify(salvato));
+    return { locale: false };
+  }
   function puoAprire(file, agent = sessione(), access = accesso()) {
     file = String(file || 'index.html').toLowerCase();
     if (isAdminAgent(agent)) return true;
@@ -146,6 +167,8 @@
     consentiti,
     SEZIONI,
     sezioneDi,
+    ordineDi,
+    salvaMenu,
     sezionePredefinita,
     puoAprire,
     pagineAperte,

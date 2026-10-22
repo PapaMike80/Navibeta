@@ -163,6 +163,10 @@ function showChoice(agent) {
       card.querySelectorAll('p').forEach(p => { p.hidden = sezione !== 'principali'; });
     });
   }
+  if (window.NaviRoles?.ordineDi) {
+    document.querySelectorAll('#appChoice .app-grid').forEach(g => [...g.querySelectorAll(':scope > .app-card')].map((c, i) => [c, i])
+      .sort((x, y) => (window.NaviRoles.ordineDi(x[0].getAttribute('href')) - window.NaviRoles.ordineDi(y[0].getAttribute('href'))) || (x[1] - y[1])).forEach(([c]) => g.append(c)));
+  }
   // sezione Amministrazione: solo se c'e' almeno una voce visibile
   const adminGrid = document.getElementById('adminGrid'), adminTitolo = document.getElementById('adminTitolo');
   if (adminGrid) { const vuota = !adminGrid.querySelector('.app-card:not([hidden])'); adminGrid.hidden = vuota; if (adminTitolo) adminTitolo.hidden = vuota; }

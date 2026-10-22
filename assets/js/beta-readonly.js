@@ -92,9 +92,10 @@
    * Storage del browser: su papamike80.github.io il localStorage e' condiviso con
    * NaviSuite (produzione), quindi niente va scritto davvero. Le scritture restano
    * solo in memoria finche' la pagina e' aperta e spariscono al ricaricamento.
-   * Passano solo le chiavi di accesso (login) e la cache del token anonimo Firebase.
+   * Passano solo le chiavi di accesso (login), la cache del token anonimo Firebase e navisuite.menuLocale
+   * (la disposizione del menu provata dall'admin: vale solo in beta, NaviSuite la ignora).
    */
-  const PASS_KEYS = /^(naviturni_logged_agent|navidiaria.activeAgent|navisuite.adminFirebaseAuth.v1|navisuite.pageAccess)$/;
+  const PASS_KEYS = /^(naviturni_logged_agent|navidiaria.activeAgent|navisuite.adminFirebaseAuth.v1|navisuite.pageAccess|navisuite.menuLocale)$/;
   try {
     const proto = Storage.prototype;
     const nGet = proto.getItem, nSet = proto.setItem, nRem = proto.removeItem, nClear = proto.clear, nKey = proto.key;
