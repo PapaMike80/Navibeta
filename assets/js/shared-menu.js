@@ -92,6 +92,7 @@
       ['backup-dati.html','⤓','Backup'],
       ['impostazioni.html','⚙','Impostazioni'],
       ...(roles.puoAprire?.('comitive.html',agent)?[['comitive.html','⛴','Comitive']]:[]),
+      ...(roles.puoAprire?.('verifica-busta.html',agent)?[['verifica-busta.html','✔','Verifica busta']]:[]),
       ...(roles.puoAprire?.('agenti.html',agent)?[['agenti.html','♙','Agenti']]:[]),
       ...(isAdmin?[['aggiornamenti.html','↻','Aggiornamenti']]:[]),
       ...(roles.puoAprire?.('movimento.html',agent)?[['movimento.html','⚓','Movimento']]:[]),
@@ -114,10 +115,10 @@
     const inSezione=nome=>voci.filter(e=>sezioneDi(e[0].split('?')[0].toLowerCase())===nome);
     const pos=e=>roles.ordineDi?roles.ordineDi(e[0].split('?')[0].toLowerCase()):1e6,ordinati=lista=>lista.sort((a,b)=>pos(a)-pos(b));
     const principali=ordinati(inSezione('principali').sort((a,b)=>ordine(a)-ordine(b))),altre=ordinati(inSezione('altre')),amministrazione=ordinati(inSezione('amministrazione'));
-    const modifica=isAdmin&&!roles.isScaloAgent?.(agent)&&!!roles.salvaMenu;
+    const modifica=!roles.isScaloAgent?.(agent)&&!!roles.salvaMenu;
     const pastTile=onTurni?pastHtml.replace('<a ','<a class="ns-tile" style="--c:#2dd4bf" ').replace('<b>','<i><b>').replace('</b>','</b></i>'):'';
     const condividi=`<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi data-file="condividi.html"><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a>`;
-    const linksHtml=`<div class="ns-grid ns-grid-main" data-sez="principali">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile||modifica?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small" data-sez="altre">${pastTile}${altre.map(linkHtml).join('')}</div>`:''}${amministrazione.length||modifica?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small" data-sez="amministrazione">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
+    const linksHtml=`<div class="ns-grid ns-grid-main" data-sez="principali">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile||modifica?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small" data-sez="altre">${pastTile}${altre.map(linkHtml).join('')}</div>`:''}${amministrazione.length||isAdmin?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small" data-sez="amministrazione">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
 
     const style=document.createElement('style');
     style.id='navisuite-unified-menu-style';
@@ -183,10 +184,24 @@
     function abilitaRiordino(){
       const nav=popup.querySelector('.ns-menu-links');
       popup.classList.add('ns-admin');
+      const barra=document.createElement('div');barra.className='ns-hintbar';
       const hint=document.createElement('p');hint.className='ns-hint';
-      const testoHint='Tieni premuta un\'icona per spostarla o riordinarla';
-      hint.textContent=testoHint;nav.after(hint);
-      if(!document.getElementById('ns-riordina-style')){const st=document.createElement('style');st.id='ns-riordina-style';st.textContent='.ns-admin .ns-tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.ns-dragging{opacity:.3}.ns-ghost{position:fixed;z-index:10001;pointer-events:none;margin:0;opacity:.96;box-shadow:0 16px 36px rgba(0,0,0,.5);transform:scale(1.05);background:#12303b!important}.ns-admin .ns-grid[data-sez]{min-height:58px}.ns-admin .ns-grid[data-sez]:empty::before{content:"Trascina qui una pagina";grid-column:1/-1;display:grid;place-items:center;min-height:50px;border:1px dashed #315b66;border-radius:14px;color:#6f8d96;font:600 12px Manrope,system-ui,sans-serif}.ns-hint{margin:0;padding:2px 16px 8px;color:#7fa3ad;font:600 11.5px Manrope,system-ui,sans-serif;text-align:center}';document.head.append(st);}
+      const testoHint=isAdmin?'Tieni premuta un\'icona per spostarla: vale per tutti gli agenti':'Tieni premuta un\'icona per spostarla: la scelta è solo tua';
+      hint.textContent=testoHint;
+      const pulsante=document.createElement('button');pulsante.type='button';pulsante.className='ns-hintbtn';
+      barra.append(hint,pulsante);nav.after(barra);
+      const aggiornaPulsante=()=>{
+        if(isAdmin){pulsante.textContent='Imposta per tutti';pulsante.title='Azzera le scelte personali di tutti gli agenti: da ora vale questo menu';pulsante.hidden=false;}
+        else{pulsante.textContent='Ripristina il menu';pulsante.title='Torna al menu deciso dagli amministratori';pulsante.hidden=!roles.haScelteMie?.(agent);}
+      };
+      aggiornaPulsante();
+      pulsante.addEventListener('click',()=>{
+        if(isAdmin){
+          if(!confirm('Imposta questo menu per tutti e azzera le scelte personali degli agenti?'))return;
+          roles.impostaPerTutti().then(r=>avviso(r?.locale?'In beta non si può salvare: nessuna modifica per gli agenti':'Fatto: tutti gli agenti ripartono da questo menu')).catch(errore=>avviso('Non salvato: '+(errore.message||errore)));
+        }else{roles.azzeraMie?.(agent);location.reload();}
+      });
+      if(!document.getElementById('ns-riordina-style')){const st=document.createElement('style');st.id='ns-riordina-style';st.textContent='.ns-admin .ns-tile{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.ns-dragging{opacity:.3}.ns-ghost{position:fixed;z-index:10001;pointer-events:none;margin:0;opacity:.96;box-shadow:0 16px 36px rgba(0,0,0,.5);transform:scale(1.05);background:#12303b!important}.ns-admin .ns-grid[data-sez]{min-height:58px}.ns-admin .ns-grid[data-sez]:empty::before{content:"Trascina qui una pagina";grid-column:1/-1;display:grid;place-items:center;min-height:50px;border:1px dashed #315b66;border-radius:14px;color:#6f8d96;font:600 12px Manrope,system-ui,sans-serif}.ns-hintbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:4px 10px;padding:2px 16px 8px}.ns-hint{margin:0;color:#7fa3ad;font:600 11.5px Manrope,system-ui,sans-serif;text-align:center}.ns-hintbtn{min-height:30px;padding:0 12px;border:1px solid rgba(126,243,226,.45);border-radius:999px;background:rgba(45,212,191,.12);color:#a7fff0;font:800 12px Manrope,system-ui,sans-serif;cursor:pointer}.ns-hintbtn[hidden]{display:none}';document.head.append(st);}
       let attesa=null,start=null,drag=null,blocca=false;
       const tessera=e=>e.target.closest?.('a.ns-tile[data-file]');
       const annulla=()=>{clearTimeout(attesa);attesa=null;start=null;};
@@ -201,7 +216,7 @@
       const salva=()=>{
         const ordine=[],sezioni={};
         nav.querySelectorAll('.ns-grid[data-sez]').forEach(g=>g.querySelectorAll('a.ns-tile[data-file]').forEach(t=>{ordine.push(t.dataset.file);sezioni[t.dataset.file]=g.dataset.sez;}));
-        roles.salvaMenu({ordine,sezioni}).then(r=>avviso(r?.locale?'Spostamento provato: resta solo su questo dispositivo (beta in sola lettura)':'Menu salvato per tutti')).catch(errore=>avviso('Non salvato: '+(errore.message||errore)));
+        roles.salvaMenu({ordine,sezioni}).then(r=>{avviso(r?.personale?'Menu personale salvato':r?.locale?'Spostamento provato: resta solo su questo dispositivo (beta in sola lettura)':'Menu salvato per tutti');aggiornaPulsante();}).catch(errore=>avviso('Non salvato: '+(errore.message||errore)));
       };
       const inizia=(x,y)=>{
         if(!start)return;

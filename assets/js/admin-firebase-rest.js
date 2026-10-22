@@ -1064,7 +1064,8 @@
     const result = await databaseRequest("private/adminUpdates/pageAccess");
     const out = {};
     Object.entries(result.data || {}).forEach(([key, value]) => {
-      if (key === "ordine") out.ordine = (Array.isArray(value) ? value : Object.values(value || {})).map(pagina => `${pagina}.html`);
+      if (key === "menuEpoch") out.menuEpoch = Number(value) || 0;
+      else if (key === "ordine") out.ordine = (Array.isArray(value) ? value : Object.values(value || {})).map(pagina => `${pagina}.html`);
       else if (key === "sezioni") out.sezioni = Object.fromEntries(Object.entries(value || {}).map(([pagina, sezione]) => [`${pagina}.html`, sezione]));
       else out[key === "updatedAt" ? key : `${key}.html`] = value;
     });

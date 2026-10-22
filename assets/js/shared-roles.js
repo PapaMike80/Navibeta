@@ -75,20 +75,34 @@
     'quiz.html': 'amministrazione', 'comitive.html': 'amministrazione', 'verifica-busta.html': 'amministrazione', 'agenti.html': 'amministrazione', 'aggiornamenti.html': 'amministrazione',
     'movimento.html': 'amministrazione', 'collegamenti.html': 'amministrazione' };
   const sezionePredefinita = file => SEZIONE_PREDEFINITA[String(file || '').toLowerCase().split('?')[0]] || 'altre';
-  // NaviBeta e' in sola lettura: la disposizione provata li' resta solo sul dispositivo (non si scrive su Firebase)
-  const LOCALE_KEY = 'navisuite.menuLocale';
-  const disposizione = (access = accesso()) => {
-    if (window.__naviBetaReadOnly) { try { const l = JSON.parse(localStorage.getItem(LOCALE_KEY) || 'null'); if (l) return l; } catch { /* nessuna prova locale */ } }
-    return { sezioni: access?.sezioni || {}, ordine: Array.isArray(access?.ordine) ? access.ordine : [] };
+  // Disposizione del menu. Gli admin la decidono per tutti (sezioni + ordine, salvati insieme all'accesso); ogni agente puo' poi
+  // spostare le sue icone: la scelta resta sul suo telefono e vale finche' un admin non preme "Imposta per tutti" (menuEpoch).
+  // NaviBeta e' in sola lettura: la prova dell'admin resta solo sul dispositivo (non si scrive su Firebase).
+  const LOCALE_KEY = 'navisuite.menuLocale', PERSONALE_PREFIX = 'navisuite.menuPersonale.';
+  const leggiJson = chiave => { try { return JSON.parse(localStorage.getItem(chiave) || 'null'); } catch { return null; } };
+  const personale = (agent = sessione(), access = accesso()) => {
+    const p = leggiJson(PERSONALE_PREFIX + idOf(agent));
+    return p && Number(p.epoch || 0) === Number(access?.menuEpoch || 0) ? p : null;
+  };
+  const disposizioneGlobale = (access = accesso()) => ({ sezioni: access?.sezioni || {}, ordine: Array.isArray(access?.ordine) ? access.ordine : [] });
+  const disposizione = (access = accesso(), agent = sessione()) => {
+    if (isAdminAgent(agent)) { if (window.__naviBetaReadOnly) { const l = leggiJson(LOCALE_KEY); if (l) return l; } return disposizioneGlobale(access); }
+    const g = disposizioneGlobale(access), p = personale(agent, access);
+    return p ? { sezioni: { ...g.sezioni, ...(p.sezioni || {}) }, ordine: Array.isArray(p.ordine) && p.ordine.length ? p.ordine : g.ordine } : g;
   };
   const ordineDi = (file, access = accesso()) => { const i = disposizione(access).ordine.indexOf(String(file || '').toLowerCase().split('?')[0]); return i < 0 ? 1e6 : i; };
-  const sezioneDi = (file, access = accesso()) => {
-    file = String(file || '').toLowerCase().split('?')[0];
-    const scelta = disposizione(access).sezioni?.[file];
-    return SEZIONI.some(([k]) => k === scelta) ? scelta : sezionePredefinita(file);
-  };
-  // Salva la disposizione scelta dall'admin nel menu: ordine = elenco delle pagine, sezioni = pagina -> sezione (solo se diversa dal normale)
+  const scegliSezione = (map, file) => { const scelta = map?.[file]; return SEZIONI.some(([k]) => k === scelta) ? scelta : sezionePredefinita(file); };
+  const sezioneDi = (file, access = accesso()) => scegliSezione(disposizione(access).sezioni, String(file || '').toLowerCase().split('?')[0]);
+  const haScelteMie = (agent = sessione()) => !!personale(agent) || (isAdminAgent(agent) && !!window.__naviBetaReadOnly && !!leggiJson(LOCALE_KEY));
+  const azzeraMie = (agent = sessione()) => { try { localStorage.removeItem(PERSONALE_PREFIX + idOf(agent)); localStorage.removeItem(LOCALE_KEY); } catch { /* niente */ } };
+  // Salva dopo uno spostamento nel menu. ordine = elenco delle pagine, sezioni = pagina -> sezione.
   async function salvaMenu({ ordine, sezioni }) {
+    const agent = sessione(), access = accesso(), g = disposizioneGlobale(access);
+    if (!isAdminAgent(agent)) { // agente: scelta personale, solo sul suo telefono
+      const diff = Object.fromEntries(Object.entries(sezioni).filter(([f, sez]) => sez !== scegliSezione(g.sezioni, f)));
+      localStorage.setItem(PERSONALE_PREFIX + idOf(agent), JSON.stringify({ ordine, sezioni: diff, epoch: Number(access.menuEpoch || 0) }));
+      return { personale: true };
+    }
     const rimasta = Object.fromEntries(Object.entries(sezioni).filter(([f, sez]) => sez !== sezionePredefinita(f)));
     if (window.__naviBetaReadOnly) { localStorage.setItem(LOCALE_KEY, JSON.stringify({ ordine, sezioni: rimasta })); return { locale: true }; }
     const api = window.NaviAdminFirebase;
@@ -97,7 +111,25 @@
     const sezioniFinali = { ...(remoto.sezioni || {}) };
     Object.keys(sezioni).forEach(f => { delete sezioniFinali[f]; });
     Object.assign(sezioniFinali, rimasta);
-    const salvato = await api.savePageAccess({ ...remoto, ordine, sezioni: sezioniFinali });
+    const finale = { ...remoto, ordine, sezioni: sezioniFinali };
+    // una pagina spostata in Amministrazione la aprono solo gli admin; se ne esce torna all'accesso di prima
+    PAGINE.forEach(([f]) => {
+      if (!(f in sezioni)) return;
+      const era = scegliSezione(remoto.sezioni, f), ora = sezioni[f];
+      if (ora === 'amministrazione' && era !== 'amministrazione') { if (predefiniti(f).length) finale[f] = []; else delete finale[f]; }
+      else if (era === 'amministrazione' && ora !== 'amministrazione' && (finale[f] === 'admin' || (Array.isArray(finale[f]) && !finale[f].length))) delete finale[f];
+    });
+    const salvato = await api.savePageAccess(finale);
+    localStorage.setItem(ACCESS_KEY, JSON.stringify(salvato));
+    return { locale: false };
+  }
+  // "Imposta per tutti": le scelte personali degli agenti non valgono piu' (nuovo menuEpoch)
+  async function impostaPerTutti() {
+    if (window.__naviBetaReadOnly) return { locale: true };
+    const api = window.NaviAdminFirebase;
+    await api.ready;
+    const remoto = (await api.getPageAccess()) || {};
+    const salvato = await api.savePageAccess({ ...remoto, menuEpoch: Date.now() });
     localStorage.setItem(ACCESS_KEY, JSON.stringify(salvato));
     return { locale: false };
   }
@@ -169,6 +201,9 @@
     sezioneDi,
     ordineDi,
     salvaMenu,
+    impostaPerTutti,
+    haScelteMie,
+    azzeraMie,
     sezionePredefinita,
     puoAprire,
     pagineAperte,

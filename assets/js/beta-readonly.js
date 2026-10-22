@@ -95,7 +95,7 @@
    * Passano solo le chiavi di accesso (login), la cache del token anonimo Firebase e navisuite.menuLocale
    * (la disposizione del menu provata dall'admin: vale solo in beta, NaviSuite la ignora).
    */
-  const PASS_KEYS = /^(naviturni_logged_agent|navidiaria.activeAgent|navisuite.adminFirebaseAuth.v1|navisuite.pageAccess|navisuite.menuLocale)$/;
+  const PASS_KEYS = /^(naviturni_logged_agent|navidiaria.activeAgent|navisuite.adminFirebaseAuth.v1|navisuite.pageAccess|navisuite.menuLocale|navisuite.menuPersonale\.[^/]+)$/;
   try {
     const proto = Storage.prototype;
     const nGet = proto.getItem, nSet = proto.setItem, nRem = proto.removeItem, nClear = proto.clear, nKey = proto.key;
