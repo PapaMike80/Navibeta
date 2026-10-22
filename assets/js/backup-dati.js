@@ -23,17 +23,30 @@
   const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
   const nomeMese = tag => { const [y, m] = tag.split('-').map(Number); return `${MESI[m - 1]} ${y}`; };
 
-  const state = { fonte: null, righe: [], uguali: 0, scelte: new Set(), mese: '', conv: false };
+  const state = { attuali: { entries: [], origine: '' }, fonte: null, righe: [], uguali: 0, scelte: new Set(), mese: '', conv: false };
+
+  // La Distinta con cui si confronta: con modifiche non ancora online vale il telefono, altrimenti la copia online
+  // (su NaviBeta il telefono resta vuoto perche' non si puo' scrivere), con ripiego sul telefono.
+  async function caricaAttuali() {
+    const local = locali();
+    if (localStorage.getItem(K.dirty) === '1') return { entries: local, origine: 'questo telefono (modifiche non ancora online)' };
+    try {
+      await window.NaviAdminFirebase.ready;
+      const remoto = await window.NaviAdminFirebase.loadDiaria(id);
+      if (remoto?.entries?.length) return { entries: remoto.entries.filter(Boolean), origine: `copia online, aggiornata ${quando(remoto.updatedAt)}` };
+    } catch (errore) { console.warn('Backup: copia online non raggiungibile', errore); }
+    return { entries: local, origine: 'questo telefono (copia online non raggiungibile)' };
+  }
 
   // ---------- Fonti dei dati ----------
   function disegnaFonti() {
-    const lista = locali(), meta = leggi(K.meta, {}), sporco = localStorage.getItem(K.dirty) === '1';
+    const lista = state.attuali.entries, meta = leggi(K.meta, {}), sporco = localStorage.getItem(K.dirty) === '1';
     const storia = leggi(K.history, []);
     const pb = (() => { try { return localStorage.getItem('navisuite.pbBase') || ''; } catch { return ''; } })();
     const card = (titolo, righe, azioni) => el('article', { class: 'bd-card' }, el('h3', {}, titolo), el('p', {}, ...righe), azioni ? el('div', { class: 'bd-azioni' }, azioni) : null);
     const sezione = $('bdFonti');
     sezione.replaceChildren(
-      card('📱 Questo telefono', [`${lista.length} giorni · ultimo salvataggio ${quando(meta.updatedAt)}`, sporco ? el('b', { class: 'bd-warn' }, ' · modifiche non ancora online') : ' · allineato'], null),
+      card('📱 Distinta attuale', [`${lista.length} giorni da: ${state.attuali.origine} · ultimo salvataggio sul telefono ${quando(meta.updatedAt)}`, sporco ? el('b', { class: 'bd-warn' }, ' · modifiche non ancora online') : ' · allineato'], null),
       card('☁ Copia online (Firebase)', [el('span', { id: 'bdCloudInfo' }, 'Non ancora controllata')],
         [el('button', { type: 'button', class: 'chip', onclick: () => caricaCloud() }, 'Confronta con la copia online')]),
       card('🕘 Copie automatiche del telefono', [Array.isArray(storia) && storia.length ? `${storia.length} copie conservate` : 'Nessuna copia conservata'], null),
@@ -63,7 +76,7 @@
       dati = JSON.parse(files[nome]);
     } else dati = JSON.parse(await file.text());
     if (window.NaviDiariaBackupK.riconosci(dati)) {
-      const gia = new Map(locali().map(e => [e.date, e]));
+      const gia = new Map(state.attuali.entries.map(e => [e.date, e]));
       const totali = window.NaviDistintaTotals.create();
       const k = window.NaviDiariaBackupK.converti(dati, gia, { servizio: e => totali.serviceMinutes(e) });
       return { nome: `Ore NaviG · ${file.name}`, tipo: 'k', entries: k.entries, conversioni: k.conversioni, saltati: k.saltati };
@@ -74,7 +87,7 @@
 
   // ---------- Differenze ----------
   function impostaFonte(fonte) {
-    const { righe, uguali } = D.confronta(locali(), fonte.entries);
+    const { righe, uguali } = D.confronta(state.attuali.entries, fonte.entries);
     const conv = leggi(K.conv, { map: {} }).map || {};
     fonte.convDiverse = Object.entries(fonte.conversioni || {}).filter(([m, v]) => Number(conv[m]) !== Number(v));
     Object.assign(state, { fonte, righe, uguali, scelte: new Set(righe.map(r => r.date)), mese: '', conv: fonte.convDiverse.length > 0 });
@@ -121,7 +134,7 @@
     const quanti = righe.filter(r => state.scelte.has(r.date)).length, convs = state.conv ? fonte.convDiverse : [];
     if (!quanti && !convs.length) return;
     if (!confirm(`Applicare ${quanti} giorni${convs.length ? ` e ${convs.length} mesi di ore trasformate` : ''} dalla fonte “${fonte.nome}”?\nPrima si salva una copia automatica della Distinta attuale.`)) return;
-    const attuali = locali();
+    const attuali = state.attuali.entries;
     try { // copia di sicurezza, come fa la Distinta
       const storia = leggi(K.history, []);
       storia.push({ savedAt: new Date().toISOString(), reason: 'prima di importare un backup', entryCount: attuali.length, entries: attuali });
@@ -149,6 +162,7 @@
   $('bdFile').addEventListener('change', async e => {
     const f = e.target.files?.[0];
     if (!f) return;
+    if (!state.attuali.origine) { $('bdFileInfo').textContent = 'Aspetta: sto leggendo la Distinta.'; e.target.value = ''; return; }
     $('bdFileInfo').textContent = 'Lettura…';
     try { const fonte = await leggiFile(f); $('bdFileInfo').textContent = ''; impostaFonte(fonte); }
     catch (errore) { $('bdFileInfo').textContent = `File non leggibile: ${errore.message || errore}`; }
@@ -164,5 +178,6 @@
   if (!window.NaviDiariaOvertime) window.NaviDiariaOvertime = { setOrdinary: (e, v, s) => window.NaviOvertimeComponents.setOrdinary(e, v, s) };
   root.hidden = false;
   if (window.__naviBetaReadOnly) $('bdBeta').hidden = false;
-  disegnaFonti();
+  $('bdFonti').textContent = 'Lettura della Distinta…';
+  caricaAttuali().then(a => { state.attuali = a; disegnaFonti(); });
 })();
