@@ -366,7 +366,7 @@
         t = lavoroDi(t) || t;
         const rip = RIPOSO.test(t), c = G.coloreTurno(t);
         // settimane separate: prima di ogni lunedi' uno spazio con il numero della settimana; domenica in rosso
-        const wd = parseIso(d).getDay(), sett = wd === 1 ? `<span class="mt-sett" aria-hidden="true">sett. ${settimanaIso(d)}</span>` : '';
+        const wd = parseIso(d).getDay(), sett = wd === 1 ? `<span class="mt-sett" aria-hidden="true"><em>sett. ${settimanaIso(d)}</em></span>` : '';
         return `${sett}<button type="button" class="mt-g${d === oggi ? ' oggi' : ''}${wd === 0 ? ' dom' : ''}" data-giorno="${d}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
           `<span class="t${rip ? ' rip' : ''}" style="--c:${c};color:${G.testoSu(c)}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
       }).join('');
