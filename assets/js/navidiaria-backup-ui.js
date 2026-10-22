@@ -4,6 +4,13 @@
   const barra = document.getElementById('monthlyVerifyPayslip')?.parentElement;
   if (!B || !barra) return;
   const agente = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } };
+  // Firebase toglie i campi null/vuoti e riordina le chiavi: due giorni uguali possono avere un JSON diverso.
+  // Si confrontano senza null, vuoti, ordine delle chiavi e data di ultima modifica.
+  const canonica = valore => JSON.stringify((function pulisci(v) {
+    if (Array.isArray(v)) { const l = v.map(pulisci).filter(x => x !== undefined); return l.length ? l : undefined; }
+    if (v && typeof v === 'object') { const o = {}; Object.keys(v).sort().forEach(k => { if (k === 'modificatoIl') return; const x = pulisci(v[k]); if (x !== undefined) o[k] = x; }); return Object.keys(o).length ? o : undefined; }
+    return v === null || v === undefined || v === '' ? undefined : v;
+  })(valore));
   const avviso = testo => (typeof notify === 'function' ? notify(testo) : alert(testo));
 
   const scaricaBtn = document.createElement('button');
@@ -57,7 +64,7 @@
       !confirm(`Il backup è di ${dati.agente.nome || dati.agente.id}, non tuo. Caricarlo lo stesso nella tua distinta?`)) return;
     const attuali = new Map((typeof entries !== 'undefined' ? entries : []).filter(Boolean).map(e => [e.date, e]));
     const nuovi = dati.entries.filter(e => e?.date && !attuali.has(e.date));
-    const doppi = dati.entries.filter(e => e?.date && attuali.has(e.date) && JSON.stringify(attuali.get(e.date)) !== JSON.stringify(e));
+    const doppi = dati.entries.filter(e => e?.date && attuali.has(e.date) && canonica(attuali.get(e.date)) !== canonica(e));
     if (!nuovi.length && !doppi.length && !Object.keys(dati.conversioni || {}).length) return avviso('Niente da ripristinare: la distinta è già uguale al backup');
     if (!confirm(`Backup del ${String(dati.creato || '').slice(0, 10)}: ${nuovi.length} giorni da aggiungere${doppi.length ? `, ${doppi.length} giorni diversi da quelli attuali` : ''}. Procedere?`)) return;
     const sostituisci = doppi.length ? confirm(`Sostituire anche i ${doppi.length} giorni già presenti con quelli del backup?\nOK = sostituisci · Annulla = tieni quelli attuali`) : false;
