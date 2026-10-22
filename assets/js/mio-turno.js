@@ -76,7 +76,8 @@
     const head = `<div class="mt-turno">${chip(code === 'RIP' ? 'Riposo' : code)}` +
       `${nave ? `<b class="mt-nave">${esc(nave)}</b>` : ''}${orario}` +
       `${lavoro ? `<span class="mt-ore">${oreMinuti(comp.hours)}</span>` : ''}</div>` + modHtml;
-    return card('Il mio turno', '', head + crewHtml);
+    // con l'equipaggio la riga del turno non serve (e' gia' nell'intestazione); senza (riposo) resta la pastiglia
+    return crewHtml ? card('Equipaggio', '', modHtml + crewHtml) : card('Il mio turno', '', head);
   }
 
   function prossimoServizio(day) {
@@ -399,7 +400,6 @@
       (realToday ? ` · ore ${clock.getHours()}.${String(clock.getMinutes()).padStart(2, '0')}` : '');
     $('turno-day-input').value = day;
     // Distinta: apre la giornata mostrata (come da Turni)
-    if ($('turno-distinta')) $('turno-distinta').href = `navidiaria.html?editDate=${encodeURIComponent(day)}`;
     $('turno-day-today').hidden = false;
     $('turno-day-today').classList.toggle('on', realToday);
     $('turno-scali').hidden = true;
