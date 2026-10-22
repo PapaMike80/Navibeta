@@ -349,9 +349,9 @@
       let t = ''; try { t = state.schedule ? String(G.turnoAgente(state.schedule, me, d)?.turno || '').trim() : ''; } catch (_) { t = ''; }
       t = lavoroDi(t) || t;
       const dist = Math.abs((parseIso(d) - parseIso(day)) / 864e5), rip = RIPOSO.test(t);
-      const stile = `--o:${dist === 0 ? 1 : dist === 1 ? .62 : dist === 2 ? .45 : .3};--s:${dist === 0 ? 1 : dist === 1 ? .94 : .88}`;
+      const stile = `--o:${dist === 0 ? 1 : d === oggi ? .85 : dist === 1 ? .62 : dist === 2 ? .45 : .3};--s:${dist === 0 ? 1 : dist === 1 ? .94 : .88}`;
       const c = colori[t.toUpperCase()] || COLORI_TERRA[t.toUpperCase().replace(/\s+/g, '')] || (lavoroDi(t) ? '#d4d4d8' : '#9fb8c2');
-      return `<button type="button" class="mt-g${d === day ? ' on' : ''}${d === oggi ? ' oggi' : ''}" data-giorno="${d}" style="${stile}"><small>${d === oggi ? 'oggi' : GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
+      return `<button type="button" class="mt-g${d === day ? ' on' : ''}${d === oggi ? ' oggi' : ''}" data-giorno="${d}" style="${stile}">${d === oggi ? '<i class="mt-oggi">oggi</i>' : ''}<small>${GIORNI[parseIso(d).getDay()].slice(0, 3)}</small><b>${parseIso(d).getDate()}</b>` +
         `<span class="t${rip ? ' rip' : ''}" style="--c:${c}">${rip ? (t ? 'riposo' : '—') : esc(t)}</span></button>`;
     }).join('');
     const sel = box.querySelector('.mt-g.on');
