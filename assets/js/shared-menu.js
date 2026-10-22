@@ -105,7 +105,7 @@
     };
     const pastHtml='<a href="#" data-turni-main-past><span>◷</span><b>Mostra passato</b></a>';
     const ordine=e=>PRINCIPALI[e[0].split('?')[0].toLowerCase()]?.[2];
-    const ADMIN_PAGINE=['quiz.html','agenti.html','aggiornamenti.html','movimento.html','collegamenti.html'],soloAdmin=e=>!roles.isScaloAgent?.(agent)&&ADMIN_PAGINE.includes(e[0].split('?')[0].toLowerCase()),principali=entries.filter(e=>ordine(e)!==undefined).sort((a,b)=>ordine(a)-ordine(b)),altre=entries.filter(e=>ordine(e)===undefined&&!soloAdmin(e)),amministrazione=entries.filter(soloAdmin);
+    const ADMIN_PAGINE=['quiz.html','comitive.html','agenti.html','aggiornamenti.html','movimento.html','collegamenti.html'],soloAdmin=e=>!roles.isScaloAgent?.(agent)&&ADMIN_PAGINE.includes(e[0].split('?')[0].toLowerCase()),principali=entries.filter(e=>ordine(e)!==undefined).sort((a,b)=>ordine(a)-ordine(b)),altre=entries.filter(e=>ordine(e)===undefined&&!soloAdmin(e)),amministrazione=entries.filter(soloAdmin);
     const pastTile=onTurni?pastHtml.replace('<a ','<a class="ns-tile" style="--c:#2dd4bf" ').replace('<b>','<i><b>').replace('</b>','</b></i>'):'';
     const linksHtml=`<div class="ns-grid ns-grid-main">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small">${pastTile}${altre.map(linkHtml).join('')}<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a></div>`:''}${amministrazione.length?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
 
