@@ -1,85 +1,14 @@
-// NaviDiaria · backup personale: "Scarica backup" (uno .zip con il JSON per ripristinare e il CSV leggibile) e "Carica backup".
+// NaviDiaria · pulsante "Backup": porta alla pagina Backup e fonti (scarica, carica e confronta i backup).
 (() => {
-  const B = window.NaviDiariaBackup;
   const barra = document.getElementById('monthlyVerifyPayslip')?.parentElement;
-  if (!B || !barra) return;
-  const agente = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } };
-  // Firebase toglie i campi null/vuoti e riordina le chiavi: due giorni uguali possono avere un JSON diverso.
-  // Si confrontano senza null, vuoti, ordine delle chiavi e data di ultima modifica.
-  const canonica = valore => JSON.stringify((function pulisci(v) {
-    if (Array.isArray(v)) { const l = v.map(pulisci).filter(x => x !== undefined); return l.length ? l : undefined; }
-    if (v && typeof v === 'object') { const o = {}; Object.keys(v).sort().forEach(k => { if (k === 'modificatoIl') return; const x = pulisci(v[k]); if (x !== undefined) o[k] = x; }); return Object.keys(o).length ? o : undefined; }
-    return v === null || v === undefined || v === '' ? undefined : v;
-  })(valore));
-  const avviso = testo => (typeof notify === 'function' ? notify(testo) : alert(testo));
-
-  const scaricaBtn = document.createElement('button');
-  scaricaBtn.type = 'button'; scaricaBtn.className = 'monthly-today-button'; scaricaBtn.textContent = '⤓ Scarica backup';
-  const caricaBtn = document.createElement('button');
-  caricaBtn.type = 'button'; caricaBtn.className = 'monthly-today-button'; caricaBtn.textContent = '⤒ Carica backup';
-  const file = document.createElement('input');
-  file.type = 'file'; file.accept = '.zip,.json,application/zip,application/json'; file.hidden = true;
-  barra.append(scaricaBtn, caricaBtn, file);
+  if (!barra) return;
+  const backupBtn = document.createElement('button');
+  backupBtn.type = 'button'; backupBtn.className = 'monthly-today-button'; backupBtn.textContent = '⤓ Backup';
+  backupBtn.addEventListener('click', () => { location.href = 'backup-dati.html'; });
+  barra.append(backupBtn);
   // Verifica busta: solo a chi puo' aprire la pagina (di norma gli admin, sezione Accesso alle pagine)
   const verifica = document.getElementById('monthlyVerifyPayslip');
   const aggiornaVerifica = () => { if (verifica && window.NaviRoles?.puoAprire) verifica.hidden = !window.NaviRoles.puoAprire('verifica-busta.html'); };
   aggiornaVerifica();
   window.addEventListener('navi-page-access', aggiornaVerifica); // dopo la rilettura da Firebase
-
-  scaricaBtn.addEventListener('click', () => {
-    const a = agente();
-    if (!a?.id) return avviso('Accedi per scaricare la tua distinta');
-    const lista = (typeof entries !== 'undefined' ? entries : []).filter(Boolean);
-    const conversioni = window.NaviDiariaConversione?.mappa?.() || {};
-    const base = `Distinta-${B.nomeFile(a.name)}-${B.oggi()}`;
-    const json = { tipo: 'navidiaria-backup', versione: 1, creato: new Date().toISOString(),
-      agente: { id: String(a.id), nome: a.name || '', residenza: a.residence || '' }, entries: lista, conversioni };
-    // un solo file .zip con dentro il .json (per ripristinare) e il .csv (da aprire con Excel)
-    B.scarica(`${base}.zip`, B.zip([{ name: `${base}.json`, data: JSON.stringify(json, null, 1) },
-      { name: `${base}.csv`, data: B.csv([{ id: a.id, nome: a.name, entries: lista, conversioni }]) }]), 'application/zip');
-    avviso(`Backup scaricato: ${lista.length} giorni`);
-  });
-
-  caricaBtn.addEventListener('click', () => { file.value = ''; file.click(); });
-  file.addEventListener('change', async () => {
-    const f = file.files?.[0];
-    if (!f) return;
-    let dati;
-    try {
-      if (/\.zip$/i.test(f.name) || f.type.includes('zip')) {
-        const files = B.unzip(new Uint8Array(await f.arrayBuffer())), json = Object.keys(files).find(n => /\.json$/i.test(n));
-        if (!json) return avviso('Nello zip non c\'è il file .json del backup');
-        dati = JSON.parse(files[json]);
-      } else dati = JSON.parse(await f.text());
-    } catch (error) { return avviso(`File non leggibile: ${error.message}`); }
-    if (window.NaviDiariaBackupK?.riconosci(dati)) { // backup di Ore NaviG (K): si applica sui turni gia' in Distinta
-      const gia = new Map((typeof entries !== 'undefined' ? entries : []).filter(Boolean).map(e => [e.date, e]));
-      const k = window.NaviDiariaBackupK.converti(dati, gia, { servizio: e => Math.round((Number(shiftFor(e.shift, e.date).hours) || 0) * 60) });
-      if (k.saltati.length) avviso(`${k.saltati.length} giorni del backup senza turno in Distinta: saltati`);
-      dati = { tipo: 'navidiaria-backup', creato: '', entries: k.entries, conversioni: k.conversioni };
-    }
-    if (dati?.tipo !== 'navidiaria-backup' || !Array.isArray(dati.entries)) return avviso('Non è un backup della Distinta');
-    const a = agente();
-    if (dati.agente?.id && a?.id && String(dati.agente.id) !== String(a.id) &&
-      !confirm(`Il backup è di ${dati.agente.nome || dati.agente.id}, non tuo. Caricarlo lo stesso nella tua distinta?`)) return;
-    const attuali = new Map((typeof entries !== 'undefined' ? entries : []).filter(Boolean).map(e => [e.date, e]));
-    const nuovi = dati.entries.filter(e => e?.date && !attuali.has(e.date));
-    const doppi = dati.entries.filter(e => e?.date && attuali.has(e.date) && canonica(attuali.get(e.date)) !== canonica(e));
-    // quali campi cambiano nei giorni diversi (nel messaggio i primi, tutti in console)
-    const campiDiversi = e => { const v = attuali.get(e.date); return [...new Set([...Object.keys(v), ...Object.keys(e)])].filter(k => k !== 'modificatoIl' && canonica(v[k]) !== canonica(e[k])); };
-    const dettaglio = doppi.map(e => ({ data: e.date, campi: campiDiversi(e).join(', '), attuale: campiDiversi(e).map(k => canonica(attuali.get(e.date)[k])).join(' | '), backup: campiDiversi(e).map(k => canonica(e[k])).join(' | ') }));
-    if (dettaglio.length) console.table(dettaglio);
-    const elencoDiversi = dettaglio.slice(0, 5).map(d => `\n• ${d.data}: ${d.campi || 'solo formato'}`).join('');
-    if (!nuovi.length && !doppi.length && !Object.keys(dati.conversioni || {}).length) return avviso('Niente da ripristinare: la distinta è già uguale al backup');
-    if (!confirm(`Backup del ${String(dati.creato || '').slice(0, 10)}: ${nuovi.length} giorni da aggiungere${doppi.length ? `, ${doppi.length} giorni diversi da quelli attuali${elencoDiversi}${dettaglio.length > 5 ? '\n…' : ''}` : ''}. Procedere?`)) return;
-    const sostituisci = doppi.length ? confirm(`Sostituire anche i ${doppi.length} giorni già presenti con quelli del backup?\nOK = sostituisci · Annulla = tieni quelli attuali`) : false;
-    nuovi.forEach(e => attuali.set(e.date, e));
-    if (sostituisci) doppi.forEach(e => attuali.set(e.date, e));
-    entries = [...attuali.values()].sort((x, y) => String(x.date).localeCompare(String(y.date)));
-    if (dati.conversioni) window.NaviDiariaConversione?.importa?.(dati.conversioni);
-    if (typeof persist === 'function') persist();
-    window.NaviDiariaRefreshMonthly?.();
-    try { await window.NaviDiariaRuntime?.saveNow?.(); } catch { /* resta da sincronizzare */ }
-    avviso(`Ripristinati ${nuovi.length + (sostituisci ? doppi.length : 0)} giorni`);
-  });
 })();
