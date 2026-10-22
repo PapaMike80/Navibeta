@@ -69,6 +69,17 @@
   const sessione = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null'); } catch { return null; } };
   // ruoli che possono aprire la pagina ('admin' = la vecchia scelta "solo admin")
   const consentiti = (file, access = accesso()) => { const v = access[file]; return Array.isArray(v) ? v : v === 'admin' ? [] : predefiniti(file); };
+  // Sezioni del menu e della Home: di default come sempre, ma gli admin possono spostare le pagine (pagina Agenti > Accesso alle pagine)
+  const SEZIONI = [['principali', 'PAGINE PRINCIPALI'], ['altre', 'ALTRE PAGINE'], ['amministrazione', 'AMMINISTRAZIONE']];
+  const SEZIONE_PREDEFINITA = { 'mio-turno.html': 'principali', 'orario.html': 'principali', 'naviturni.html': 'principali', 'oggi.html': 'principali', 'navidiaria.html': 'principali',
+    'quiz.html': 'amministrazione', 'comitive.html': 'amministrazione', 'verifica-busta.html': 'amministrazione', 'agenti.html': 'amministrazione', 'aggiornamenti.html': 'amministrazione',
+    'movimento.html': 'amministrazione', 'collegamenti.html': 'amministrazione' };
+  const sezionePredefinita = file => SEZIONE_PREDEFINITA[String(file || '').toLowerCase().split('?')[0]] || 'altre';
+  const sezioneDi = (file, access = accesso()) => {
+    file = String(file || '').toLowerCase().split('?')[0];
+    const scelta = access?.sezioni?.[file];
+    return SEZIONI.some(([k]) => k === scelta) ? scelta : sezionePredefinita(file);
+  };
   function puoAprire(file, agent = sessione(), access = accesso()) {
     file = String(file || 'index.html').toLowerCase();
     if (isAdminAgent(agent)) return true;
@@ -133,6 +144,9 @@
     ruoloDi,
     predefiniti,
     consentiti,
+    SEZIONI,
+    sezioneDi,
+    sezionePredefinita,
     puoAprire,
     pagineAperte,
     applicaAccesso,

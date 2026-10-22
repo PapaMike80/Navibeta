@@ -154,6 +154,15 @@ function showChoice(agent) {
   if (quiz) quiz.hidden = !isAdminAgent(agent);
   const backup = document.querySelector('.app-card.backup');
   if (backup) backup.hidden = isBaristaAgent(agent);
+  // sezioni scelte dagli admin: ogni scheda va nella griglia della sua sezione
+  if (window.NaviRoles?.sezioneDi) {
+    const griglie = { principali: document.querySelector('#appChoice .app-principali'), altre: document.querySelector('#appChoice .app-altre:not(#adminGrid)'), amministrazione: document.getElementById('adminGrid') };
+    document.querySelectorAll('#appChoice .app-card').forEach(card => {
+      const sezione = window.NaviRoles.sezioneDi(card.getAttribute('href') || ''), dest = griglie[sezione];
+      if (dest && card.parentElement !== dest) dest.append(card);
+      card.querySelectorAll('p').forEach(p => { p.hidden = sezione !== 'principali'; });
+    });
+  }
   // sezione Amministrazione: solo se c'e' almeno una voce visibile
   const adminGrid = document.getElementById('adminGrid'), adminTitolo = document.getElementById('adminTitolo');
   if (adminGrid) { const vuota = !adminGrid.querySelector('.app-card:not([hidden])'); adminGrid.hidden = vuota; if (adminTitolo) adminTitolo.hidden = vuota; }

@@ -99,13 +99,15 @@
     const PRINCIPALI={'navidiaria.html':['Ore, ritardi e competenze','#fb923c',0],'mio-turno.html':['Nave, corse e colleghi','#2dd4bf',1],'naviturni.html':['Turni di tutti gli agenti','#2dd4bf',2],'oggi.html':['Navi ed equipaggi del giorno','#facc15',3],'orario.html':['Navi allo scalo, pontili, ritardi','#38bdf8',4]};
     const COLORI={'index.html':'#94a3b8','cambi_turno.html':'#a78bfa','documenti.html':'#f59e0b','impostazioni.html':'#94a3b8','quiz.html':'#f472b6','agenti.html':'#fb7185','aggiornamenti.html':'#4ade80','movimento.html':'#38bdf8','collegamenti.html':'#f59e0b','verifica-busta.html':'#4ade80','backup-dati.html':'#67d7e6','orari.html':'#fbbf24','comitive.html':'#67d7e6','controllo_cassa.html':'#27a9b6'};
     const linkHtml=([href,icon,label])=>{
-      const key=href.split('?')[0].toLowerCase(),active=key===file,main=PRINCIPALI[key];
+      const key=href.split('?')[0].toLowerCase(),active=key===file,main=sezioneDi(key)==='principali'?PRINCIPALI[key]:undefined;
       const colore=main?.[1]||COLORI[key]||'#94a3b8';
-      return `<a class="nav-link ns-tile${main?' ns-main':''}${key==='navidiaria.html'?' ns-wide':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
+      return `<a class="nav-link ns-tile${main?' ns-main':''}${main&&key==='navidiaria.html'?' ns-wide':''}${active?' active':''}" href="${href}" style="--c:${colore}"${active?' aria-current="page"':''}><span>${icon}</span><i><b>${escapeText(label)}</b>${main?`<small>${main[0]}</small>`:''}</i></a>`;
     };
     const pastHtml='<a href="#" data-turni-main-past><span>◷</span><b>Mostra passato</b></a>';
-    const ordine=e=>PRINCIPALI[e[0].split('?')[0].toLowerCase()]?.[2];
-    const ADMIN_PAGINE=['quiz.html','comitive.html','agenti.html','aggiornamenti.html','movimento.html','collegamenti.html'],soloAdmin=e=>!roles.isScaloAgent?.(agent)&&ADMIN_PAGINE.includes(e[0].split('?')[0].toLowerCase()),principali=entries.filter(e=>ordine(e)!==undefined).sort((a,b)=>ordine(a)-ordine(b)),altre=entries.filter(e=>ordine(e)===undefined&&!soloAdmin(e)),amministrazione=entries.filter(soloAdmin);
+    const sezioneDi=key=>roles.sezioneDi?roles.sezioneDi(key):(PRINCIPALI[key]?'principali':'altre');
+    const ordine=e=>PRINCIPALI[e[0].split('?')[0].toLowerCase()]?.[2]??99;
+    const inSezione=nome=>entries.filter(e=>sezioneDi(e[0].split('?')[0].toLowerCase())===nome);
+    const principali=inSezione('principali').sort((a,b)=>ordine(a)-ordine(b)),altre=inSezione('altre'),amministrazione=inSezione('amministrazione');
     const pastTile=onTurni?pastHtml.replace('<a ','<a class="ns-tile" style="--c:#2dd4bf" ').replace('<b>','<i><b>').replace('</b>','</b></i>'):'';
     const linksHtml=`<div class="ns-grid ns-grid-main">${principali.map(linkHtml).join('')}</div>${altre.length||pastTile?`<p class="ns-altre">ALTRE PAGINE</p><div class="ns-grid ns-grid-small">${pastTile}${altre.map(linkHtml).join('')}<a href="#" class="ns-tile" style="--c:#e8f7f7" data-ns-condividi><span style="background:#fff!important"><img src="assets/images/qr-condividi.svg" alt="" style="width:24px;height:24px;display:block"></span><i><b>Condividi</b></i></a></div>`:''}${amministrazione.length?`<p class="ns-altre">AMMINISTRAZIONE</p><div class="ns-grid ns-grid-small">${amministrazione.map(linkHtml).join('')}</div>`:''}`;
 
