@@ -547,7 +547,10 @@
       com.scendono.forEach(c => voci.push({ c, i, r, su: false, ora: r.arr ? r.arr.ora : r.ora, t: r.arr ? r.arr.t : r.t, corsa: r.arr ? r.arr.corsa : r.corsa }));
       com.salgono.forEach(c => voci.push({ c, i, r, su: true, ora: r.ora, t: r.t, corsa: r.corsa }));
     });
-    if (!voci.length || voci.every(v => v.t < t)) return '';
+    // una comitiva sparisce 30 minuti dopo il passaggio allo scalo, contando l'eventuale ritardo della corsa
+    const ritMin = v => { const r = ritardoDi(g, v.r.v.turno, v.corsa, state.scalo); return !r || r.inOrario ? 0 : r.oltre ? 120 : Number(r.minuti) || 0; };
+    for (let k = voci.length - 1; k >= 0; k--) if (voci[k].t + ritMin(voci[k]) + 30 < t) voci.splice(k, 1);
+    if (!voci.length) return '';
     voci.sort((a, b) => a.t - b.t || a.su - b.su);
     const pax = voci.reduce((n, v) => n + (parseInt(v.c.pax, 10) || 0), 0), clienti = new Set(voci.map(v => v.c.chiave)).size;
     return `<details class="or-com"${state.comAperto ? ' open' : ''}><summary><span>👥 Comitive ${g.day === iso(new Date()) ? 'oggi' : 'del giorno'} a ${esc(state.scalo)}</span><b class="cnt">${clienti} · ${pax} pax</b></summary>` +

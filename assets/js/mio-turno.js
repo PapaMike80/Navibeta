@@ -157,9 +157,11 @@
   function riquadroComitive(rows, com, day, code) {
     const oggi = iso(new Date()), now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
     const passata = r => day < oggi || (day === oggi && minutes(r.orario) < nowMin);
+    // una comitiva sparisce 30 minuti dopo il passaggio allo scalo (gli orari delle corse includono gia' il ritardo)
+    const transitata = r => day < oggi || (day === oggi && minutes(r.orario) + 30 < nowMin);
     const voci = [];
-    rows.forEach((r, i) => { com[i].scendono.forEach(c => voci.push({ c, r, i, su: false })); com[i].salgono.forEach(c => voci.push({ c, r, i, su: true })); });
-    if (!voci.length || voci.every(v => passata(v.r))) return '';
+    rows.forEach((r, i) => { if (transitata(r)) return; com[i].scendono.forEach(c => voci.push({ c, r, i, su: false })); com[i].salgono.forEach(c => voci.push({ c, r, i, su: true })); });
+    if (!voci.length) return '';
     const pax = paxDi([...new Map(voci.map(v => [v.c.chiave, v.c])).values()]), clienti = new Set(voci.map(v => v.c.chiave)).size;
     return `<details class="or-com"${state.comAperto ? ' open' : ''}><summary><span>👥 Comitive sulle tue corse</span><b class="cnt">${clienti} · ${pax} pax</b></summary>` +
       voci.map(v => `<div class="or-com-r${passata(v.r) ? ' past' : ''}" data-com-riga="${v.i}"><span class="o">${esc(v.r.orario)}${window.NaviComitive.bolle.corsa(v.r.run, v.r.per || code)}</span><span><span class="ss ${v.su ? 'su' : 'giu'}">${v.su ? 'SALGONO' : 'SCENDONO'}</span><b>${esc(v.c.cliente)}</b><span class="d">${v.su ? `${esc(v.r.nome)} → ${esc(v.c.scende || '')}` : `a ${esc(v.r.nome)}`}</span></span><span class="dx">${window.NaviComitive.bolle.pax(v.c)}${v.su ? window.NaviComitive.bolle.pag(v.c.pagamento) : ''}</span></div>`).join('') + '</details>';
