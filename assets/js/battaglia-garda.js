@@ -1,5 +1,5 @@
 // Battaglia sul Garda: sfida del giorno su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
-// I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario all'ora d'inizio della partita (in navigazione sulla
+// I bersagli sono i battelli in corsa, nel punto in cui li mette l'orario a un'ora a caso della giornata (diversa a ogni partita) (in navigazione sulla
 // rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Ogni battello e' una casella sola; si hanno
 // 10 siluri in acqua (chi colpisce ritira; ogni siluro in acqua dice a quante caselle e' il battello piu' vicino) e un sonar
 // da usare una volta (il raggio fa un giro e accende i battelli mentre ci passa sopra): in classifica va davanti chi ne affonda di piu', a parita' chi usa meno siluri. Conta la prima partita del giorno.
@@ -150,6 +150,7 @@
   const profilo = (() => { try { return JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } })();
   const FATTA = `navisuite.battagliaGarda.fatta.${oggi}`;
   const giaFatta = () => { try { return localStorage.getItem(FATTA); } catch { return null; } };
+  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const nomeCella = i => { const [x, y] = centro(i); return `davanti a ${Object.entries(POS).sort((a, b) => Math.hypot(a[1][0] - x, a[1][1] - y) - Math.hypot(b[1][0] - x, b[1][1] - y))[0][0]}`; };
   let g, classifica = {};
@@ -157,16 +158,11 @@
   function nuova() {
     let corse = [];
     try { corse = (O?.corseDelGiorno?.(oggi) || []).filter(c => !/^T[12]$/.test(c.turno)); } catch { corse = []; } // senza traghetti: troppo facili
-    const ora = new Date();
-    let t = ora.getHours() * 60 + ora.getMinutes(); // le navi stanno dove sono adesso, ferme per tutta la partita
-    // bersagli: solo le navi che stanno facendo una corsa; si gioca se ce ne sono almeno due
-    let navi = piazzaOrario(posizioni(corse, t).filter(n => !n.fermo)), aCaso = false;
-    // navi ferme (sera, notte): un'ora a caso della giornata con almeno due navi in corsa
-    if (navi.length < 2) {
-      const ore = [];
-      for (let m = 5 * 60; m < 24 * 60; m += 5) if (posizioni(corse, m).filter(n => !n.fermo).length >= 2) ore.push(m);
-      if (ore.length) { t = ore[Math.floor(Math.random() * ore.length)]; navi = piazzaOrario(posizioni(corse, t).filter(n => !n.fermo)); aCaso = true; }
-    }
+    // ogni partita un'ora a caso della giornata con almeno due navi in corsa (bersagli: solo le navi in corsa)
+    const ore = [];
+    for (let m = 5 * 60; m < 24 * 60; m += 5) if (posizioni(corse, m).filter(n => !n.fermo).length >= 2) ore.push(m);
+    const t = ore.length ? ore[Math.floor(Math.random() * ore.length)] : 0, aCaso = true;
+    const navi = ore.length ? piazzaOrario(posizioni(corse, t).filter(n => !n.fermo)) : [];
     const chiuso = navi.length < 2;
     const valida = !giaFatta();
     g = { navi: chiuso ? [] : navi, chiuso, aCaso, ora: t, sonarUsato: false, giro: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: chiuso ? `Adesso ${navi.length ? 'c\'è una sola nave' : 'non ci sono navi'} in navigazione: si gioca quando almeno due navi stanno facendo una corsa.` : 'Tocca una casella d\'acqua per sparare (non sugli scali).', colore: 'var(--teal)' };
@@ -232,7 +228,7 @@
 
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
-    $('bg-info').innerHTML = g.chiuso ? `Oggi non ci sono navi in corsa: nessuna sfida.` : `${g.navi.length} battelli in navigazione da trovare (l'ora non si vede: niente aiuti dall'orario)${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
+    $('bg-info').innerHTML = g.chiuso ? `Oggi non ci sono navi in corsa: nessuna sfida.` : `${g.navi.length} battelli in navigazione alle <b>${hhmm(g.ora)}</b> (ora a caso, cambia a ogni partita)${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
     $('bg-punti').innerHTML = `🚀 Siluri <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
     t.textContent = g.chiuso ? 'Navi ferme' : fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
