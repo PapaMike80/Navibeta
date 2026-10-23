@@ -89,6 +89,7 @@
       ['cambi_turno.html','⇄','Cambio'],
       ['ferie.html','☀','Ferie'],
       ['battaglia-navale.html','⚓','Battaglia navale'],
+      ['battaglia-garda.html','⛴','Battaglia sul Garda'],
       ['controllo_cassa.html','$','Cassa'],
       ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
       ['backup-dati.html','⤓','Backup'],

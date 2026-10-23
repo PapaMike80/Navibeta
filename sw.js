@@ -8,7 +8,7 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v734-battaglia-navale';
+const CACHE_VERSION = 'navibeta-v735-battaglia-garda';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
@@ -37,6 +37,8 @@ const CORE_ASSETS = [
   './mio-turno.html',
   './ferie.html',
   './battaglia-navale.html',
+  './battaglia-garda.html',
+  './assets/js/battaglia-garda.js',
   './assets/js/battaglia-navale.js',
   './assets/js/ferie.js',
   './documenti.html',
