@@ -1,13 +1,14 @@
 // Battaglia sul Garda: sfida del giorno su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
 // I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario all'ora d'inizio della partita (in navigazione sulla
 // rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Ogni battello e' una casella sola; si hanno
-// 5 sonar (quanti battelli nel quadrato 3x3) e 10 siluri in acqua (chi colpisce ritira): in classifica va davanti chi ne affonda di piu', a parita' chi usa meno siluri. Conta la prima partita del giorno.
+// 10 siluri in acqua (chi colpisce ritira; ogni siluro in acqua dice a quante caselle e' il battello piu' vicino) e un sonar
+// da usare una volta (il raggio fa un giro e accende i battelli mentre ci passa sopra): in classifica va davanti chi ne affonda di piu', a parita' chi usa meno siluri. Conta la prima partita del giorno.
 (function (root) {
   'use strict';
   const MAPPA = root.NaviLagoMappa;
   const C = 3.4; // lato della casella in unita' della mappa
   const COLPI = 10; // siluri a disposizione (si contano quelli finiti in acqua)
-  const SONAR = 5; // sonar: dicono quanti battelli ci sono nel quadrato 3x3 intorno alla casella
+  const GIRO_MS = 4000; // durata del giro del sonar
   const FLOTTA = [['Zanardelli', 4], ['Italia', 3], ['Brescia', 3], ['Agone', 2], ['Catullo', 2]];
   const COSTA = MAPPA.costa.slice(1, -1).split(' L').map(p => p.split(' ').map(Number));
   const LARGO = 76, ALTO = 140, COL = Math.ceil(LARGO / C), RIG = Math.ceil(ALTO / C);
@@ -169,14 +170,17 @@
     }
     const chiuso = navi.length < 2;
     const valida = !giaFatta();
-    g = { navi: chiuso ? [] : navi, chiuso, aCaso, ora: t, sbirciato: false, colpi: new Set(), sonar: {}, arma: 'sonar', ultimo: null, valida, log: chiuso ? `Adesso ${navi.length ? 'c\'è una sola nave' : 'non ci sono navi'} in navigazione: si gioca quando almeno due navi stanno facendo una corsa.` : 'Tocca una casella d\'acqua per sparare (non sugli scali).', colore: 'var(--teal)' };
+    g = { navi: chiuso ? [] : navi, chiuso, aCaso, ora: t, sonarUsato: false, giro: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: chiuso ? `Adesso ${navi.length ? 'c\'è una sola nave' : 'non ci sono navi'} in navigazione: si gioca quando almeno due navi stanno facendo una corsa.` : 'Tocca una casella d\'acqua per sparare (non sugli scali).', colore: 'var(--teal)' };
     render();
   }
 
   const NS = 'http://www.w3.org/2000/svg';
   const acqua = () => [...g.colpi].filter(i => !g.navi.some(n => n.celle.includes(i))).length;
   // Schermo sonar con i colori di NaviSuite: acqua blu notte, costa e cerchi azzurri, raggio verde acqua che gira;
-  // siluro in acqua = puntino azzurro; sonar = quadrato 3x3 tratteggiato con il numero di battelli; affondato = punto rosa che pulsa.
+  // siluro in acqua = «ping» grande quanto la distanza dal battello piu' vicino, con il numero; affondato = punto rosa che pulsa.
+  // Con il sonar il raggio fa un giro solo e ogni battello si accende quando il raggio ci passa sopra.
+  const distanza = (i, navi) => Math.min(...navi.filter(n => n.colpi.size < n.len).flatMap(n => n.celle).map(j => Math.max(Math.abs(p(i) - p(j)), Math.abs(Math.floor(i / COL) - Math.floor(j / COL)))));
+  const COLORE_DIST = d => d <= 1 ? '#fb7185' : d === 2 ? '#fb923c' : d === 3 ? '#fbbf24' : d <= 5 ? '#a3e635' : '#67d7e6';
   // il raggio gira con un'animazione SVG su tutto il riquadro della mappa, sotto il lago semitrasparente
   const CX = 38, CY = 76, FERMO = !!root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function lago(svg, navi, colpi, mostraNavi, ultimo) {
@@ -185,7 +189,8 @@
       <g pointer-events="none">
         ${[18, 36, 54, 72, 90].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
         <line x1="${CX}" y1="0" x2="${CX}" y2="${ALTO}" stroke="#1f4250" stroke-width=".25"/><line x1="0" y1="${CY}" x2="${LARGO}" y2="${CY}" stroke="#1f4250" stroke-width=".25"/>
-        <g><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
+        <g${g.giro ? ' opacity="0"' : ''}><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
+        ${g.giro ? `<g><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)" opacity="1.6"/><animateTransform id="bg-giro" attributeName="transform" type="rotate" from="-15 ${CX} ${CY}" to="345 ${CX} ${CY}" dur="${GIRO_MS}ms" begin="indefinite" fill="freeze"/></g>` : ''}
       </g>
       <path d="${MAPPA.costa}" fill="#0b2a38" fill-opacity=".72" stroke="#67d7e6" stroke-width=".45"/>`;
     let sopra = '';
@@ -193,18 +198,19 @@
       const x = p(i) * C, y = Math.floor(i / COL) * C, cx = x + C / 2, cy = y + C / 2, nave = navi.find(n => n.celle.includes(i)), colpita = colpi.has(i);
       h += `<rect data-i="${i}" x="${x}" y="${y}" width="${C}" height="${C}" fill="transparent"/><circle cx="${cx}" cy="${cy}" r=".28" fill="#2a5566" pointer-events="none"/>`;
       if (colpita && !nave) {
-        sopra += `<circle cx="${cx}" cy="${cy}" r=".7" fill="#67d7e6" pointer-events="none"/>`;
+        const d = g.dist[i], col = Number.isFinite(d) ? COLORE_DIST(d) : '#67d7e6';
+        if (Number.isFinite(d)) sopra += `<circle cx="${cx}" cy="${cy}" r="${Math.min(d, 6) * C * .55 + .8}" fill="none" stroke="${col}" stroke-width=".25" opacity=".55" pointer-events="none"/>`;
+        sopra += `<text x="${cx}" y="${cy + .95}" font-size="2.7" text-anchor="middle" fill="${col}" font-weight="900" pointer-events="none">${Number.isFinite(d) ? d : '•'}</text>`;
       }
       if (colpita && nave) sopra += `<circle cx="${cx}" cy="${cy}" r="1.25" fill="#fb7185" pointer-events="none"/><circle class="sonar-pulsa" cx="${cx}" cy="${cy}" r="1.25" fill="none" stroke="#fb7185" stroke-width=".35" pointer-events="none"/>`;
       else if (mostraNavi && nave) sopra += `<circle cx="${cx}" cy="${cy}" r="1.1" fill="#2dd4bf" pointer-events="none"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="none" stroke="#2dd4bf" stroke-width=".3" pointer-events="none"/>`;
       if (i === ultimo) sopra += `<rect x="${x + .2}" y="${y + .2}" width="${C - .4}" height="${C - .4}" rx=".7" fill="none" stroke="#eaf2f4" stroke-width=".35" pointer-events="none"/>`;
     });
-    // sonar: il quadrato 3x3 esplorato e quanti battelli c'erano dentro
-    Object.entries(g.sonar).forEach(([k, n]) => {
-      const i = Number(k), x = p(i) * C, y = Math.floor(i / COL) * C, col = n ? '#2dd4bf' : '#67d7e6';
-      h += `<rect x="${x - C}" y="${y - C}" width="${C * 3}" height="${C * 3}" rx="1.2" fill="${col}" fill-opacity=".1" stroke="${col}" stroke-width=".35" stroke-dasharray="1 .6" pointer-events="none"/>`;
-      sopra += `<text x="${x + C / 2}" y="${y + C / 2 + 1.1}" font-size="3.3" text-anchor="middle" fill="${col}" font-weight="900" pointer-events="none">${n}</text>`;
-    });
+    // giro del sonar: ogni battello a galla si accende quando il raggio ci passa sopra
+    if (g.giro) navi.filter(n => n.colpi.size < n.len).forEach(n => n.celle.forEach(i => {
+      const cx = p(i) * C + C / 2, cy = Math.floor(i / COL) * C + C / 2, gradi = (Math.atan2(cy - CY, cx - CX) * 180 / Math.PI + 360) % 360;
+      sopra += `<circle class="sonar-blip" style="animation-delay:${Math.round(gradi / 360 * GIRO_MS)}ms" cx="${cx}" cy="${cy}" r="1.3" fill="#2dd4bf" pointer-events="none"/>`;
+    }));
     h += sopra;
     Object.entries(MAPPA.scali).forEach(([n, s]) => {
       // il nome va dalla parte della costa; se uscirebbe dal tabellone, dall'altra parte del pontile
@@ -214,6 +220,7 @@
       h += `<circle cx="${x}" cy="${y}" r=".7" fill="#67d7e6" pointer-events="none"/><text x="${est ? x + 1.3 : x - 1.3}" y="${y + .9}" font-size="2.5" fill="#9fb8c2" font-weight="700" text-anchor="${est ? 'start' : 'end'}" pointer-events="none">${n}</text>`;
     });
     svg.innerHTML = h;
+    if (g.giro) try { svg.querySelector('#bg-giro')?.beginElement(); } catch { /* niente */ }
   }
 
   function renderClassifica() {
@@ -227,22 +234,17 @@
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
     $('bg-info').innerHTML = g.chiuso ? `Oggi non ci sono navi in corsa: nessuna sfida.` : `${g.navi.length} battelli in navigazione, dove li mette l'orario delle <b>${hhmm(g.ora)}</b>${g.aCaso ? ' (ora le navi sono ferme: ora scelta a caso)' : ''}${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
-    $('bg-punti').innerHTML = `📡 <b>${SONAR - Object.keys(g.sonar).length}</b> · 🚀 <b>${COLPI - acqua()}</b> · Affondati <b>${affondate}</b>/${g.navi.length}`;
+    $('bg-punti').innerHTML = `🚀 Siluri <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
     t.textContent = g.chiuso ? 'Navi ferme' : fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
     t.className = `turno${fine ? ' fine' : g.valida ? '' : ' cpu'}`;
-    lago($('bg-lago'), g.navi, g.colpi, fine || g.sbircia, g.ultimo);
-    $('bg-sbircia').disabled = g.sbirciato || !!fine; $('bg-sbircia').style.opacity = g.sbirciato || fine ? .4 : 1;
+    lago($('bg-lago'), g.navi, g.colpi, fine, g.ultimo);
+    $('bg-sonar').disabled = g.sonarUsato || !!fine; $('bg-sonar').style.opacity = g.sonarUsato || fine ? .4 : 1;
     $('bg-lago').classList.toggle('attesa', !!fine);
     $('bg-flotta').innerHTML = g.navi.map(n => {
       const nome = `<i>${n.nome}</i> ${n.colpi.size === n.len ? n.tratta : ''}`;
       return n.colpi.size === n.len ? `<div><s>${nome}</s><span>✕</span></div>` : `<div><span>${nome}</span><span></span></div>`;
     }).join('');
-    document.querySelectorAll('[data-arma]').forEach(b => {
-      const resta = b.dataset.arma === 'sonar' ? SONAR - Object.keys(g.sonar).length : COLPI - acqua();
-      b.classList.toggle('on', g.arma === b.dataset.arma); b.disabled = !!fine || resta <= 0;
-      b.querySelector('b').textContent = resta;
-    });
     $('bg-log').innerHTML = g.log; $('bg-log').style.setProperty('--c', g.colore);
     renderClassifica();
   }
@@ -271,22 +273,15 @@
   const finePartita = () => g.chiuso || (!!g.navi.length && (finita(g.navi) || acqua() >= COLPI));
   $('bg-lago').addEventListener('click', e => {
     const el = e.target.closest('[data-i]');
-    if (!el || finePartita()) return;
+    if (!el || finePartita() || g.giro) return;
     const i = Number(el.dataset.i);
-    if (g.arma === 'sonar') {
-      if (Object.keys(g.sonar).length >= SONAR || i in g.sonar) return;
-      const n = intorno(i).filter(j => g.navi.some(x => x.celle.includes(j) && x.colpi.size < x.len)).length;
-      g.sonar[i] = n; g.ultimo = i;
-      g.log = `📡 Sonar ${nomeCella(i)}: <b>${n ? `${n} ${n === 1 ? 'battello' : 'battelli'}` : 'nessun battello'}</b> nel quadrato 3×3`;
-      g.colore = n ? 'var(--teal)' : 'var(--cyan)';
-      if (Object.keys(g.sonar).length >= SONAR) { g.arma = 'siluro'; g.log += ' · sonar finiti, ora i siluri'; }
-      render(); return;
-    }
     const r = spara(g.navi, g.colpi, i);
     if (!r) return;
     g.ultimo = i;
     const nome = r.nave ? `la ${r.nave.nome} (${r.nave.tratta})` : '';
-    g.log = r.esito === 'acqua' ? `${nomeCella(i)}: acqua` : r.esito === 'colpita' ? `${nomeCella(i)}: <b>colpita!</b>` : `💥 <b>Affondata ${nome}!</b>`;
+    if (r.esito === 'acqua') g.dist[i] = distanza(i, g.navi);
+    const caldo = d => d <= 1 ? '🔥 vicinissimo!' : d === 2 ? 'molto vicino' : d === 3 ? 'vicino' : d <= 5 ? 'tiepido' : 'freddo';
+    g.log = r.esito === 'acqua' ? `${nomeCella(i)}: acqua · il battello più vicino è a <b>${g.dist[i]} ${g.dist[i] === 1 ? 'casella' : 'caselle'}</b> (${caldo(g.dist[i])})` : r.esito === 'colpita' ? `${nomeCella(i)}: <b>colpita!</b>` : `💥 <b>Affondata ${nome}!</b>`;
     g.colore = r.esito === 'acqua' ? 'var(--cyan)' : r.esito === 'colpita' ? 'var(--amber)' : 'var(--rose)';
     if (finePartita()) {
       const n = g.navi.filter(x => x.colpi.size === x.len).length;
@@ -297,13 +292,13 @@
     }
     render();
   });
-  document.querySelectorAll('[data-arma]').forEach(b => b.addEventListener('click', () => { g.arma = b.dataset.arma; render(); }));
-  // Sbircia: mostra i battelli per mezzo secondo, una volta sola per partita
-  const SBIRCIA_MS = 500;
-  $('bg-sbircia').addEventListener('click', () => {
-    if (g.sbirciato || finePartita()) return;
-    g.sbirciato = true; g.sbircia = true; render();
-    setTimeout(() => { g.sbircia = false; render(); }, SBIRCIA_MS);
+  // Sonar: una volta per partita il raggio fa un giro e accende i battelli mentre ci passa sopra
+  $('bg-sonar').addEventListener('click', () => {
+    if (g.sonarUsato || finePartita() || g.giro) return;
+    g.sonarUsato = true; g.giro = true;
+    g.log = '📡 Sonar in funzione: guarda dove si accendono i battelli…'; g.colore = 'var(--teal)';
+    render();
+    setTimeout(() => { g.giro = false; g.log = '📡 Giro del sonar finito: ora i siluri.'; render(); }, GIRO_MS + 700);
   });
   $('bg-nuova').addEventListener('click', () => { if (!g.colpi.size || finePartita() || confirm('Ricominciare? Se è la sfida del giorno, questa partita non conterà.')) { if (g.colpi.size && !finePartita() && g.valida) { try { localStorage.setItem(FATTA, 'abbandonata'); } catch { /* niente */ } } nuova(); } });
   $('bg-lago').setAttribute('viewBox', `0 0 ${LARGO} ${ALTO}`);
