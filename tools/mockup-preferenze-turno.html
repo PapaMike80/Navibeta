@@ -21,28 +21,16 @@ td{background:var(--card);padding:7px 8px}td:first-child{border-radius:9px 0 0 9
 .gr{display:inline-grid;place-items:center;width:26px;height:18px;margin-right:6px;border-radius:9px;border:1.5px solid var(--g);color:var(--g);font-size:8px;font-weight:900}
 .fer{display:inline-block;padding:2px 7px;border-radius:7px;background:#a78bfa33;color:#ddd6fe;font-size:11px;font-weight:700;margin-right:3px}
 </style></head><body>
-<h1>Richieste per il turno: ferie e straordinario</h1>
-<p class="n">Ogni agente, prima che venga costruito il turno del mese, indica le ferie che chiede e quanto vuole lavorare. Costruisci turno ne tiene conto: le ferie diventano giorni fissi (come il congedo), e lo straordinario si distribuisce solo tra chi lo vuole, in modo equo dentro ogni grado. «#» (concordato) è trattato come assenza retribuita: l'agente non è disponibile, non conta come giorno di lavoro.</p>
-<div class="w">
-<div><div class="cap">AGENTE · IL MIO TURNO › LE MIE RICHIESTE (TELEFONO)</div><div class="tel">
-<div><span class="eb">IL MIO TURNO</span><p class="tt">Le mie richieste</p></div>
-<div class="sez" style="--c:var(--amber)"><h3>⏱ Quanto vuoi lavorare</h3><p>Vale per i prossimi turni finché non la cambi.</p>
-<div class="seg"><span>Solo 39 h</span><span>Normale</span><span class="on">Più straordinario</span></div>
-<p>«Più straordinario»: quando servono ore in più, vieni scelto prima di chi ha scelto «Normale». Con «Solo 39 h» non superi le 39 ore a settimana, salvo emergenze.</p></div>
-<div class="sez" style="--c:var(--violet)"><h3>🌴 Ferie richieste</h3><p>Per il turno di <b>dicembre 2026</b> · richieste entro il <b>20 novembre</b>.</p>
-<div class="per"><span><b>7/12 – 11/12</b><small>5 giorni · inviata il 3/11</small></span><span class="st ok">ACCETTATA</span></div>
-<div class="per"><span><b>24/12 – 26/12</b><small>3 giorni · inviata il 4/11</small></span><span class="st wa">IN ATTESA</span></div>
-<div class="btn o">＋ Chiedi ferie</div></div>
-<p class="lock">🔒 Le richieste le vede solo l'amministratore; l'esito lo trovi qui.</p>
-</div></div>
-<div><div class="cap">ADMIN · COSTRUISCI TURNO › RICHIESTE DEGLI AGENTI (PC)</div>
-<div class="sez" style="--c:var(--violet)"><h3>📨 Richieste per dicembre 2026 · Desenzano</h3><p>Accetta o rifiuta le ferie prima di generare la bozza: quelle accettate diventano giorni fissi. 3 agenti non hanno ancora indicato quanto vogliono lavorare (vale «Normale»).</p>
-<table><tr><th>AGENTE</th><th>ORE</th><th>FERIE RICHIESTE</th><th></th></tr>
-<tr><td><span class="gr" style="--g:#facc15">Cap</span>BITTURINI D.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">7–11/12</span></td><td><span class="st ok">accettata</span></td></tr>
-<tr><td><span class="gr" style="--g:#facc15">Cap</span>SCARMIGLIATI A.</td><td><span class="pill p39">Solo 39 h</span></td><td><span class="fer">24–26/12</span><span class="fer">31/12</span></td><td><span class="st wa">2 da decidere ▸ Accetta · Rifiuta</span></td></tr>
-<tr><td><span class="gr" style="--g:#a855f7">Mot</span>BURDO A.</td><td><span class="pill pn">Normale</span></td><td>—</td><td></td></tr>
-<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>PEDRONI M.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">14–18/12</span></td><td><span class="st ok">accettata</span></td></tr>
-<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>GIACCI GL.</td><td><span class="pill p39">Solo 39 h</span></td><td>—</td><td></td></tr></table></div>
+<h1>Costruisci turno · ferie, ore e stagionali (solo ufficio)</h1>
+<p class="n">Le compila solo l'ufficio, dentro Costruisci turno, prima di generare la bozza: per ogni agente quanto lavora (Solo 39 h · Normale · Più straordinario) e i periodi di ferie. Le ferie inserite diventano subito giorni fissi, senza approvazioni. «#» (concordato) è un'assenza retribuita: l'agente non è disponibile e non conta come giorno di lavoro. Gli agenti non vedono questa parte.</p>
+<div class="w" style="grid-template-columns:1fr"><div><div class="cap">UFFICIO · COSTRUISCI TURNO › FERIE E ORE (PC)</div>
+<div class="sez" style="--c:var(--violet)"><h3>🗂 Ferie e ore · dicembre 2026 · Desenzano</h3><p>Tocca la preferenza per cambiarla (vale per i mesi successivi finché non la cambi); «＋ ferie» aggiunge un periodo, la ✕ lo toglie. Chi non ha una preferenza è «Normale».</p>
+<table><tr><th>AGENTE</th><th>ORE</th><th>FERIE</th><th></th></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>BITTURINI D.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">7–11/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>SCARMIGLIATI A.</td><td><span class="pill p39">Solo 39 h</span></td><td><span class="fer">24–26/12 ✕</span><span class="fer">31/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#a855f7">Mot</span>BURDO A.</td><td><span class="pill pn">Normale</span></td><td>—</td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>PEDRONI M.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">14–18/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>GIACCI GL.</td><td><span class="pill p39">Solo 39 h</span></td><td>—</td><td><span class="pill pn">＋ ferie</span></td></tr></table></div>
 <div class="sez" style="--c:#4ade80;margin-top:12px"><h3>🌊 Stagionali · dicembre 2026 · Desenzano</h3><p>Dalla scheda agente (categoria «Stagionali» con data di inizio e fine). Coprono <b>solo posti da marinaio</b> e solo nei giorni del loro contratto; fuori dal periodo non vengono messi in turno. Il loro lordo si confronta tra stagionali, non con gli stabili.</p>
 <table><tr><th>AGENTE</th><th>CONTRATTO</th><th>GIORNI NEL MESE</th><th>ORE</th><th>POSTO</th></tr>
 <tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>ROSSI L.</td><td class="mono">1/6 – 31/12/2026</td><td>31 su 31</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="pill pn">solo marinaio</span></td></tr>
