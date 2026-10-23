@@ -46,4 +46,18 @@ const pochi = agenti.filter(a => !(a.ruolo === 'capitano' && a.residenza === 'DE
 const r2 = M.genera({ giorni, agenti: pochi, posti, competenza, lavora: c => c !== 'CON', iterazioni: 2000 });
 assert.ok(r2.eccezioni.some(e => e.tipo === 'trasferta'), 'trasferta segnalata quando serve');
 console.log(`# con 5 capitani: scoperti ${r2.scoperti.length}, trasferte ${r2.eccezioni.filter(e => e.tipo === 'trasferta').length}, settimi giorni ${r2.eccezioni.filter(e => e.tipo === 'settimo').length}`);
+// Preferenze sulle ore: «Solo 39 h» resta entro le 39 ore (o e' segnalato), «Piu' straordinario» ne fa di piu' dei «Normale»
+const conPref = agenti.map(a => {
+  const n = Number(a.id.replace(/\D/g, ''));
+  if (a.ruolo !== 'marinaio' || a.residenza !== 'DESENZANO') return a;
+  const ore = n >= 1 && n <= 4 ? '39' : n >= 5 && n <= 8 ? 'max' : 'normale';
+  return { ...a, ore, gruppo: `marinaio|DESENZANO|${ore}` };
+});
+const r3 = M.genera({ giorni, agenti: conPref, posti, competenza, lavora: c => c !== 'CON' });
+assert.strictEqual(r3.scoperti.length, 0, 'con le preferenze tutti i posti coperti');
+const media = ore => { const l = r3.riepilogo.filter(a => a.preferenza === ore && a.ruolo === 'marinaio'); return l.reduce((t, a) => t + a.straord, 0) / l.length; };
+const oltre = r3.eccezioni.filter(e => e.tipo === 'oltre39').length;
+console.log(`# straordinario medio marinai: Solo 39 h ${media('39').toFixed(1)} h · Normale ${media('normale').toFixed(1)} h · Più straordinario ${media('max').toFixed(1)} h · settimane oltre 39 segnalate ${oltre}`);
+assert.ok(media('39') < media('normale') && media('normale') < media('max'), 'lo straordinario segue le preferenze');
+r3.riepilogo.filter(a => a.preferenza === '39').forEach(a => assert.ok(a.straord === 0 || r3.eccezioni.some(e => e.tipo === 'oltre39' && e.agente === a.nome), `${a.nome} oltre 39 h senza segnalazione`));
 console.log('costruisci-turno ok');

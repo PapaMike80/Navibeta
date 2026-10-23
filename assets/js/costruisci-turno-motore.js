@@ -25,7 +25,7 @@
   // Tariffe per la stima del lordo (modificabili dalla pagina). La diaria vale l'importo della competenza (24 o 9).
   const TARIFFE = { ora: 12.5, straordinario: 16, imbarco: 8, ticket: 7, domenica: 20 };
   // Pesi delle regole (piu' alto = evitato di piu')
-  const PESI = { settimoGiorno: 5000, trasferta: 1000, ripetuto: 300, gradoInferiore: 120, sestoGiorno: 25, fila: 4 };
+  const PESI = { settimoGiorno: 5000, oltre39: 1500, trasferta: 1000, ripetuto: 300, gradoInferiore: 120, sestoGiorno: 25, fila: 4, straordinarioVoluto: 30 };
 
   const addDays = (iso, n) => { const d = new Date(`${iso}T12:00:00`); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
   const giornoSett = iso => new Date(`${iso}T12:00:00`).getDay();
@@ -107,14 +107,23 @@
     const valore = {};
     const ricalcola = id => { valore[id] = stima(piano[id], giorni, competenza, tariffe).lordo / disponibili[id] * giorni.length; };
     agenti.forEach(a => ricalcola(a.id));
-    const perRuolo = ruolo => agenti.filter(a => a.ruolo === ruolo);
-    const media = ruolo => { const l = perRuolo(ruolo); return l.length ? l.reduce((s, a) => s + valore[a.id], 0) / l.length : 0; };
+    // gruppo di equita': stesso ruolo e residenza, stessa preferenza sulle ore; gli stagionali a parte
+    const gruppo = a => a.gruppo || `${a.ruolo}|${a.residenza}`;
+    const perGruppo = gr => agenti.filter(a => gruppo(a) === gr);
+    const media = gr => { const l = perGruppo(gr); return l.length ? l.reduce((s, a) => s + valore[a.id], 0) / l.length : 0; };
+    // ore della settimana (da lunedi') del giorno g gia' nel piano
+    const lun = g => addDays(g, -((new Date(`${g}T12:00:00`).getDay() + 6) % 7));
+    const oreSettimana = (id, g) => { let h = 0; for (let i = 0, d = lun(g); i < 7; i += 1, d = addDays(d, 1)) { const c = piano[id][d] && competenza(piano[id][d], d); if (c && c.lavoro) h += c.ore; } return h; };
     const scoperti = [], eccezioni = [];
     const libero = (a, g) => !(a.fissi && a.fissi[g]) && !(assegnati[g] && assegnati[g].has(a.id));
 
     // costo di mettere l'agente a sul posto p nel giorno g
     function costo(a, p, g) {
-      let c = (valore[a.id] - media(a.ruolo)) / 40; // chi e' piu' indietro nel lordo del suo ruolo costa meno
+      let c = (valore[a.id] - media(gruppo(a))) / 40; // chi e' piu' indietro nel lordo del suo gruppo costa meno
+      // ore oltre le 39 settimanali: «Solo 39 h» solo se non c'e' altro modo, «Piu' straordinario» preferito
+      const extra = oreSettimana(a.id, g) + ((competenza(p.turno, g) || {}).ore || 0) > 39;
+      if (extra && a.ore === '39') c += pesi.oltre39;
+      if (extra && a.ore === 'max') c -= pesi.straordinarioVoluto;
       const ieri = piano[a.id][addDays(g, -1)];
       const fila = filaFinoA(piano[a.id], addDays(g, -1), lavoraDi[a.id]);
       // chi ha gia' lavorato piu' giorni di fila riposa prima: i riposi si spargono e non si arriva al 7° giorno
@@ -152,15 +161,17 @@
         const ieri = piano[id][addDays(g, -1)];
         if (ieri && String(ieri).replace(/^c|c$|\*$/g, '') === String(code).replace(/^c|c$|\*$/g, '')) n += pesi.ripetuto;
         if (filaFinoA(piano[id], g, lavoraDi[id]) >= 7) n += pesi.settimoGiorno;
+        if (soloTrentanove.has(id) && oreSettimana(id, g) > 39) n += pesi.oltre39;
       });
       return n;
     };
-    const dispersione = ruolo => { const l = perRuolo(ruolo), m = media(ruolo); return l.reduce((s, a) => s + (valore[a.id] - m) ** 2, 0); };
+    const soloTrentanove = new Set(agenti.filter(a => a.ore === '39').map(a => a.id));
+    const dispersione = gr => { const l = perGruppo(gr), m = media(gr); return l.reduce((s, a) => s + (valore[a.id] - m) ** 2, 0); };
     const iter = input.iterazioni ?? 4000;
     for (let k = 0; k < iter; k += 1) {
       const g = giorni[Math.floor(caso() * giorni.length)];
       const a = agenti[Math.floor(caso() * agenti.length)];
-      const pari = agenti.filter(b => b.id !== a.id && b.ruolo === a.ruolo && b.residenza === a.residenza);
+      const pari = agenti.filter(b => b.id !== a.id && b.ruolo === a.ruolo && b.residenza === a.residenza && gruppo(b) === gruppo(a));
       if (!pari.length) continue;
       const b = pari[Math.floor(caso() * pari.length)];
       if (a.fissi?.[g] || b.fissi?.[g]) continue;
@@ -169,10 +180,10 @@
       // le regole contano prima dell'equita': uno scambio che le peggiora non si fa mai
       // le regole si ricontrollano solo nei giorni vicini allo scambio (una fila arriva al massimo a 7 giorni)
       const intorno = giorni.filter(x => x >= addDays(g, -7) && x <= addDays(g, 7));
-      const regolePrima = penalita(a.id, intorno) + penalita(b.id, intorno), equitaPrima = dispersione(a.ruolo);
+      const regolePrima = penalita(a.id, intorno) + penalita(b.id, intorno), equitaPrima = dispersione(gruppo(a));
       const set = (id, c) => { if (c) piano[id][g] = c; else delete piano[id][g]; };
       set(a.id, cb); set(b.id, ca); ricalcola(a.id); ricalcola(b.id);
-      const regoleDopo = penalita(a.id, intorno) + penalita(b.id, intorno), equitaDopo = dispersione(a.ruolo);
+      const regoleDopo = penalita(a.id, intorno) + penalita(b.id, intorno), equitaDopo = dispersione(gruppo(a));
       if (regoleDopo > regolePrima || (regoleDopo === regolePrima && equitaDopo >= equitaPrima)) { set(a.id, ca); set(b.id, cb); ricalcola(a.id); ricalcola(b.id); }
     }
 
@@ -186,11 +197,16 @@
       if (ieri && String(ieri).replace(/^c|c$|\*$/g, '') === base) eccezioni.push({ giorno: g, agente: a.nome, tipo: 'ripetuto', testo: `${a.nome} ripete ${base}` });
       if (filaFinoA(piano[a.id], g, lavoraDi[a.id]) >= 7) eccezioni.push({ giorno: g, agente: a.nome, tipo: 'settimo', testo: `${a.nome}: 7° giorno di fila` });
     }));
+    // «Solo 39 h» oltre le 39 ore: una segnalazione per settimana
+    agenti.filter(a => a.ore === '39').forEach(a => [...new Set(giorni.map(lun))].forEach(l => {
+      const h = oreSettimana(a.id, l);
+      if (h > 39) eccezioni.push({ giorno: l, agente: a.nome, tipo: 'oltre39', testo: `${a.nome} (Solo 39 h): ${Math.round(h * 10) / 10} h nella settimana` });
+    }));
     const riepilogo = agenti.map(a => {
       const solo = Object.fromEntries(giorni.map(g => [g, piano[a.id][g]]).filter(([, c]) => c));
       const v = stima(solo, giorni, competenza, tariffe);
       // lordoMese: il lordo riportato a un mese intero di giorni disponibili (per confrontare chi ha congedi o ferie)
-      return { id: a.id, nome: a.nome, ruolo: a.ruolo, residenza: a.residenza, piano: solo, ...v, disponibili: disponibili[a.id], lordoMese: v.lordo / disponibili[a.id] * giorni.length };
+      return { id: a.id, nome: a.nome, ruolo: a.ruolo, residenza: a.residenza, preferenza: a.ore || 'normale', gruppo: gruppo(a), piano: solo, ...v, disponibili: disponibili[a.id], lordoMese: v.lordo / disponibili[a.id] * giorni.length };
     });
     const totPosti = giorni.reduce((s, g) => s + (posti[g] || []).length, 0);
     return { riepilogo, scoperti, eccezioni: eccezioni.sort((x, y) => x.giorno.localeCompare(y.giorno)), totPosti };

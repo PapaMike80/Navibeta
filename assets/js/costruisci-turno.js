@@ -14,7 +14,7 @@
   const EQUIPAGGIO_BASE = { capitano: 1, motorista: 1, marinaio: 2 };
   const GIORNI = ['D', 'L', 'M', 'M', 'G', 'V', 'S'];
   const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-  const state = { data: null, rows: [], fleet: {}, dal: '', settimane: 4, res: 'DESENZANO', vista: 'bozza', risultato: null, attuale: null, input: null };
+  const state = { data: null, rows: [], fleet: {}, profili: {}, prefs: {}, aggiungi: '', dal: '', settimane: 4, res: 'DESENZANO', vista: 'bozza', risultato: null, attuale: null, input: null };
 
   const profilo = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null'); } catch { return null; } };
   if (!window.NaviRoles?.isAdminAgent?.(profilo())) { location.replace('index.html'); return; }
@@ -23,7 +23,7 @@
   const isNave = code => !!M.residenzaTurno(G.naveCode(code) || base(code));
   const isRiposo = code => /^(|R|RIP\.?|RIP-+|RIPOSO|-+|—+|·)$/i.test(String(code || '').trim());
   // codici fissi che non sono giorni di lavoro: congedo, ferie, malattia, giornata impegnata (#), RF
-  const lavoraFisso = code => { const c = String(code || '').trim(); return !c.startsWith('#') && !/^F$/i.test(c) && !/^(CONG?|FERIE|MAL|MALATTIA|RF)(\b|[;.\/]|$)/i.test(c); };
+  const lavoraFisso = code => { const c = String(code || '').trim(); return c !== '·' && !c.startsWith('#') && !/^F$/i.test(c) && !/^(CONG?|FERIE|MAL|MALATTIA|RF)(\b|[;.\/]|$)/i.test(c); };
   const norma = s => String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
 
   // Competenza di un servizio: ore, imbarco, diaria, ticket (tabella delle competenze della Distinta)
@@ -56,6 +56,24 @@
   const giorniDelPeriodo = () => Array.from({ length: state.settimane * 7 }, (_, i) => M.addDays(state.dal, i));
   const lunediDi = iso => M.addDays(iso, -((new Date(`${iso}T12:00:00`).getDay() + 6) % 7));
 
+  // Agenti di bordo con grado e residenza (stagionali dalla scheda agente: categoria e date del contratto)
+  function elencoAgenti() {
+    const out = [], visti = new Set();
+    Object.entries(state.data?.residenze || {}).forEach(([res, list]) => (list || []).forEach(a => {
+      const id = String(a?.id || ''), ruolo = RUOLO[G.gradoOf(a)[0]];
+      const sv = (state.profili[id] || Object.values(state.profili).find(p => String(p?.id) === id) || {}).servizio;
+      const stagionale = sv?.categoria === 'stagionali' ? sv : null;
+      if (!id || (!ruolo && !stagionale) || visti.has(id) || window.NaviRoles?.isBaristaAgent?.(a)) return;
+      visti.add(id);
+      out.push({ a, id, ruolo: ruolo || 'marinaio', residenza: RESIDENZE.find(r => norma(res).includes(r)) || norma(res), stagionale });
+    }));
+    return out;
+  }
+  // Ferie e ore: le compila l'ufficio. In beta restano su questo dispositivo (navibeta non salva online).
+  const PREFS_KEY = 'navisuite.costruisciTurno.prefs.v1';
+  try { state.prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { state.prefs = {}; }
+  function salvaPrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(state.prefs)); } catch { /* memoria piena o bloccata */ } }
+
   // Dati per il motore
   function preparaInput() {
     const giorni = giorniDelPeriodo();
@@ -74,20 +92,22 @@
     });
     const prima = Array.from({ length: 7 }, (_, i) => M.addDays(giorni[0], -7 + i));
     const agenti = [], visti = new Set();
-    Object.entries(state.data?.residenze || {}).forEach(([res, list]) => (list || []).forEach(a => {
-      const id = String(a?.id || ''), ruolo = RUOLO[G.gradoOf(a)[0]];
-      if (!id || !ruolo || visti.has(id) || window.NaviRoles?.isBaristaAgent?.(a)) return;
-      visti.add(id);
-      const residenza = RESIDENZE.find(r => norma(res).includes(r)) || norma(res);
+    elencoAgenti().forEach(({ a, id, residenza, ruolo, stagionale }) => {
+      const pref = state.prefs[id] || {}, ore = pref.ore || 'normale';
       const fissi = {}, attuale = {}, precedenti = {};
       giorni.forEach(g => {
         const code = String(a.turni?.[g] ?? '').trim();
         if (code) attuale[g] = code;
         if (code && !isRiposo(code) && !isNave(code)) fissi[g] = code;
+        // ferie inserite dall'ufficio: giorni fissi di congedo
+        if ((pref.ferie || []).some(f => g >= f.dal && g <= f.al)) fissi[g] = 'Cong';
+        // stagionali: fuori dal contratto non sono disponibili
+        if (stagionale && (g < (stagionale.inizio || '0000') || g > (stagionale.fine || '9999'))) fissi[g] = '·';
       });
       prima.forEach(g => { const code = String(a.turni?.[g] ?? '').trim(); if (code && !isRiposo(code)) precedenti[g] = G.naveCode(code) || code; });
-      agenti.push({ id, nome: String(a.agente || a.name || id).trim(), ruolo, residenza, fissi, prima: precedenti, attuale });
-    }));
+      agenti.push({ id, nome: String(a.agente || a.name || id).trim(), ruolo: stagionale ? 'marinaio' : ruolo, residenza, fissi, prima: precedenti, attuale,
+        ore, stagionale: !!stagionale, gruppo: `${stagionale ? 'marinaio' : ruolo}|${residenza}|${ore}|${stagionale ? 'stagionali' : 'stabili'}` });
+    });
     return { giorni, posti, agenti, senzaNave: [...senzaNave] };
   }
 
@@ -106,11 +126,75 @@
     const scarti = Object.values(perRuolo).filter(l => l.length > 1).map(l => Math.max(...l.map(a => a.lordoMese)) - Math.min(...l.map(a => a.lordoMese)));
     return { scartoMedio: scarti.length ? scarti.reduce((s, x) => s + x, 0) / scarti.length : 0, straord: riep.length ? riep.reduce((s, a) => s + a.straord, 0) / Math.max(1, riep.filter(a => a.giorniLavoro).length) : 0 };
   }
+  // ---------------- Ferie e ore · Stagionali ----------------
+  const ORE = [['39', 'Solo 39 h'], ['normale', 'Normale'], ['max', 'Più straordinario']];
+  const dm = iso => `${Number(iso.slice(8, 10))}/${Number(iso.slice(5, 7))}`;
+  function seg(id) {
+    const ore = state.prefs[id]?.ore || 'normale';
+    return `<span class="seg">${ORE.map(([v, l]) => `<button type="button" data-ore="${v}" data-id="${esc(id)}" class="${v === ore ? 'on' : ''}">${l}</button>`).join('')}</span>`;
+  }
+  function ferieHtml(id) {
+    const ferie = state.prefs[id]?.ferie || [];
+    const pills = ferie.map((f, i) => `<span class="fer">${f.dal === f.al ? dm(f.dal) : `${dm(f.dal)}–${dm(f.al)}`}<button type="button" data-togli="${esc(id)}|${i}" aria-label="Togli">✕</button></span>`).join('');
+    const form = state.aggiungi === id
+      ? `<span class="agg"><input type="date" id="ct-f-dal" value="${esc(state.dal)}"> – <input type="date" id="ct-f-al" value="${esc(state.dal)}"><button type="button" class="mini ok" data-conferma="${esc(id)}">Aggiungi</button><button type="button" class="mini" data-annulla>Annulla</button></span>`
+      : `<button type="button" class="mini" data-agg="${esc(id)}">＋ ferie</button>`;
+    return pills + form;
+  }
+  function renderRichieste() {
+    const box = $('ct-richieste');
+    if (!state.data) { box.innerHTML = ''; return; }
+    const giorni = giorniDelPeriodo(), nomeRes = state.res.charAt(0) + state.res.slice(1).toLowerCase();
+    const lista = elencoAgenti().filter(x => x.residenza === state.res)
+      .sort((x, y) => M.RUOLI.indexOf(x.ruolo) - M.RUOLI.indexOf(y.ruolo) || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
+    const badge = ruolo => { const [sig, col] = RUOLO_INFO[ruolo]; return `<span class="gr" style="--g:${col}">${sig}</span>`; };
+    const stabili = lista.filter(x => !x.stagionale), stag = lista.filter(x => x.stagionale);
+    const righe = stabili.map(x => `<tr><td>${badge(x.ruolo)}${esc(x.a.agente)}</td><td>${seg(x.id)}</td><td>${ferieHtml(x.id)}</td></tr>`).join('');
+    const righeS = stag.map(x => {
+      const sv = x.stagionale, n = giorni.filter(g => g >= (sv.inizio || '0000') && g <= (sv.fine || '9999')).length;
+      const nota = n === 0 ? '<span class="tag ro">fuori contratto</span>' : sv.fine && sv.fine < giorni[giorni.length - 1] ? `<span class="tag wa">finisce il ${dm(sv.fine)}</span>` : sv.inizio && sv.inizio > giorni[0] ? `<span class="tag ok">arriva il ${dm(sv.inizio)}</span>` : '';
+      const grado = x.ruolo !== 'marinaio' ? ` <span class="tag wa">registrato come ${esc({ capitano: 'capitano', capo_timoniere: 'capo timoniere', timoniere: 'timoniere', motorista: 'motorista', aiuto_motorista: 'aiuto motorista' }[x.ruolo] || x.ruolo)}: conta come marinaio</span>` : '';
+      return `<tr><td>${badge('marinaio')}${esc(x.a.agente)}</td><td class="mono">${sv.inizio ? dm(sv.inizio) + '/' + sv.inizio.slice(0, 4) : '—'} – ${sv.fine ? dm(sv.fine) + '/' + sv.fine.slice(0, 4) : '—'}</td><td>${n} su ${giorni.length} ${nota}</td><td>${seg(x.id)}</td><td>solo marinaio${grado}</td><td>${ferieHtml(x.id)}</td></tr>`;
+    }).join('');
+    box.innerHTML = `<details class="sez" style="--c:var(--violet)" ${state.apriFerie === false ? '' : 'open'} data-sez="ferie"><summary><h3>🗂 Ferie e ore · ${esc(nomeRes)}</h3></summary>
+      <p>Le compila l'ufficio. «Quanto lavora» vale anche per i periodi successivi finché non la cambi; le ferie diventano giorni fissi di congedo (Cong). In beta restano su questo dispositivo.</p>
+      ${righe ? `<div class="scroll" style="max-height:360px"><table class="tab"><tr><th>AGENTE</th><th>QUANTO LAVORA</th><th>FERIE</th></tr>${righe}</table></div>` : '<p>Nessun agente.</p>'}</details>
+      <details class="sez" style="--c:#4ade80" ${stag.length ? 'open' : ''} data-sez="stag"><summary><h3>🌊 Stagionali · ${esc(nomeRes)}</h3><b class="pill">${stag.length}</b></summary>
+      <p>Dalla scheda agente (categoria «Stagionali» con data di inizio e fine). Coprono solo posti da marinaio e solo nei giorni del contratto; il loro lordo si confronta tra stagionali.</p>
+      ${righeS ? `<div class="scroll" style="max-height:300px"><table class="tab"><tr><th>AGENTE</th><th>CONTRATTO</th><th>GIORNI NEL PERIODO</th><th>QUANTO LAVORA</th><th>POSTO</th><th>FERIE</th></tr>${righeS}</table></div>` : '<p>Nessuno stagionale in questa residenza.</p>'}</details>`;
+  }
+  function cambiato() {
+    salvaPrefs();
+    if (state.risultato) $('ct-stato').textContent = 'Ferie e ore cambiate: premi «Genera bozza» per aggiornare la bozza.';
+    renderRichieste();
+  }
+  $('ct-richieste').addEventListener('click', e => {
+    const t = e.target.closest('button');
+    if (!t) return;
+    if (t.dataset.ore) { const id = t.dataset.id; state.prefs[id] = { ...(state.prefs[id] || {}), ore: t.dataset.ore }; cambiato(); }
+    else if (t.dataset.agg) { state.aggiungi = t.dataset.agg; renderRichieste(); }
+    else if ('annulla' in t.dataset) { state.aggiungi = ''; renderRichieste(); }
+    else if (t.dataset.conferma) {
+      const id = t.dataset.conferma, dal = $('ct-f-dal').value, al = $('ct-f-al').value || dal;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dal) || al < dal) { $('ct-stato').textContent = 'Ferie: controlla le date (la fine non può essere prima dell’inizio).'; return; }
+      const p = state.prefs[id] || {};
+      state.prefs[id] = { ...p, ferie: [...(p.ferie || []), { dal, al }].sort((x, y) => x.dal.localeCompare(y.dal)) };
+      state.aggiungi = ''; cambiato();
+    } else if (t.dataset.togli) {
+      const [id, i] = t.dataset.togli.split('|');
+      const p = state.prefs[id] || {};
+      state.prefs[id] = { ...p, ferie: (p.ferie || []).filter((_, k) => k !== Number(i)) };
+      cambiato();
+    }
+  });
+  $('ct-richieste').addEventListener('toggle', e => { if (e.target.dataset?.sez === 'ferie') state.apriFerie = e.target.open; }, true);
+
   function render() {
     const r = state.vista === 'bozza' ? state.risultato : state.attuale;
     $('ct-res').querySelectorAll('[data-res]').forEach(b => b.classList.toggle('on', b.dataset.res === state.res));
+    renderRichieste();
     $('ct-vista').querySelectorAll('[data-vista]').forEach(b => b.classList.toggle('on', b.dataset.vista === state.vista));
-    if (!r) { $('ct-kpi').innerHTML = ''; $('ct-griglia').innerHTML = '<p class="vuoto">Scegli il mese e premi «Genera bozza».</p>'; $('ct-lati').innerHTML = ''; return; }
+    if (!r) { $('ct-kpi').innerHTML = ''; $('ct-griglia').innerHTML = '<p class="vuoto">Scegli il periodo e premi «Genera bozza».</p>'; $('ct-lati').innerHTML = ''; return; }
     const { giorni } = state.input;
     const st = statistiche(r.riepilogo);
     const tr = r.eccezioni.filter(e => e.tipo === 'trasferta').length;
@@ -234,6 +318,8 @@
         const [righe, flotta] = await Promise.all([fb?.getTurniNavi?.().catch(() => []), fb?.getFleet?.().catch(() => null)]);
         state.rows = [...(state.data?.turni_navi || []), ...(righe || [])];
         state.fleet = flotta?.navi || {};
+        try { state.profili = (await fb?.getAgentAdminData?.())?.profiles || {}; } catch { state.profili = {}; }
+        render();
         $('ct-stato').textContent = `Pronto: ${Object.values(state.data?.residenze || {}).reduce((s, l) => s + (l || []).length, 0)} agenti, ${Object.keys(state.fleet).length} navi in anagrafica.`;
         $('ct-genera').disabled = false;
       } catch (error) {
