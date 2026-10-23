@@ -145,7 +145,6 @@
   // ---- Pagina ----
   const $ = id => document.getElementById(id);
   const O = root.NaviOrarioGiorno;
-  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const oggi = iso(new Date());
   const profilo = (() => { try { return JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } })();
@@ -227,13 +226,13 @@
     const righe = Object.entries(classifica).map(([id, r]) => ({ id, ...r })).filter(r => Number(r.colpi) > 0).sort((a, b) => (b.affondate || 0) - (a.affondate || 0) || a.colpi - b.colpi || a.t - b.t);
     const mio = String(profilo?.id || '').replace(/[.#$\[\]\/]/g, '_');
     $('bg-classifica').innerHTML = righe.length
-      ? righe.slice(0, 20).map((r, k) => `<div class="${r.id === mio ? 'io' : ''}"><span><b>${k + 1}</b> ${esc(r.nome || r.id)}</span><span>${r.affondate || 0} 🎯 · ${r.colpi} colpi${r.ora ? ` <small>(${r.ora})</small>` : ''}</span></div>`).join('')
+      ? righe.slice(0, 20).map((r, k) => `<div class="${r.id === mio ? 'io' : ''}"><span><b>${k + 1}</b> ${esc(r.nome || r.id)}</span><span>${r.affondate || 0} 🎯 · ${r.colpi} colpi</span></div>`).join('')
       : '<p>Ancora nessuno ha giocato la sfida di oggi.</p>';
   }
 
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
-    $('bg-info').innerHTML = g.chiuso ? `Oggi non ci sono navi in corsa: nessuna sfida.` : `${g.navi.length} battelli in navigazione, dove li mette l'orario delle <b>${hhmm(g.ora)}</b>${g.aCaso ? ' (ora le navi sono ferme: ora scelta a caso)' : ''}${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
+    $('bg-info').innerHTML = g.chiuso ? `Oggi non ci sono navi in corsa: nessuna sfida.` : `${g.navi.length} battelli in navigazione da trovare (l'ora non si vede: niente aiuti dall'orario)${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
     $('bg-punti').innerHTML = `🚀 Siluri <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
     t.textContent = g.chiuso ? 'Navi ferme' : fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
@@ -264,7 +263,7 @@
   async function salvaRisultato() {
     try { localStorage.setItem(FATTA, String(g.colpi.size)); } catch { /* niente */ }
     if (!profilo?.id) return;
-    const r = { ora: hhmm(g.ora), affondate: g.navi.filter(x => x.colpi.size === x.len).length, colpi: g.colpi.size, nome: profilo.name || profilo.agente || profilo.id, t: Date.now() };
+    const r = { affondate: g.navi.filter(x => x.colpi.size === x.len).length, colpi: g.colpi.size, nome: profilo.name || profilo.agente || profilo.id, t: Date.now() };
     classifica[String(profilo.id).replace(/[.#$\[\]\/]/g, '_')] = r;
     try { await window.NaviAdminFirebase?.saveRisultatoGarda?.(oggi, profilo.id, r); } catch (error) { console.warn('Risultato non salvato', error); }
     caricaClassifica();
