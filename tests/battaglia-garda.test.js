@@ -23,6 +23,7 @@ assert.strictEqual(tutte.length, 3, 'anche le navi ferme');
 assert.ok(tutte.find(n => n.turno === 'M1').fermo);
 const tutteNavi = B.piazzaOrario(tutte);
 assert.strictEqual(tutteNavi.length, 3);
+tutteNavi.forEach(n => assert.strictEqual(n.celle.length, 1, 'ogni battello e una casella'));
 assert.strictEqual(tutteNavi.find(n => n.nome === 'M1').tratta, 'ferma a Maderno');
 assert.deepStrictEqual(B.piazzaOrario(B.posizioni(corse, 660)).map(n => n.celle), B.piazzaOrario(B.posizioni(corse, 660)).map(n => n.celle), 'uguale per tutti');
 const navi = B.piazzaOrario(nav);
