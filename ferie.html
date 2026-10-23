@@ -38,14 +38,16 @@
     .mese{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
     .mese b{font-size:20px;text-transform:capitalize}
     .mese button{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:18px}
-    .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+    .cal{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
     .dn{font-size:11px;color:var(--muted);text-align:center;font-weight:800;padding-bottom:2px}
-    .d{aspect-ratio:1/1.15;border-radius:11px;background:var(--card);border:1px solid var(--line);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 15px Manrope,system-ui,sans-serif;padding:0}
+    .d{min-width:0;aspect-ratio:1/1.15;border-radius:11px;background:var(--card);border:1px solid var(--line);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 15px Manrope,system-ui,sans-serif;padding:0}
     .d i{font-style:normal;font-size:9.5px;color:var(--muted);font-weight:700;margin-top:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .d.dom{color:var(--rose)}
     .d.rip{opacity:.5}
     .d.f{background:var(--teal);border-color:var(--teal);color:var(--on)}.d.f i{color:var(--on)}
     .d.b{background:var(--violet);border-color:var(--violet);color:var(--on)}.d.b i{color:var(--on)}
+    .d.m{background:linear-gradient(135deg,var(--teal) 50%,var(--violet) 50%);border-color:var(--teal);color:var(--on)}.d.m i{color:var(--on)}
+    .d.x{background:color-mix(in srgb,var(--rose) 30%,var(--card));border-color:var(--rose)}.d.x i{color:var(--rose)}
     .d.oggi{outline:2px solid var(--cyan);outline-offset:1px}
     .vuoto{visibility:hidden}
     .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:12px 2px}
@@ -73,9 +75,9 @@
     </div>
     <div class="mese"><button type="button" id="fe-prev" aria-label="Mese precedente">‹</button><b id="fe-mese"></b><button type="button" id="fe-next" aria-label="Mese successivo">›</button></div>
     <div class="cal" id="fe-cal"></div>
-    <div class="leg"><span style="--c:var(--teal)">ferie (1 tocco)</span><span style="--c:var(--violet)">banca ore (2 tocchi)</span><span style="--c:var(--line)">3 tocchi: togli</span></div>
+    <div class="leg"><span style="--c:var(--teal)">ferie</span><span style="--c:var(--violet)">banca ore</span><span style="--c:linear-gradient(135deg,var(--teal) 50%,var(--violet) 50%)">misto</span><span style="--c:var(--rose)">ore che mancano</span></div>
   </main>
-  <div class="piede" id="fe-piede"><b>Tocca i giorni da chiedere</b><small>Ogni giorno vale le ore del tuo servizio di quel giorno.</small></div>
+  <div class="piede" id="fe-piede"><b>Tocca i giorni da chiedere</b><small>Prima si usano le ferie, poi la banca ore.</small></div>
   <script src="assets/js/shared-roles.js?v=15"></script>
   <script src="assets/js/admin-firebase-rest.js?v=92"></script>
   <script src="assets/js/shared-data.js?v=137"></script>
@@ -85,6 +87,6 @@
   <script src="assets/js/course-info.js?v=1"></script>
   <script src="assets/js/turni-giorno.js?v=12"></script>
   <script src="assets/js/shift-competence.js?v=4"></script>
-  <script src="assets/js/ferie.js?v=1"></script>
+  <script src="assets/js/ferie.js?v=2"></script>
 </body>
 </html>
