@@ -179,7 +179,8 @@
   const acqua = () => [...g.colpi].filter(i => !g.navi.some(n => n.celle.includes(i))).length;
   // Schermo sonar con i colori di NaviSuite: acqua blu notte, costa e cerchi azzurri, raggio verde acqua che gira;
   // colpo in acqua = «ping» grande quanto la distanza dal battello piu' vicino; affondato = punto rosa che pulsa.
-  const CX = 38, CY = 76;
+  // il raggio gira con un'animazione SVG (dentro il ritaglio del lago anche su iPhone)
+  const CX = 38, CY = 76, FERMO = !!root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function lago(svg, navi, colpi, mostraNavi, ultimo) {
     let h = `<defs><clipPath id="bg-clip"><path d="${MAPPA.costa}"/></clipPath>
       <linearGradient id="bg-raggio" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2dd4bf" stop-opacity="0"/><stop offset="1" stop-color="#2dd4bf" stop-opacity=".38"/></linearGradient></defs>
@@ -187,7 +188,7 @@
       <g clip-path="url(#bg-clip)" pointer-events="none">
         ${[18, 36, 54, 72].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
         <line x1="${CX}" y1="0" x2="${CX}" y2="${ALTO}" stroke="#1f4250" stroke-width=".25"/><line x1="0" y1="${CY}" x2="${LARGO}" y2="${CY}" stroke="#1f4250" stroke-width=".25"/>
-        <g class="sonar-raggio"><path d="M${CX} ${CY} L${CX + 80} ${CY - 22} A83 83 0 0 1 ${CX + 80} ${CY + 22} Z" fill="url(#bg-raggio)"/></g>
+        <g><path d="M${CX} ${CY} L${CX + 80} ${CY - 22} A83 83 0 0 1 ${CX + 80} ${CY + 22} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
       </g>`;
     let sopra = '';
     ACQUA.forEach(i => {
@@ -195,7 +196,7 @@
       h += `<rect data-i="${i}" x="${x}" y="${y}" width="${C}" height="${C}" fill="transparent"/><circle cx="${cx}" cy="${cy}" r=".28" fill="#2a5566" pointer-events="none"/>`;
       if (colpita && !nave) {
         const d = g.dist[i], col = Number.isFinite(d) ? COLORE_DIST(d) : '#67d7e6';
-        if (Number.isFinite(d)) sopra += `<circle cx="${cx}" cy="${cy}" r="${Math.min(d, 6) * C * .55 + .8}" fill="none" stroke="${col}" stroke-width=".25" opacity=".55" pointer-events="none"/>`;
+        if (Number.isFinite(d)) sopra += `<circle cx="${cx}" cy="${cy}" r="${Math.min(d, 6) * C * .55 + .8}" fill="none" stroke="${col}" stroke-width=".25" opacity=".55" clip-path="url(#bg-clip)" pointer-events="none"/>`;
         sopra += `<text x="${cx}" y="${cy + .95}" font-size="2.7" text-anchor="middle" fill="${col}" font-weight="900" pointer-events="none">${Number.isFinite(d) ? d : '•'}</text>`;
       }
       if (colpita && nave) sopra += `<circle cx="${cx}" cy="${cy}" r="1.25" fill="#fb7185" pointer-events="none"/><circle class="sonar-pulsa" cx="${cx}" cy="${cy}" r="1.25" fill="none" stroke="#fb7185" stroke-width=".35" pointer-events="none"/>`;
