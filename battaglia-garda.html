@@ -44,7 +44,10 @@
     .azioni button.ok{background:var(--teal);color:var(--on);border:0}
     .modi{display:flex;gap:6px;margin-bottom:8px}.modi button{flex:1;padding:9px;border-radius:99px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:800 13px Manrope,system-ui,sans-serif}.modi button.on{background:var(--teal);color:var(--on);border-color:var(--teal)}
     .info{font-size:12.5px;color:var(--muted);margin:8px 2px}.info b{color:var(--amber)}
-    #bg-lago{width:100%;height:auto;display:block;touch-action:manipulation}#bg-lago rect{cursor:pointer}#bg-lago.attesa rect{cursor:default}
+    #bg-lago{width:100%;height:auto;display:block;touch-action:manipulation;background:radial-gradient(circle at 50% 54%,#0e2a36,#0b1c26 70%);border:1px solid #1f4250;border-radius:18px;padding:6px 0}
+    .sonar-raggio{transform-box:view-box;transform-origin:38px 76px;animation:sonar-giro 4s linear infinite}@keyframes sonar-giro{to{transform:rotate(360deg)}}
+    .sonar-pulsa{transform-box:fill-box;transform-origin:center;animation:sonar-pulsa 1.6s ease-out infinite}@keyframes sonar-pulsa{from{transform:scale(1);opacity:.9}to{transform:scale(2.6);opacity:0}}
+    @media (prefers-reduced-motion:reduce){.sonar-raggio,.sonar-pulsa{animation:none}}#bg-lago rect{cursor:pointer}#bg-lago.attesa rect{cursor:default}
     #bg-mio{width:100%;height:auto;display:block}
     .flotta #bg-flotta>div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}.flotta i{font-style:normal;color:var(--ink);font-weight:800}
     .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
@@ -82,6 +85,6 @@
   <script src="assets/js/orario-giorno.js?v=7"></script>
   <script src="assets/js/orari-stagioni.js?v=9"></script>
   <script src="assets/js/orario-lago.js?v=2"></script>
-  <script src="assets/js/battaglia-garda.js?v=8"></script>
+  <script src="assets/js/battaglia-garda.js?v=9"></script>
 </body>
 </html>
