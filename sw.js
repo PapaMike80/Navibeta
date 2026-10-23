@@ -8,7 +8,7 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v751-rotta-affondata';
+const CACHE_VERSION = 'navibeta-v752-pontile-perfetto';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
@@ -38,6 +38,8 @@ const CORE_ASSETS = [
   './ferie.html',
   './battaglia-navale.html',
   './battaglia-garda.html',
+  './pontile-perfetto.html',
+  './assets/js/pontile-perfetto.js',
   './assets/js/battaglia-garda.js',
   './assets/js/battaglia-navale.js',
   './assets/js/ferie.js',

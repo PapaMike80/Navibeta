@@ -90,6 +90,7 @@
       ['ferie.html','☀','Ferie'],
       ['battaglia-navale.html','⚓','Battaglia navale'],
       ['battaglia-garda.html','⛴','Battaglia sul Garda'],
+      ['pontile-perfetto.html','⚓','Pontile perfetto'],
       ['controllo_cassa.html','$','Cassa'],
       ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
       ['backup-dati.html','⤓','Backup'],
