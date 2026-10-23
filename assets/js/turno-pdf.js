@@ -5,8 +5,8 @@
 (function (root) {
   'use strict';
 
-  // Colore della cella del numero per grado (come nei turni dell'ufficio)
-  const COLORE_GRADO = { capitano: '#ffff00', capo_timoniere: '#ff9900', timoniere: '#009933', motorista: '#00ccff', aiuto_motorista: '#e6e6ff', marinaio: '#ff99ff' };
+  // Colore della cella del numero per grado: i colori dei gradi di NaviSuite (docs/STILE-NAVISUITE.md)
+  const COLORE_GRADO = { capitano: '#facc15', capo_timoniere: '#fb923c', timoniere: '#22c55e', motorista: '#a855f7', aiuto_motorista: '#3b82f6', marinaio: '#e8f3f6' };
   const BLU_IMPEGNATA = '#83caff';
   const GIORNI = ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'];
 
@@ -91,7 +91,11 @@
           const y = rigaY(k), cy = y + L.riga / 2, n = start + k + 1;
           const colore = a.colore || COLORE_GRADO[a.ruolo];
           if (colore) { doc.setFillColor(...rgb(colore)); doc.rect(L.numL, y, L.nameL - L.numL, L.riga, 'F'); }
+          // numero bianco sui colori scuri (motorista, aiuto motorista), nero sugli altri
+          const [r, gg, bb] = colore ? rgb(colore) : [255, 255, 255];
+          if (0.299 * r + 0.587 * gg + 0.114 * bb < 150) doc.setTextColor(255, 255, 255);
           centro(String(n), L.numCx, cy + L.f.num * 0.36, L.f.num, true);
+          doc.setTextColor(0, 0, 0);
           const [cognome, iniziale] = divideNome(a.nome);
           testo(cognome, L.nameX, cy + L.f.nome * 0.36, L.f.nome, true);
           if (iniziale) testo(iniziale, L.iniR, cy + L.f.nome * 0.36, L.f.nome, true, { align: 'right' });
