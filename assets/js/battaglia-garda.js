@@ -189,8 +189,7 @@
       <g pointer-events="none">
         ${[18, 36, 54, 72, 90].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
         <line x1="${CX}" y1="0" x2="${CX}" y2="${ALTO}" stroke="#1f4250" stroke-width=".25"/><line x1="0" y1="${CY}" x2="${LARGO}" y2="${CY}" stroke="#1f4250" stroke-width=".25"/>
-        <g${g.giro ? ' opacity="0"' : ''}><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
-        ${g.giro ? `<g><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)" opacity="1.6"/><animateTransform id="bg-giro" attributeName="transform" type="rotate" from="-15 ${CX} ${CY}" to="345 ${CX} ${CY}" dur="${GIRO_MS}ms" begin="indefinite" fill="freeze"/></g>` : ''}
+        <g><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
       </g>
       <path d="${MAPPA.costa}" fill="#0b2a38" fill-opacity=".72" stroke="#67d7e6" stroke-width=".45"/>`;
     let sopra = '';
@@ -208,8 +207,10 @@
     });
     // giro del sonar: ogni battello a galla si accende quando il raggio ci passa sopra
     if (g.giro) navi.filter(n => n.colpi.size < n.len).forEach(n => n.celle.forEach(i => {
+      // il raggio non si ferma: il giro parte dall'angolo in cui si trovava quando si e' premuto Sonar
       const cx = p(i) * C + C / 2, cy = Math.floor(i / COL) * C + C / 2, gradi = (Math.atan2(cy - CY, cx - CX) * 180 / Math.PI + 360) % 360;
-      sopra += `<circle class="sonar-blip" style="animation-delay:${Math.round(gradi / 360 * GIRO_MS)}ms" cx="${cx}" cy="${cy}" r="1.3" fill="#2dd4bf" pointer-events="none"/>`;
+      const ritardo = ((gradi - g.giroDa + 360) % 360) / 360 * GIRO_MS - (performance.now() - g.giroT0);
+      sopra += `<circle class="sonar-blip" style="animation-delay:${Math.round(ritardo)}ms" cx="${cx}" cy="${cy}" r="1.3" fill="#2dd4bf" pointer-events="none"/>`;
     }));
     h += sopra;
     Object.entries(MAPPA.scali).forEach(([n, s]) => {
@@ -220,7 +221,6 @@
       h += `<circle cx="${x}" cy="${y}" r=".7" fill="#67d7e6" pointer-events="none"/><text x="${est ? x + 1.3 : x - 1.3}" y="${y + .9}" font-size="2.5" fill="#9fb8c2" font-weight="700" text-anchor="${est ? 'start' : 'end'}" pointer-events="none">${n}</text>`;
     });
     svg.innerHTML = h;
-    if (g.giro) try { svg.querySelector('#bg-giro')?.beginElement(); } catch { /* niente */ }
   }
 
   function renderClassifica() {
@@ -295,7 +295,9 @@
   // Sonar: una volta per partita il raggio fa un giro e accende i battelli mentre ci passa sopra
   $('bg-sonar').addEventListener('click', () => {
     if (g.sonarUsato || finePartita() || g.giro) return;
-    g.sonarUsato = true; g.giro = true;
+    // angolo del raggio adesso (l'animazione SVG gira di 360 gradi ogni 4 secondi dall'inizio della pagina)
+    let t = 0; try { t = $('bg-lago').getCurrentTime() * 1000; } catch { t = 0; }
+    g.sonarUsato = true; g.giro = true; g.giroDa = (t % 4000) / 4000 * 360; g.giroT0 = performance.now();
     g.log = '📡 Sonar in funzione: guarda dove si accendono i battelli…'; g.colore = 'var(--teal)';
     render();
     setTimeout(() => { g.giro = false; g.log = '📡 Giro del sonar finito: ora i siluri.'; render(); }, GIRO_MS + 700);
