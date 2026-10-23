@@ -1,7 +1,7 @@
 // Battaglia sul Garda: sfida del giorno su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
 // I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario alle 11:00 (in navigazione sulla
-// rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Ogni battello e' una casella sola e si hanno
-// 10 colpi: in classifica va davanti chi ne affonda di piu', a parita' chi usa meno colpi. Conta la prima partita del giorno.
+// rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Ogni battello e' una casella sola; si hanno
+// 10 colpi in acqua (chi colpisce ritira) e ogni colpo in acqua dice a quante caselle e' il battello piu' vicino: in classifica va davanti chi ne affonda di piu', a parita' chi usa meno colpi. Conta la prima partita del giorno.
 (function (root) {
   'use strict';
   const MAPPA = root.NaviLagoMappa;
@@ -155,11 +155,15 @@
     try { corse = O?.corseDelGiorno?.(oggi) || []; } catch { corse = []; }
     const navi = piazzaOrario(posizioni(corse, ORA));
     const valida = !giaFatta();
-    g = { navi, colpi: new Set(), ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
+    g = { navi, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
     render();
   }
 
   const NS = 'http://www.w3.org/2000/svg';
+  // Caselle (in orizzontale, verticale o diagonale) dal battello a galla piu' vicino: l'aiuto «caldo/freddo»
+  const distanza = (i, navi) => Math.min(...navi.filter(n => n.colpi.size < n.len).flatMap(n => n.celle).map(j => Math.max(Math.abs(p(i) - p(j)), Math.abs(Math.floor(i / COL) - Math.floor(j / COL)))));
+  const COLORE_DIST = d => d <= 1 ? '#fb7185' : d === 2 ? '#fb923c' : d === 3 ? '#fbbf24' : d <= 5 ? '#a3e635' : '#67d7e6';
+  const acqua = () => [...g.colpi].filter(i => !g.navi.some(n => n.celle.includes(i))).length;
   function lago(svg, navi, colpi, mostraNavi, ultimo) {
     let h = `<path d="${MAPPA.costa}" fill="#0d3446" stroke="#67d7e6" stroke-width=".4"/>`;
     ACQUA.forEach(i => {
@@ -168,7 +172,7 @@
       if (mostraNavi && nave) fill = '#5b7280';
       if (colpita && nave) fill = nave.colpi.size === nave.len ? '#fb7185' : '#fbbf24';
       h += `<rect data-i="${i}" x="${x + .25}" y="${y + .25}" width="${C - .5}" height="${C - .5}" rx=".6" fill="${fill}"${i === ultimo ? ' stroke="#eaf2f4" stroke-width=".5"' : ''}/>`;
-      if (colpita && !nave) h += `<circle cx="${x + C / 2}" cy="${y + C / 2}" r=".55" fill="#67d7e6" pointer-events="none"/>`;
+      if (colpita && !nave) { const d = g.dist[i]; h += Number.isFinite(d) ? `<text x="${x + C / 2}" y="${y + C / 2 + .95}" font-size="2.7" text-anchor="middle" fill="${COLORE_DIST(d)}" font-weight="900" pointer-events="none">${d}</text>` : `<circle cx="${x + C / 2}" cy="${y + C / 2}" r=".55" fill="#67d7e6" pointer-events="none"/>`; }
       if (colpita && nave) h += `<text x="${x + C / 2}" y="${y + C / 2 + .9}" font-size="2.6" text-anchor="middle" fill="#3b0010" font-weight="900" pointer-events="none">✕</text>`;
     });
     Object.entries(MAPPA.scali).forEach(([n, s]) => {
@@ -192,7 +196,7 @@
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
     $('bg-info').innerHTML = `${g.navi.length} battelli in servizio oggi, dove li mette l'orario delle <b>11:00</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
-    $('bg-punti').innerHTML = `Colpi <b>${COLPI - g.colpi.size}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
+    $('bg-punti').innerHTML = `Colpi <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
     t.textContent = fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
     t.className = `turno${fine ? ' fine' : g.valida ? '' : ' cpu'}`;
@@ -227,7 +231,7 @@
     caricaClassifica();
   }
 
-  const finePartita = () => !!g.navi.length && (finita(g.navi) || g.colpi.size >= COLPI);
+  const finePartita = () => !!g.navi.length && (finita(g.navi) || acqua() >= COLPI);
   $('bg-lago').addEventListener('click', e => {
     const el = e.target.closest('[data-i]');
     if (!el || finePartita()) return;
@@ -235,7 +239,9 @@
     if (!r) return;
     g.ultimo = i;
     const nome = r.nave ? `la ${r.nave.nome} (${r.nave.tratta})` : '';
-    g.log = r.esito === 'acqua' ? `${nomeCella(i)}: acqua` : r.esito === 'colpita' ? `${nomeCella(i)}: <b>colpita!</b>` : `💥 <b>Affondata ${nome}!</b>`;
+    if (r.esito === 'acqua') g.dist[i] = distanza(i, g.navi);
+    const caldo = d => d <= 1 ? '🔥 vicinissimo!' : d === 2 ? 'molto vicino' : d === 3 ? 'vicino' : d <= 5 ? 'tiepido' : 'freddo';
+    g.log = r.esito === 'acqua' ? `${nomeCella(i)}: acqua · il battello più vicino è a <b>${g.dist[i]} ${g.dist[i] === 1 ? 'casella' : 'caselle'}</b> (${caldo(g.dist[i])})` : r.esito === 'colpita' ? `${nomeCella(i)}: <b>colpita!</b>` : `💥 <b>Affondata ${nome}!</b>`;
     g.colore = r.esito === 'acqua' ? 'var(--cyan)' : r.esito === 'colpita' ? 'var(--amber)' : 'var(--rose)';
     if (finePartita()) {
       const n = g.navi.filter(x => x.colpi.size === x.len).length;
