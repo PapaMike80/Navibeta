@@ -3,6 +3,7 @@ const assert = require('assert');
 require('../assets/js/orario-lago.js');
 require('../assets/js/battaglia-garda.js');
 const B = globalThis.NaviBattagliaGarda;
+B.SCALI_CELLE.forEach(i => assert.ok(!B.ACQUA.has(i), 'sugli scali non si spara'));
 assert.ok(B.ACQUA.size > 200, `poche caselle d'acqua: ${B.ACQUA.size}`);
 for (let k = 0; k < 100; k++) {
   const navi = B.piazzaCasuale();
