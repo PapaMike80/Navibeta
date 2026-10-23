@@ -177,23 +177,38 @@
   const distanza = (i, navi) => Math.min(...navi.filter(n => n.colpi.size < n.len).flatMap(n => n.celle).map(j => Math.max(Math.abs(p(i) - p(j)), Math.abs(Math.floor(i / COL) - Math.floor(j / COL)))));
   const COLORE_DIST = d => d <= 1 ? '#fb7185' : d === 2 ? '#fb923c' : d === 3 ? '#fbbf24' : d <= 5 ? '#a3e635' : '#67d7e6';
   const acqua = () => [...g.colpi].filter(i => !g.navi.some(n => n.celle.includes(i))).length;
+  // Schermo sonar con i colori di NaviSuite: acqua blu notte, costa e cerchi azzurri, raggio verde acqua che gira;
+  // colpo in acqua = «ping» grande quanto la distanza dal battello piu' vicino; affondato = punto rosa che pulsa.
+  const CX = 38, CY = 76;
   function lago(svg, navi, colpi, mostraNavi, ultimo) {
-    let h = `<path d="${MAPPA.costa}" fill="#0d3446" stroke="#67d7e6" stroke-width=".4"/>`;
+    let h = `<defs><clipPath id="bg-clip"><path d="${MAPPA.costa}"/></clipPath>
+      <linearGradient id="bg-raggio" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2dd4bf" stop-opacity="0"/><stop offset="1" stop-color="#2dd4bf" stop-opacity=".38"/></linearGradient></defs>
+      <path d="${MAPPA.costa}" fill="#0b2a38" stroke="#67d7e6" stroke-width=".45"/>
+      <g clip-path="url(#bg-clip)" pointer-events="none">
+        ${[18, 36, 54, 72].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
+        <line x1="${CX}" y1="0" x2="${CX}" y2="${ALTO}" stroke="#1f4250" stroke-width=".25"/><line x1="0" y1="${CY}" x2="${LARGO}" y2="${CY}" stroke="#1f4250" stroke-width=".25"/>
+        <g class="sonar-raggio"><path d="M${CX} ${CY} L${CX + 80} ${CY - 22} A83 83 0 0 1 ${CX + 80} ${CY + 22} Z" fill="url(#bg-raggio)"/></g>
+      </g>`;
+    let sopra = '';
     ACQUA.forEach(i => {
-      const x = p(i) * C, y = Math.floor(i / COL) * C, nave = navi.find(n => n.celle.includes(i)), colpita = colpi.has(i);
-      let fill = '#124a61';
-      if (mostraNavi && nave) fill = '#5b7280';
-      if (colpita && nave) fill = nave.colpi.size === nave.len ? '#fb7185' : '#fbbf24';
-      h += `<rect data-i="${i}" x="${x + .25}" y="${y + .25}" width="${C - .5}" height="${C - .5}" rx=".6" fill="${fill}"${i === ultimo ? ' stroke="#eaf2f4" stroke-width=".5"' : ''}/>`;
-      if (colpita && !nave) { const d = g.dist[i]; h += Number.isFinite(d) ? `<text x="${x + C / 2}" y="${y + C / 2 + .95}" font-size="2.7" text-anchor="middle" fill="${COLORE_DIST(d)}" font-weight="900" pointer-events="none">${d}</text>` : `<circle cx="${x + C / 2}" cy="${y + C / 2}" r=".55" fill="#67d7e6" pointer-events="none"/>`; }
-      if (colpita && nave) h += `<text x="${x + C / 2}" y="${y + C / 2 + .9}" font-size="2.6" text-anchor="middle" fill="#3b0010" font-weight="900" pointer-events="none">✕</text>`;
+      const x = p(i) * C, y = Math.floor(i / COL) * C, cx = x + C / 2, cy = y + C / 2, nave = navi.find(n => n.celle.includes(i)), colpita = colpi.has(i);
+      h += `<rect data-i="${i}" x="${x}" y="${y}" width="${C}" height="${C}" fill="transparent"/><circle cx="${cx}" cy="${cy}" r=".28" fill="#2a5566" pointer-events="none"/>`;
+      if (colpita && !nave) {
+        const d = g.dist[i], col = Number.isFinite(d) ? COLORE_DIST(d) : '#67d7e6';
+        if (Number.isFinite(d)) sopra += `<circle cx="${cx}" cy="${cy}" r="${Math.min(d, 6) * C * .55 + .8}" fill="none" stroke="${col}" stroke-width=".25" opacity=".55" pointer-events="none"/>`;
+        sopra += `<text x="${cx}" y="${cy + .95}" font-size="2.7" text-anchor="middle" fill="${col}" font-weight="900" pointer-events="none">${Number.isFinite(d) ? d : '•'}</text>`;
+      }
+      if (colpita && nave) sopra += `<circle cx="${cx}" cy="${cy}" r="1.25" fill="#fb7185" pointer-events="none"/><circle class="sonar-pulsa" cx="${cx}" cy="${cy}" r="1.25" fill="none" stroke="#fb7185" stroke-width=".35" pointer-events="none"/>`;
+      else if (mostraNavi && nave) sopra += `<circle cx="${cx}" cy="${cy}" r="1.1" fill="#2dd4bf" pointer-events="none"/><circle cx="${cx}" cy="${cy}" r="2.2" fill="none" stroke="#2dd4bf" stroke-width=".3" pointer-events="none"/>`;
+      if (i === ultimo) sopra += `<rect x="${x + .2}" y="${y + .2}" width="${C - .4}" height="${C - .4}" rx=".7" fill="none" stroke="#eaf2f4" stroke-width=".35" pointer-events="none"/>`;
     });
+    h += sopra;
     Object.entries(MAPPA.scali).forEach(([n, s]) => {
       // il nome va dalla parte della costa; se uscirebbe dal tabellone, dall'altra parte del pontile
       const [x, y] = s.porto, largo = n.length * 1.45;
       let est = s.lato === 'e';
       if (est && x + 1.3 + largo > LARGO) est = false; else if (!est && x - 1.3 - largo < 0) est = true;
-      h += `<circle cx="${x}" cy="${y}" r=".7" fill="#eaf2f4" pointer-events="none"/><text x="${est ? x + 1.3 : x - 1.3}" y="${y + .9}" font-size="2.5" fill="#9fb8c2" font-weight="700" text-anchor="${est ? 'start' : 'end'}" pointer-events="none">${n}</text>`;
+      h += `<circle cx="${x}" cy="${y}" r=".7" fill="#67d7e6" pointer-events="none"/><text x="${est ? x + 1.3 : x - 1.3}" y="${y + .9}" font-size="2.5" fill="#9fb8c2" font-weight="700" text-anchor="${est ? 'start' : 'end'}" pointer-events="none">${n}</text>`;
     });
     svg.innerHTML = h;
   }
