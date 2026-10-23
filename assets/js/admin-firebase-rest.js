@@ -1185,7 +1185,7 @@
     await databaseRequest(path, { method:"PUT", body:JSON.stringify(value) });
   }
 
-  // Classifica giornaliera della Battaglia sul Garda: giochi/battagliaGarda/<giorno>/<agente> = { colpi, nome, t }
+  // Classifica della Battaglia sul Garda: giochi/battagliaGarda/generale/<agente> = { colpi, nome, t }
   async function getClassificaGarda(day) {
     const result = await databaseRequest(`private/adminUpdates/giochi/battagliaGarda/${safeUserKey(day)}`);
     return result.data || {};
