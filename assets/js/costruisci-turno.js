@@ -14,7 +14,7 @@
   const EQUIPAGGIO_BASE = { capitano: 1, motorista: 1, marinaio: 2 };
   const GIORNI = ['D', 'L', 'M', 'M', 'G', 'V', 'S'];
   const MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
-  const state = { data: null, rows: [], fleet: {}, mese: '', res: 'DESENZANO', vista: 'bozza', risultato: null, attuale: null, input: null };
+  const state = { data: null, rows: [], fleet: {}, dal: '', settimane: 4, res: 'DESENZANO', vista: 'bozza', risultato: null, attuale: null, input: null };
 
   const profilo = () => { try { return JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null'); } catch { return null; } };
   if (!window.NaviRoles?.isAdminAgent?.(profilo())) { location.replace('index.html'); return; }
@@ -52,14 +52,13 @@
     return { equipaggio: eq || EQUIPAGGIO_BASE, stimato: !eq };
   }
 
-  function giorniDelMese(mese) {
-    const [y, m] = mese.split('-').map(Number), n = new Date(y, m, 0).getDate();
-    return Array.from({ length: n }, (_, i) => `${mese}-${String(i + 1).padStart(2, '0')}`);
-  }
+  // Periodo del turno: settimane intere da lunedi' a domenica (2 o 4), come i turni dell'ufficio
+  const giorniDelPeriodo = () => Array.from({ length: state.settimane * 7 }, (_, i) => M.addDays(state.dal, i));
+  const lunediDi = iso => M.addDays(iso, -((new Date(`${iso}T12:00:00`).getDay() + 6) % 7));
 
   // Dati per il motore
   function preparaInput() {
-    const giorni = giorniDelMese(state.mese);
+    const giorni = giorniDelPeriodo();
     O.stagioneDaRighe(state.rows);
     const posti = {}, senzaNave = new Set();
     giorni.forEach(day => {
@@ -120,7 +119,7 @@
       ['var(--green)', 'Posti coperti', `${coperti}/${r.totPosti}`, `turni nave × equipaggio · ${giorni.length} giorni`],
       ['var(--rose)', 'Posti scoperti', String(r.scoperti.length), r.scoperti.length ? 'da sistemare a mano' : 'nessuna corsa a rischio'],
       ['var(--amber)', 'Trasferte', String(tr), tr ? 'solo dove serviva' : 'nessuna'],
-      ['var(--violet)', 'Straordinari', `≈ ${Math.round(st.straord)} h`, 'media del mese per agente'],
+      ['var(--violet)', 'Straordinari', `≈ ${Math.round(st.straord)} h`, 'media del periodo per agente'],
       ['var(--teal)', 'Equità', `±${Math.round(st.scartoMedio / 2)} €`, 'scarto medio dentro i gradi']
     ].map(([c, t, v, s]) => `<div class="k" style="--c:${c}"><small>${t}</small><b>${esc(v)}</b><span>${esc(s)}</span></div>`).join('');
     const ecc = new Set(r.eccezioni.filter(e => e.tipo !== 'trasferta').map(e => `${e.agente}|${e.giorno}`));
@@ -132,7 +131,8 @@
       return `<tr><td class="n"><span class="gr" style="--g:${col}">${sig}</span>${esc(a.nome)}</td>` +
         giorni.map(g => `<td>${cella(a.piano[g], { fisso: !!agentiInput[a.id]?.fissi?.[g], ecc: ecc.has(`${a.nome}|${g}`) })}</td>`).join('') + '</tr>';
     }).join('');
-    const titolo = `${state.vista === 'bozza' ? 'Bozza' : 'Turno attuale'} · ${MESI[Number(state.mese.slice(5)) - 1]} ${state.mese.slice(0, 4)} · ${state.res.charAt(0) + state.res.slice(1).toLowerCase()}`;
+    const dd = g => `${Number(g.slice(8, 10))} ${MESI[Number(g.slice(5, 7)) - 1].slice(0, 3)}`;
+    const titolo = `${state.vista === 'bozza' ? 'Bozza' : 'Turno attuale'} · dal ${dd(giorni[0])} al ${dd(giorni[giorni.length - 1])} · ${state.res.charAt(0) + state.res.slice(1).toLowerCase()}`;
     $('ct-griglia').innerHTML = `<h3>📋 ${esc(titolo)}</h3><p>${state.vista === 'bozza' ? 'Congedi, lavori e giornate impegnate già nel turno restano fissi (in viola). Bordo giallo tratteggiato = trasferta, bordo rosso = regola allentata.' : 'Il turno com’è adesso nei dati di NaviTurni, valutato con gli stessi conti della bozza.'}</p>` +
       (lista.length ? `<div class="scroll"><table><tr><th></th>${testa}</tr>${righe}</table></div>` : '<p class="vuoto">Nessun agente con grado di bordo in questa residenza.</p>') +
       `<div class="leg"><span class="c" style="background:#3b6bcc;color:#fff">D1</span>turno nave <span class="c rip">·</span>riposo <span class="c fisso">Cong</span>fisso <span class="c tr" style="background:#60a5fa">P1</span>trasferta <span class="c warn" style="background:#2d9e6b;color:#fff">D2</span>regola allentata</div>`;
@@ -152,7 +152,7 @@
       return `<div class="gq"><div class="gqh"><b style="color:${col}">${nome}</b><span class="pill">scarto ${eur(max - min)}</span></div>` +
         l.sort((a, b) => b.lordoMese - a.lordoMese).map(a => `<div class="bar"><span>${esc(a.nome)}</span><i style="--w:${max ? Math.round(a.lordoMese / max * 100) : 0}%;--c:${col}"></i><b class="mono">≈ ${eur(a.lordoMese)}</b><small>${a.giorniLavoro} gg lavorati su ${a.disponibili} disponibili${a.disponibili < giorni.length ? ` (lordo vero ≈ ${eur(a.lordo)})` : ''} · ${Math.round(a.straord)} h straord. · ${a.imbarchi} imbarchi · ${a.domeniche} dom/fest</small></div>`).join('') + '</div>';
     }).join('');
-    $('ct-lati').innerHTML = guardaHtml + `<div class="sez" style="--c:var(--violet)"><h3>⚖ Equità del mese · lordo stimato</h3><p>Ore (oltre 39 a settimana come straordinario), imbarchi, diarie, ticket e domeniche, confrontati dentro lo stesso grado e riportati a un mese intero di giorni disponibili (chi ha congedi o ferie non va «recuperato»). È una stima per confrontare, non la busta.</p>${eq || '<p>Nessun dato.</p>'}</div>`;
+    $('ct-lati').innerHTML = guardaHtml + `<div class="sez" style="--c:var(--violet)"><h3>⚖ Equità del periodo · lordo stimato</h3><p>Ore (oltre 39 a settimana come straordinario), imbarchi, diarie, ticket e domeniche, confrontati dentro lo stesso grado e riportati a un mese intero di giorni disponibili (chi ha congedi o ferie non va «recuperato»). È una stima per confrontare, non la busta.</p>${eq || '<p>Nessun dato.</p>'}</div>`;
   }
 
   // ---------------- Azioni ----------------
@@ -178,6 +178,7 @@
         agenti.forEach(a => giorni.forEach(g => { const c = String(a.attuale[g] || ''); if (isNave(c) && /^c|c$/i.test(c) && !/^C(AR|AP)/.test(c)) eccA.push({ giorno: g, agente: a.nome, tipo: 'trasferta', testo: `${a.nome} in trasferta su ${G.naveCode(c) || c}` }); }));
         state.attuale = { riepilogo: riep, scoperti: scop, eccezioni: eccA, totPosti: state.risultato.totPosti };
         state.vista = 'bozza';
+        $('ct-pdf').disabled = false;
         render();
       } catch (error) {
         console.error(error);
@@ -186,11 +187,40 @@
     }, 30);
   }
 
+  // PDF come quello dell'ufficio: tutte le residenze, agenti nell'ordine di NaviTurni, la bozza (o il turno attuale)
+  function esportaPdf() {
+    const r = state.vista === 'bozza' ? state.risultato : state.attuale;
+    if (!r || !window.NaviTurnoPdf) return;
+    const giorni = state.input.giorni, piano = Object.fromEntries(r.riepilogo.map(a => [a.id, a.piano]));
+    const residenze = ['RIVA', 'MADERNO', 'DESENZANO', 'PESCHIERA'].map(nome => {
+      const agenti = [];
+      Object.entries(state.data?.residenze || {}).filter(([res]) => norma(res).includes(nome)).forEach(([, list]) => (list || []).forEach(a => {
+        if (window.NaviRoles?.isBaristaAgent?.(a)) return;
+        const id = String(a?.id || ''), mio = piano[id];
+        const turni = {};
+        giorni.forEach(g => {
+          const code = mio ? mio[g] : a.turni?.[g];
+          const c = String(code ?? '').trim();
+          if (c && !isRiposo(c)) turni[g] = c;
+          else if (c && !mio) turni[g] = c; // nel turno attuale restano rip., rip--, ---- come scritti
+        });
+        agenti.push({ nome: String(a.agente || a.name || id), ruolo: RUOLO[G.gradoOf(a)[0]] || '', turni });
+      }));
+      return { nome, agenti };
+    }).filter(x => x.agenti.length);
+    window.NaviTurnoPdf.scarica({ titolo: state.vista === 'bozza' ? 'BOZZA TURNO DEL PERSONALE' : 'TURNO DEL PERSONALE', dal: giorni[0], settimane: state.settimane, residenze });
+  }
+
   function init() {
-    const oggi = new Date(), prossimo = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 1);
-    state.mese = `${prossimo.getFullYear()}-${String(prossimo.getMonth() + 1).padStart(2, '0')}`;
-    $('ct-mese').value = state.mese;
-    $('ct-mese').addEventListener('change', e => { if (/^\d{4}-\d{2}$/.test(e.target.value)) { state.mese = e.target.value; state.risultato = state.attuale = null; render(); } });
+    // di partenza: il primo lunedi' del mese prossimo
+    const oggi = new Date(), primo = new Date(oggi.getFullYear(), oggi.getMonth() + 1, 1);
+    const iso = `${primo.getFullYear()}-${String(primo.getMonth() + 1).padStart(2, '0')}-01`;
+    state.dal = M.addDays(iso, (8 - new Date(`${iso}T12:00:00`).getDay()) % 7);
+    $('ct-dal').value = state.dal;
+    const azzera = () => { state.risultato = state.attuale = null; $('ct-pdf').disabled = true; render(); };
+    $('ct-dal').addEventListener('change', e => { if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { state.dal = lunediDi(e.target.value); e.target.value = state.dal; azzera(); } });
+    $('ct-sett').addEventListener('change', e => { state.settimane = Number(e.target.value) || 4; azzera(); });
+    $('ct-pdf').addEventListener('click', esportaPdf);
     $('ct-res').addEventListener('click', e => { const b = e.target.closest('[data-res]'); if (b) { state.res = b.dataset.res; render(); } });
     $('ct-vista').addEventListener('click', e => { const b = e.target.closest('[data-vista]'); if (b) { state.vista = b.dataset.vista; render(); } });
     $('ct-genera').addEventListener('click', genera);

@@ -30,7 +30,7 @@
     .barra{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
     .chip{display:inline-flex;align-items:center;gap:6px;min-height:36px;padding:0 13px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:800 12.5px Manrope,system-ui,sans-serif;cursor:pointer}
     .chip.on{background:var(--teal);color:var(--on);border-color:var(--teal)}
-    .chip input{border:0;background:transparent;color:inherit;font:inherit;color-scheme:dark}
+    .chip input,.chip select{border:0;background:transparent;color:inherit;font:inherit;color-scheme:dark}.chip select option{background:#102733}.chip:disabled{opacity:.5;cursor:not-allowed}
     .gruppo{display:flex;gap:4px;padding:3px;border-radius:999px;background:var(--card);border:1px solid var(--line)}.gruppo .chip{border:0;min-height:30px;background:transparent}.gruppo .chip.on{background:var(--teal)}
     .btn{min-height:38px;padding:0 18px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--teal),var(--cyan));color:var(--on);font:800 13px Manrope,system-ui,sans-serif;cursor:pointer}
     .btn:disabled{opacity:.55;cursor:progress}
@@ -66,10 +66,11 @@
   <header class="page-header"><div><small>MOVIMENTO · ADMIN</small><h1>Costruisci turno</h1></div></header>
   <main>
     <div class="barra">
-      <label class="chip">📅 <input type="month" id="ct-mese" aria-label="Mese"></label>
+      <label class="chip">📅 dal <input type="date" id="ct-dal" aria-label="Primo giorno (lunedì)"></label><label class="chip"><select id="ct-sett" aria-label="Settimane"><option value="4">4 settimane</option><option value="2">2 settimane</option></select></label>
       <div class="gruppo" id="ct-res"><button class="chip" type="button" data-res="DESENZANO">Desenzano</button><button class="chip" type="button" data-res="MADERNO">Maderno</button><button class="chip" type="button" data-res="RIVA">Riva</button><button class="chip" type="button" data-res="PESCHIERA">Peschiera</button></div>
       <div class="gruppo" id="ct-vista"><button class="chip" type="button" data-vista="bozza">Bozza</button><button class="chip" type="button" data-vista="attuale">Turno attuale</button></div>
       <span style="flex:1"></span>
+      <button class="chip" id="ct-pdf" type="button" disabled>⤓ Esporta PDF</button>
       <button class="btn" id="ct-genera" type="button" disabled>⚡ Genera bozza</button>
     </div>
     <p class="stato" id="ct-stato"></p>
@@ -93,7 +94,9 @@
   <script src="assets/js/orario-giorno.js?v=7"></script>
   <script src="assets/js/orari-stagioni.js?v=9"></script>
   <script src="assets/js/shift-competence.js?v=4"></script>
-  <script src="assets/js/costruisci-turno-motore.js?v=1"></script>
-  <script src="assets/js/costruisci-turno.js?v=1"></script>
+  <script src="vendor/pdf/jspdf.umd.min.js"></script>
+  <script src="assets/js/turno-pdf.js?v=1"></script>
+  <script src="assets/js/costruisci-turno-motore.js?v=2"></script>
+  <script src="assets/js/costruisci-turno.js?v=2"></script>
 </body>
 </html>

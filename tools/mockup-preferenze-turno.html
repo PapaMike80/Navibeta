@@ -1,0 +1,41 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Mockup · Richieste per il turno</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap"><style>
+:root{--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--green:#52c879;--sky:#38bdf8}
+*{box-sizing:border-box}body{margin:0;padding:18px;width:1220px;background:#071923;color:var(--ink);font:500 13px/1.4 Manrope,system-ui,sans-serif}
+h1{margin:0 0 4px;font-size:19px}.n{margin:0 0 14px;color:var(--muted);font-size:12px;max-width:1150px}
+.w{display:grid;grid-template-columns:390px 1fr;gap:20px;align-items:start}.cap{font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.12em;margin-bottom:6px}
+.tel{background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:14px;display:grid;gap:10px}
+.eb{color:var(--teal);font-size:10px;font-weight:800;letter-spacing:.2em}.tt{font-size:21px;font-weight:800;margin:0}
+.sez{--c:var(--teal);display:grid;gap:8px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+.sez h3{margin:0;font-size:14px;color:var(--c)}.sez p{margin:0;font-size:12px;color:var(--muted)}
+.seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--card)}.seg span{flex:1;text-align:center;padding:8px 4px;border-radius:9px;font-weight:800;font-size:12px;color:var(--muted)}.seg span.on{background:var(--c);color:var(--on)}
+.per{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:8px 10px;border-radius:11px;background:var(--card);border-left:3px solid var(--c)}
+.per b{font-family:'DM Mono',monospace;font-weight:500}.per small{display:block;color:var(--muted);font-size:11px}
+.st{font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px}.st.ok{background:#52c87926;color:#86efac}.st.wa{background:#fbbf2426;color:#fde68a}
+.btn{min-height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:linear-gradient(90deg,var(--teal),#67d7e6);color:var(--on)}.btn.o{background:transparent;border:1px dashed color-mix(in srgb,var(--c) 60%,transparent);color:var(--c)}
+.lock{font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:12px}th{text-align:left;color:var(--muted);font-size:10px;letter-spacing:.1em;padding:0 8px}
+td{background:var(--card);padding:7px 8px}td:first-child{border-radius:9px 0 0 9px;font-weight:800}td:last-child{border-radius:0 9px 9px 0}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid}
+.p39{color:var(--sky);border-color:#38bdf866}.pn{color:var(--muted);border-color:var(--line)}.pmax{color:var(--amber);border-color:#fbbf2466}
+.gr{display:inline-grid;place-items:center;width:26px;height:18px;margin-right:6px;border-radius:9px;border:1.5px solid var(--g);color:var(--g);font-size:8px;font-weight:900}
+.fer{display:inline-block;padding:2px 7px;border-radius:7px;background:#a78bfa33;color:#ddd6fe;font-size:11px;font-weight:700;margin-right:3px}
+</style></head><body>
+<h1>Costruisci turno · ferie, ore e stagionali (solo ufficio)</h1>
+<p class="n">Le compila solo l'ufficio, dentro Costruisci turno, prima di generare la bozza: per ogni agente quanto lavora (Solo 39 h · Normale · Più straordinario) e i periodi di ferie. Le ferie inserite diventano subito giorni fissi, senza approvazioni. «#» (concordato) è un'assenza retribuita: l'agente non è disponibile e non conta come giorno di lavoro. Gli agenti non vedono questa parte.</p>
+<div class="w" style="grid-template-columns:1fr"><div><div class="cap">UFFICIO · COSTRUISCI TURNO › FERIE E ORE (PC)</div>
+<div class="sez" style="--c:var(--violet)"><h3>🗂 Ferie e ore · dicembre 2026 · Desenzano</h3><p>Tocca la preferenza per cambiarla (vale per i mesi successivi finché non la cambi); «＋ ferie» aggiunge un periodo, la ✕ lo toglie. Chi non ha una preferenza è «Normale».</p>
+<table><tr><th>AGENTE</th><th>ORE</th><th>FERIE</th><th></th></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>BITTURINI D.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">7–11/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>SCARMIGLIATI A.</td><td><span class="pill p39">Solo 39 h</span></td><td><span class="fer">24–26/12 ✕</span><span class="fer">31/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#a855f7">Mot</span>BURDO A.</td><td><span class="pill pn">Normale</span></td><td>—</td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>PEDRONI M.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">14–18/12 ✕</span></td><td><span class="pill pn">＋ ferie</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>GIACCI GL.</td><td><span class="pill p39">Solo 39 h</span></td><td>—</td><td><span class="pill pn">＋ ferie</span></td></tr></table></div>
+<div class="sez" style="--c:#4ade80;margin-top:12px"><h3>🌊 Stagionali · dicembre 2026 · Desenzano</h3><p>Dalla scheda agente (categoria «Stagionali» con data di inizio e fine). Coprono <b>solo posti da marinaio</b> e solo nei giorni del loro contratto; fuori dal periodo non vengono messi in turno. Il loro lordo si confronta tra stagionali, non con gli stabili.</p>
+<table><tr><th>AGENTE</th><th>CONTRATTO</th><th>GIORNI NEL MESE</th><th>ORE</th><th>POSTO</th></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>ROSSI L.</td><td class="mono">1/6 – 31/12/2026</td><td>31 su 31</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="pill pn">solo marinaio</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>VERDI M.</td><td class="mono">1/6 – 15/12/2026</td><td>15 su 31 <span class="st wa">finisce il 15</span></td><td><span class="pill pn">Normale</span></td><td><span class="pill pn">solo marinaio</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>NERI A.</td><td class="mono">20/12/2026 – 30/4/2027</td><td>12 su 31 <span class="st ok">arriva il 20</span></td><td><span class="pill p39">Solo 39 h</span></td><td><span class="pill pn">solo marinaio</span></td></tr></table>
+<p>Se un agente è registrato come stagionale con un grado diverso da marinaio (es. timoniere), nella bozza conta comunque solo come marinaio e lo trovi segnalato qui.</p></div>
+<div class="sez" style="--c:var(--teal);margin-top:12px"><h3>⚖ Come cambia l'equità</h3><p>Lo straordinario del mese si divide solo tra «Normale» e «Più straordinario» (questi ultimi per primi), sempre in modo equo dentro ogni grado. Chi ha «Solo 39 h» resta intorno alle 39 ore settimanali; se senza di lui una corsa resterebbe scoperta, lo si usa lo stesso e lo trovi in «Da guardare».</p></div>
+</div></div></body></html>
