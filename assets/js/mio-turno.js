@@ -99,16 +99,18 @@
     // senza orari la riga resta (altezza fissa) e mostra il prossimo giorno di servizio
     if (!inizio || !fine) { el.classList.add('vuoto'); el.textContent = prossimoServizio(day); return; }
     const durata = m => `${Math.floor(m / 60)} h${m % 60 ? ` ${String(m % 60).padStart(2, '0')}'` : ''}`;
-    let resto = '';
+    let resto = '', fase = '';
     if (day === iso(new Date())) {
       const now = new Date(), n = now.getHours() * 60 + now.getMinutes();
       const a = minutes(ora(inizio)), b = minutes(ora(fine));
       resto = n < a ? `inizia tra ${durata(a - n)}` : n < b ? `fine tra ${durata(b - n)}` : 'giornata finita';
+      // durante il servizio: rosso nel primo terzo, giallo nel secondo, verde nell'ultimo
+      if (n >= a && n < b) { const f = (n - a) / Math.max(1, b - a); fase = f < 1 / 3 ? ' inizio' : f < 2 / 3 ? ' meta' : ' fine'; }
     }
     // durata: le ore del turno (senza le pause), altrimenti da inizio a fine
     const ore = Number(C?.shiftForCode(code, day)?.hours) || 0;
     const tot = ore > 0 ? durata(Math.round(ore * 60)) : durata(minutes(ora(fine)) - minutes(ora(inizio)));
-    el.innerHTML = `Servizio <b>${esc(ora(inizio))} – ${esc(ora(fine))}</b> <span class="mt-durata">(${esc(tot)})</span>${resto ? `<span class="mt-resto">${esc(resto)}</span>` : ''}`;
+    el.innerHTML = `Servizio <b>${esc(ora(inizio))} – ${esc(ora(fine))}</b> <span class="mt-durata">(${esc(tot)})</span>${resto ? `<span class="mt-resto${fase}">${esc(resto)}</span>` : ''}`;
     el.hidden = false;
   }
 
