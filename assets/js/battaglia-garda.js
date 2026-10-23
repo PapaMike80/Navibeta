@@ -152,11 +152,11 @@
 
   function nuova() {
     let corse = [];
-    try { corse = O?.corseDelGiorno?.(oggi) || []; } catch { corse = []; }
+    try { corse = (O?.corseDelGiorno?.(oggi) || []).filter(c => !/^T[12]$/.test(c.turno)); } catch { corse = []; } // senza traghetti: troppo facili
     const ora = new Date(), t = ora.getHours() * 60 + ora.getMinutes(); // le navi stanno dove sono adesso, ferme per tutta la partita
     const navi = piazzaOrario(posizioni(corse, t));
     const valida = !giaFatta();
-    g = { navi, ora: t, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
+    g = { navi, ora: t, sbirciato: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
     render();
   }
 
@@ -201,7 +201,8 @@
     const t = $('bg-turno');
     t.textContent = fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
     t.className = `turno${fine ? ' fine' : g.valida ? '' : ' cpu'}`;
-    lago($('bg-lago'), g.navi, g.colpi, fine, g.ultimo);
+    lago($('bg-lago'), g.navi, g.colpi, fine || g.sbircia, g.ultimo);
+    $('bg-sbircia').disabled = g.sbirciato || !!fine; $('bg-sbircia').style.opacity = g.sbirciato || fine ? .4 : 1;
     $('bg-lago').classList.toggle('attesa', !!fine);
     $('bg-flotta').innerHTML = g.navi.map(n => {
       const nome = `<i>${n.nome}</i> ${n.colpi.size === n.len ? n.tratta : ''}`;
@@ -252,6 +253,13 @@
       if (g.valida) salvaRisultato();
     }
     render();
+  });
+  // Sbircia: mostra i battelli per un decimo di secondo, una volta sola per partita
+  const SBIRCIA_MS = 100;
+  $('bg-sbircia').addEventListener('click', () => {
+    if (g.sbirciato || finePartita()) return;
+    g.sbirciato = true; g.sbircia = true; render();
+    setTimeout(() => { g.sbircia = false; render(); }, SBIRCIA_MS);
   });
   $('bg-nuova').addEventListener('click', () => { if (!g.colpi.size || finePartita() || confirm('Ricominciare? Se è la sfida del giorno, questa partita non conterà.')) { if (g.colpi.size && !finePartita() && g.valida) { try { localStorage.setItem(FATTA, 'abbandonata'); } catch { /* niente */ } } nuova(); } });
   $('bg-lago').setAttribute('viewBox', `0 0 ${LARGO} ${ALTO}`);
