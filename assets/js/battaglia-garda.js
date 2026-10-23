@@ -1,5 +1,5 @@
 // Battaglia sul Garda: sfida del giorno su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
-// I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario alle 11:00 (in navigazione sulla
+// I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario all'ora d'inizio della partita (in navigazione sulla
 // rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Ogni battello e' una casella sola; si hanno
 // 10 colpi in acqua (chi colpisce ritira) e ogni colpo in acqua dice a quante caselle e' il battello piu' vicino: in classifica va davanti chi ne affonda di piu', a parita' chi usa meno colpi. Conta la prima partita del giorno.
 (function (root) {
@@ -140,7 +140,7 @@
   // ---- Pagina ----
   const $ = id => document.getElementById(id);
   const O = root.NaviOrarioGiorno;
-  const ORA = 11 * 60;
+  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const oggi = iso(new Date());
   const profilo = (() => { try { return JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } })();
@@ -153,9 +153,10 @@
   function nuova() {
     let corse = [];
     try { corse = O?.corseDelGiorno?.(oggi) || []; } catch { corse = []; }
-    const navi = piazzaOrario(posizioni(corse, ORA));
+    const ora = new Date(), t = ora.getHours() * 60 + ora.getMinutes(); // le navi stanno dove sono adesso, ferme per tutta la partita
+    const navi = piazzaOrario(posizioni(corse, t));
     const valida = !giaFatta();
-    g = { navi, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
+    g = { navi, ora: t, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
     render();
   }
 
@@ -189,13 +190,13 @@
     const righe = Object.entries(classifica).map(([id, r]) => ({ id, ...r })).filter(r => Number(r.colpi) > 0).sort((a, b) => (b.affondate || 0) - (a.affondate || 0) || a.colpi - b.colpi || a.t - b.t);
     const mio = String(profilo?.id || '').replace(/[.#$\[\]\/]/g, '_');
     $('bg-classifica').innerHTML = righe.length
-      ? righe.slice(0, 20).map((r, k) => `<div class="${r.id === mio ? 'io' : ''}"><span><b>${k + 1}</b> ${esc(r.nome || r.id)}</span><span>${r.affondate || 0} 🎯 · ${r.colpi} colpi</span></div>`).join('')
+      ? righe.slice(0, 20).map((r, k) => `<div class="${r.id === mio ? 'io' : ''}"><span><b>${k + 1}</b> ${esc(r.nome || r.id)}</span><span>${r.affondate || 0} 🎯 · ${r.colpi} colpi${r.ora ? ` <small>(${r.ora})</small>` : ''}</span></div>`).join('')
       : '<p>Ancora nessuno ha giocato la sfida di oggi.</p>';
   }
 
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
-    $('bg-info').innerHTML = `${g.navi.length} battelli in servizio oggi, dove li mette l'orario delle <b>11:00</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
+    $('bg-info').innerHTML = `${g.navi.length} battelli in servizio oggi, dove li mette l'orario delle <b>${hhmm(g.ora)}</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
     $('bg-punti').innerHTML = `Colpi <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
     t.textContent = fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
@@ -225,7 +226,7 @@
   async function salvaRisultato() {
     try { localStorage.setItem(FATTA, String(g.colpi.size)); } catch { /* niente */ }
     if (!profilo?.id) return;
-    const r = { affondate: g.navi.filter(x => x.colpi.size === x.len).length, colpi: g.colpi.size, nome: profilo.name || profilo.agente || profilo.id, t: Date.now() };
+    const r = { ora: hhmm(g.ora), affondate: g.navi.filter(x => x.colpi.size === x.len).length, colpi: g.colpi.size, nome: profilo.name || profilo.agente || profilo.id, t: Date.now() };
     classifica[String(profilo.id).replace(/[.#$\[\]\/]/g, '_')] = r;
     try { await window.NaviAdminFirebase?.saveRisultatoGarda?.(oggi, profilo.id, r); } catch (error) { console.warn('Risultato non salvato', error); }
     caricaClassifica();
