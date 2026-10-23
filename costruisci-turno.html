@@ -72,6 +72,19 @@
     .mini{padding:3px 10px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}.mini.ok{border-color:var(--violet);color:var(--violet)}
     .agg{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap}.agg input{padding:4px 6px;border-radius:8px;border:1px solid var(--line);background:var(--card2);color:var(--ink);font:600 12px Manrope,system-ui,sans-serif;color-scheme:dark}
     .tag{display:inline-block;padding:1px 8px;border-radius:999px;font-size:10px;font-weight:900}.tag.wa{background:#fbbf2426;color:#fde68a}.tag.ok{background:#52c87926;color:#86efac}.tag.ro{background:#fb718526;color:#fda4af}
+    /* Navi e corse del periodo */
+    .nriga{display:grid;grid-template-columns:96px 210px 240px minmax(0,1fr);gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--card)}
+    .nriga.spenta{opacity:.6}.nt{display:flex;gap:8px;align-items:center}
+    .chip-t{padding:2px 9px;border-radius:999px;font-weight:900;font-size:12px}
+    .tg{width:36px;height:20px;border:0;border-radius:99px;background:var(--card2);position:relative;cursor:pointer;flex:none}.tg::after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:var(--muted)}.tg.on{background:#38bdf8}.tg.on::after{left:19px;background:var(--on)}
+    .nv{display:grid;gap:2px;min-width:0}.nv select{padding:5px 8px;border-radius:9px;background:var(--card2);border:1px solid var(--line);color:var(--ink);font:800 12px Manrope,system-ui,sans-serif;color-scheme:dark;max-width:100%}.nv small{color:var(--muted);font-size:10.5px}
+    .cs{display:flex;flex-wrap:wrap;gap:3px}.cr{padding:2px 7px;border-radius:7px;background:#38bdf826;color:#bae6fd;font:500 11px 'DM Mono',ui-monospace,monospace;border:1px solid #38bdf866;cursor:pointer}.cr.no{background:transparent;color:var(--muted);text-decoration:line-through;border-style:dashed}
+    .nstrip{min-width:0;overflow-x:auto}.strip{display:flex;gap:2px;align-items:center}
+    .g{flex:none;width:28px;height:22px;border:0;border-radius:5px;background:#1f425099;color:var(--muted);font:800 8.5px Manrope,system-ui,sans-serif;cursor:pointer;padding:0}
+    .g.ecc{background:var(--amber);color:var(--on)}.g.off{background:transparent;border:1px dashed var(--rose);color:var(--rose)}.g.spento{background:transparent;color:#2b5363}.sepg{flex:none;width:6px}
+    .nota{display:block;color:var(--amber);font-size:11px;margin-top:3px}.cs .nota{margin:0;color:var(--muted)}
+    .edit-g{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 10px;border-radius:10px;background:var(--card2);font-size:12px}
+    .edit-g select{padding:4px 8px;border-radius:8px;background:var(--card);border:1px solid var(--line);color:var(--ink);font:700 12px Manrope,system-ui,sans-serif;color-scheme:dark}
     @media(max-width:1000px){.cols{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
   </style>
 <script src="assets/js/beta-readonly.js?v=5"></script>
@@ -112,7 +125,7 @@
   <script src="assets/js/shift-competence.js?v=4"></script>
   <script src="vendor/pdf/jspdf.umd.min.js"></script>
   <script src="assets/js/turno-pdf.js?v=2"></script>
-  <script src="assets/js/costruisci-turno-motore.js?v=3"></script>
-  <script src="assets/js/costruisci-turno.js?v=3"></script>
+  <script src="assets/js/costruisci-turno-motore.js?v=4"></script>
+  <script src="assets/js/costruisci-turno.js?v=4"></script>
 </body>
 </html>

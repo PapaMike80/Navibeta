@@ -15,7 +15,7 @@
   // Residenza di ogni turno nave
   function residenzaTurno(code) {
     const c = String(code || '').toUpperCase();
-    if (/^(D\d|BIS)$/.test(c)) return 'DESENZANO';
+    if (/^(D\d|BIS\d?)$/.test(c)) return 'DESENZANO';
     if (/^(P\d|CAP\d?|SR\d)$/.test(c)) return 'PESCHIERA';
     if (/^(R\d|CAR\d?)$/.test(c)) return 'RIVA';
     if (/^(M\d|T\d)$/.test(c)) return 'MADERNO';

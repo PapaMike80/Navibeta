@@ -28,7 +28,7 @@
 
   // Competenza di un servizio: ore, imbarco, diaria, ticket (tabella delle competenze della Distinta)
   function competenza(code, day) {
-    const c = G.naveCode(code) || base(code);
+    const c0 = G.naveCode(code) || base(code), c = /^BIS\d$/i.test(c0) ? 'BIS' : c0; // BIS2: ore e competenze del BIS
     if (isRiposo(c)) return null;
     const s = C.shiftForCode(c, day);
     if (!s || !(Number(s.hours) > 0)) return null;
@@ -74,18 +74,52 @@
   try { state.prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}') || {}; } catch { state.prefs = {}; }
   function salvaPrefs() { try { localStorage.setItem(PREFS_KEY, JSON.stringify(state.prefs)); } catch { /* memoria piena o bloccata */ } }
 
+  // ---------------- Navi e corse del periodo (piano dell'ufficio; le navi vere le assegnano gli ODS) ----------------
+  // piano[codice] = { attivo: true|false|undefined, nave: '', corseTolte: [n], giorni: { iso: { nave, fermo } } }
+  const NAVI_KEY = 'navisuite.costruisciTurno.navi.v1';
+  const chiavePeriodo = () => `${state.dal}|${state.settimane}`;
+  function pianoNavi() {
+    try { const tutti = JSON.parse(localStorage.getItem(NAVI_KEY) || '{}') || {}; return tutti[chiavePeriodo()] || {}; } catch { return {}; }
+  }
+  function salvaPianoNavi(piano) {
+    try { const tutti = JSON.parse(localStorage.getItem(NAVI_KEY) || '{}') || {}; tutti[chiavePeriodo()] = piano; localStorage.setItem(NAVI_KEY, JSON.stringify(tutti)); } catch { /* memoria non disponibile */ }
+  }
+  const estateDi = day => day >= O.ESTATE[0] && day <= O.ESTATE[1];
+  // turni nave possibili nel periodo (orario estivo e invernale, BIS e BIS2 di supporto)
+  const turniDelPeriodo = () => [...new Set([...O.TURNI_ESTATE, ...O.TURNI, 'BIS', 'BIS2'])].filter(c => M.residenzaTurno(c));
+  // in servizio secondo l'orario (prima delle scelte dell'ufficio)
+  function inServizioOrario(code, day) {
+    if (code === 'BIS2') return false; // si accende a mano, in stagione, a supporto del BIS
+    if (code === 'BIS') return estateDi(day) || !!ST.naviDelGiorno(state.rows, day).BIS;
+    return (estateDi(day) ? O.TURNI_ESTATE : O.TURNI).includes(code) && O.inServizio(code, day);
+  }
+  function inServizioPiano(code, day) {
+    const r = pianoNavi()[code] || {};
+    if (r.giorni?.[day]?.fermo) return false;
+    return r.attivo === undefined ? inServizioOrario(code, day) : r.attivo;
+  }
+  function navePiano(code, day) {
+    const r = pianoNavi()[code] || {};
+    return r.giorni?.[day]?.nave || r.nave || naveDi(code === 'BIS2' ? 'BIS' : code, day);
+  }
+  // corse del turno secondo l'orario ("14–19", "91–93 · 95–98" -> [14..19], [91..93, 95..98])
+  function corseDi(code, day) {
+    const trips = String(window.NaviCourseInfo?.info?.(code, day)?.trips || '');
+    return trips.split('·').flatMap(part => { const m = part.match(/(\d+)\s*[–-]\s*(\d+)/); if (m) { const out = []; for (let n = +m[1]; n <= +m[2]; n += 1) out.push(n); return out; } const k = part.match(/\d+/); return k ? [+k[0]] : []; });
+  }
+  // firma dell'equipaggio (per proporre prima le navi «simili»)
+  const firma = eq => M.RUOLI.map(r => Number(eq?.[r]) || 0).join('-');
+
   // Dati per il motore
   function preparaInput() {
     const giorni = giorniDelPeriodo();
     O.stagioneDaRighe(state.rows);
     const posti = {}, senzaNave = new Set();
     giorni.forEach(day => {
-      const estate = day >= O.ESTATE[0] && day <= O.ESTATE[1];
-      const codici = [...new Set([...(estate ? O.TURNI_ESTATE : O.TURNI), 'BIS'])].filter(code => code === 'BIS' ? (estate || !!ST.naviDelGiorno(state.rows, day).BIS) : O.inServizio(code, day));
-      posti[day] = codici.flatMap(code => {
+      posti[day] = turniDelPeriodo().filter(code => inServizioPiano(code, day)).flatMap(code => {
         const residenza = M.residenzaTurno(code);
         if (!residenza) return [];
-        const { equipaggio, stimato } = equipaggioDi(naveDi(code, day), day);
+        const { equipaggio, stimato } = equipaggioDi(navePiano(code, day), day);
         if (stimato) senzaNave.add(code);
         return Object.entries(equipaggio).flatMap(([ruolo, n]) => Array(Number(n) || 0).fill({ turno: code, residenza, ruolo }));
       });
@@ -141,6 +175,46 @@
       : `<button type="button" class="mini" data-agg="${esc(id)}">＋ ferie</button>`;
     return pills + form;
   }
+  function navePianoHtml(giorni) {
+    const piano = pianoNavi(), flotta = Object.values(state.fleet || {}).filter(n => n?.nome && n.attiva !== false);
+    const codici = turniDelPeriodo().filter(c => M.residenzaTurno(c) === state.res);
+    const breve = n => String(n || '').replace(/^(S\.|SAN|SANTA)\s*/i, '').slice(0, 3).toUpperCase() || '—';
+    const righe = codici.map(code => {
+      const r = piano[code] || {}, on = giorni.some(g => inServizioPiano(code, g));
+      const nave = r.nave || naveDi(code === 'BIS2' ? 'BIS' : code, giorni[0]);
+      const { equipaggio, stimato } = equipaggioDi(nave, giorni[0]);
+      const sig = firma(equipaggio);
+      const opzioni = flotta.map(n => ({ nome: n.nome, simile: firma(equipaggioDi(n.nome, giorni[0]).equipaggio) === sig }))
+        .sort((a, b) => (b.simile - a.simile) || a.nome.localeCompare(b.nome, 'it'));
+      const sel = `<select data-nave-turno="${code}"><option value="">${esc(nave || 'Nave non indicata')}</option>${opzioni.map(o => `<option value="${esc(o.nome)}"${o.nome === r.nave ? ' selected' : ''}>${esc(o.nome)}${o.simile ? ' · simile' : ''}</option>`).join('')}</select>`;
+      const eqTxt = stimato ? 'equipaggio di base (nave non in anagrafica)' : M.RUOLI.filter(k => Number(equipaggio[k]) > 0).map(k => `${RUOLO_INFO[k][0]} ${equipaggio[k]}`).join(' · ');
+      const corse = code === 'BIS2' ? '<span class="nota">a supporto del BIS</span>' : (() => {
+        const l = corseDi(code, giorni[0]);
+        return l.length ? l.map(n => `<button type="button" class="cr${(r.corseTolte || []).includes(n) ? ' no' : ''}" data-corsa="${code}|${n}">${n}</button>`).join('') : '<span class="nota">a disposizione</span>';
+      })();
+      const striscia = giorni.map((g, i) => {
+        const gg = r.giorni?.[g] || {}, va = inServizioPiano(code, g), nv = navePiano(code, g);
+        const cls = !va ? (gg.fermo ? 'g off' : 'g spento') : gg.nave ? 'g ecc' : 'g';
+        return `${i && new Date(`${g}T12:00:00`).getDay() === 1 ? '<span class="sepg"></span>' : ''}<button type="button" class="${cls}" data-giorno-turno="${code}|${g}" title="${esc(g.split('-').reverse().join('/'))} · ${va ? esc(nv || '—') : 'fermo'}">${va ? esc(breve(nv)) : '—'}</button>`;
+      }).join('');
+      const eccezioni = Object.entries(r.giorni || {}).filter(([, v]) => v.nave || v.fermo);
+      const nAltra = eccezioni.filter(([, v]) => v.nave).length, nFermo = eccezioni.filter(([, v]) => v.fermo).length, gg = n => `${n} ${n === 1 ? 'giorno' : 'giorni'}`;
+      const nota = [nAltra ? `${gg(nAltra)} su un'altra nave` : '', nFermo ? `fermo ${gg(nFermo)}` : '', (r.corseTolte || []).length ? `corse tolte: ${r.corseTolte.join(', ')}` : ''].filter(Boolean).join(' · ');
+      let editor = '';
+      if (state.giornoAperto?.startsWith(code + '|')) {
+        const g = state.giornoAperto.split('|')[1], gg = r.giorni?.[g] || {};
+        editor = `<div class="edit-g"><b>${code} · ${esc(g.split('-').reverse().join('/'))}</b> Nave quel giorno <select id="ct-g-nave"><option value="">come il periodo (${esc(nave || '—')})</option>${opzioni.map(o => `<option value="${esc(o.nome)}"${o.nome === gg.nave ? ' selected' : ''}>${esc(o.nome)}${o.simile ? ' · simile' : ''}</option>`).join('')}</select>
+          <label><input type="checkbox" id="ct-g-fermo"${gg.fermo ? ' checked' : ''}> turno fermo quel giorno</label><label><input type="checkbox" id="ct-g-fino"> fino a fine periodo</label>
+          <button type="button" class="mini ok" data-giorno-applica="${code}|${g}">Applica</button><button type="button" class="mini" data-giorno-chiudi>Chiudi</button></div>`;
+      }
+      const chip = `<span class="chip-t" style="background:${G.coloreTurno(code === 'BIS2' ? 'BIS' : code)};color:${G.testoSu(G.coloreTurno(code === 'BIS2' ? 'BIS' : code))}">${code}</span>`;
+      return `<div class="nriga${on ? '' : ' spenta'}"><div class="nt"><button type="button" class="tg${on ? ' on' : ''}" data-attivo="${code}" aria-pressed="${on}" aria-label="${code} in servizio"></button>${chip}</div>
+        <div class="nv">${sel}<small>${esc(eqTxt)}</small></div><div class="cs">${corse}</div><div class="nstrip"><div class="strip">${striscia}</div>${nota ? `<small class="nota">${esc(nota)}</small>` : ''}</div>${editor}</div>`;
+    }).join('');
+    return `<details class="sez" style="--c:#38bdf8" ${state.apriNavi === false ? '' : 'open'} data-sez="navi"><summary><h3>⚓ Navi e corse · ${esc(state.res.charAt(0) + state.res.slice(1).toLowerCase())}</h3></summary>
+      <p>Per ogni turno nave: se va, quale nave lo fa (il suo equipaggio minimo sono i posti da coprire) e quali corse fa. Di partenza: orario in vigore e ultima nave assegnata. Tocca un giorno per un'altra nave o per fermare il turno; tocca una corsa per toglierla (le ore del turno non cambiano). Le navi vere le assegnano gli ODS: qui servono solo a costruire il turno. In beta restano su questo dispositivo.</p>
+      ${righe || '<p>Nessun turno nave in questa residenza.</p>'}</details>`;
+  }
   function renderRichieste() {
     const box = $('ct-richieste');
     if (!state.data) { box.innerHTML = ''; return; }
@@ -156,7 +230,7 @@
       const grado = x.ruolo !== 'marinaio' ? ` <span class="tag wa">registrato come ${esc({ capitano: 'capitano', capo_timoniere: 'capo timoniere', timoniere: 'timoniere', motorista: 'motorista', aiuto_motorista: 'aiuto motorista' }[x.ruolo] || x.ruolo)}: conta come marinaio</span>` : '';
       return `<tr><td>${badge('marinaio')}${esc(x.a.agente)}</td><td class="mono">${sv.inizio ? dm(sv.inizio) + '/' + sv.inizio.slice(0, 4) : '—'} – ${sv.fine ? dm(sv.fine) + '/' + sv.fine.slice(0, 4) : '—'}</td><td>${n} su ${giorni.length} ${nota}</td><td>${seg(x.id)}</td><td>solo marinaio${grado}</td><td>${ferieHtml(x.id)}</td></tr>`;
     }).join('');
-    box.innerHTML = `<details class="sez" style="--c:var(--violet)" ${state.apriFerie === false ? '' : 'open'} data-sez="ferie"><summary><h3>🗂 Ferie e ore · ${esc(nomeRes)}</h3></summary>
+    box.innerHTML = navePianoHtml(giorni) + `<details class="sez" style="--c:var(--violet)" ${state.apriFerie === false ? '' : 'open'} data-sez="ferie"><summary><h3>🗂 Ferie e ore · ${esc(nomeRes)}</h3></summary>
       <p>Le compila l'ufficio. «Quanto lavora» vale anche per i periodi successivi finché non la cambi; le ferie diventano giorni fissi di congedo (Cong). In beta restano su questo dispositivo.</p>
       ${righe ? `<div class="scroll" style="max-height:360px"><table class="tab"><tr><th>AGENTE</th><th>QUANTO LAVORA</th><th>FERIE</th></tr>${righe}</table></div>` : '<p>Nessun agente.</p>'}</details>
       <details class="sez" style="--c:#4ade80" ${stag.length ? 'open' : ''} data-sez="stag"><summary><h3>🌊 Stagionali · ${esc(nomeRes)}</h3><b class="pill">${stag.length}</b></summary>
@@ -171,6 +245,19 @@
   $('ct-richieste').addEventListener('click', e => {
     const t = e.target.closest('button');
     if (!t) return;
+    const piano = pianoNavi(), riga = code => (piano[code] = piano[code] || {});
+    const salvaNavi = () => { salvaPianoNavi(piano); if (state.risultato) $('ct-stato').textContent = 'Navi e corse cambiate: premi «Genera bozza» per aggiornare la bozza.'; renderRichieste(); };
+    if (t.dataset.attivo) { const code = t.dataset.attivo; riga(code).attivo = t.getAttribute('aria-pressed') !== 'true'; salvaNavi(); return; }
+    if (t.dataset.corsa) { const [code, n] = t.dataset.corsa.split('|'), r = riga(code), k = Number(n); r.corseTolte = (r.corseTolte || []).includes(k) ? r.corseTolte.filter(x => x !== k) : [...(r.corseTolte || []), k].sort((a, b) => a - b); salvaNavi(); return; }
+    if (t.dataset.giornoTurno) { state.giornoAperto = state.giornoAperto === t.dataset.giornoTurno ? '' : t.dataset.giornoTurno; renderRichieste(); return; }
+    if ('giornoChiudi' in t.dataset) { state.giornoAperto = ''; renderRichieste(); return; }
+    if (t.dataset.giornoApplica) {
+      const [code, g] = t.dataset.giornoApplica.split('|'), r = riga(code), nave = $('ct-g-nave').value, fermo = $('ct-g-fermo').checked;
+      const giorni = $('ct-g-fino').checked ? giorniDelPeriodo().filter(x => x >= g) : [g];
+      r.giorni = r.giorni || {};
+      giorni.forEach(x => { if (!nave && !fermo) delete r.giorni[x]; else r.giorni[x] = { ...(nave ? { nave } : {}), ...(fermo ? { fermo: true } : {}) }; });
+      state.giornoAperto = ''; salvaNavi(); return;
+    }
     if (t.dataset.ore) { const id = t.dataset.id; state.prefs[id] = { ...(state.prefs[id] || {}), ore: t.dataset.ore }; cambiato(); }
     else if (t.dataset.agg) { state.aggiungi = t.dataset.agg; renderRichieste(); }
     else if ('annulla' in t.dataset) { state.aggiungi = ''; renderRichieste(); }
@@ -187,7 +274,16 @@
       cambiato();
     }
   });
-  $('ct-richieste').addEventListener('toggle', e => { if (e.target.dataset?.sez === 'ferie') state.apriFerie = e.target.open; }, true);
+  $('ct-richieste').addEventListener('toggle', e => { if (e.target.dataset?.sez === 'ferie') state.apriFerie = e.target.open; if (e.target.dataset?.sez === 'navi') state.apriNavi = e.target.open; }, true);
+  $('ct-richieste').addEventListener('change', e => {
+    const code = e.target.dataset?.naveTurno;
+    if (!code) return;
+    const piano = pianoNavi();
+    piano[code] = { ...(piano[code] || {}), nave: e.target.value || undefined };
+    salvaPianoNavi(piano);
+    if (state.risultato) $('ct-stato').textContent = 'Navi e corse cambiate: premi «Genera bozza» per aggiornare la bozza.';
+    renderRichieste();
+  });
 
   function render() {
     const r = state.vista === 'bozza' ? state.risultato : state.attuale;
