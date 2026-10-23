@@ -21,6 +21,9 @@
   // Caselle d'acqua: indice = riga*COL+colonna
   const ACQUA = new Set();
   for (let r = 0; r < RIG; r++) for (let c = 0; c < COL; c++) if (inAcqua([c * C + C / 2, r * C + C / 2])) ACQUA.add(r * COL + c);
+  // gli scali (pontile e boa d'attracco) non sono caselle di gioco: li' non si spara e non ci sono battelli
+  const SCALI_CELLE = new Set(Object.values(MAPPA.scali).flatMap(s => [s.porto, s.boa]).map(([x, y]) => Math.floor(y / C) * COL + Math.floor(x / C)));
+  SCALI_CELLE.forEach(i => ACQUA.delete(i));
   const cellaDi = ([x, y]) => Math.floor(y / C) * COL + Math.floor(x / C);
   const centro = i => [(i % COL) * C + C / 2, Math.floor(i / COL) * C + C / 2];
   const passi = [1, -1, COL, -COL];
@@ -134,7 +137,7 @@
     return pool[Math.floor(rnd() * pool.length)];
   }
 
-  root.NaviBattagliaGarda = { C, COL, RIG, ACQUA, piazzaCasuale, piazzaOrario, posizioni, inNavigazione, spara, finita, mossaComputer };
+  root.NaviBattagliaGarda = { C, COL, RIG, ACQUA, SCALI_CELLE, piazzaCasuale, piazzaOrario, posizioni, inNavigazione, spara, finita, mossaComputer };
   if (typeof document === 'undefined' || !document.getElementById('bg-lago')) return;
 
   // ---- Pagina ----
@@ -154,9 +157,11 @@
     let corse = [];
     try { corse = (O?.corseDelGiorno?.(oggi) || []).filter(c => !/^T[12]$/.test(c.turno)); } catch { corse = []; } // senza traghetti: troppo facili
     const ora = new Date(), t = ora.getHours() * 60 + ora.getMinutes(); // le navi stanno dove sono adesso, ferme per tutta la partita
-    const navi = piazzaOrario(posizioni(corse, t));
+    // bersagli: solo le navi che stanno facendo una corsa; si gioca se ce ne sono almeno due
+    const navi = piazzaOrario(posizioni(corse, t).filter(n => !n.fermo));
+    const chiuso = navi.length < 2;
     const valida = !giaFatta();
-    g = { navi, ora: t, sbirciato: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
+    g = { navi: chiuso ? [] : navi, chiuso, ora: t, sbirciato: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: chiuso ? `Adesso ${navi.length ? 'c\'è una sola nave' : 'non ci sono navi'} in navigazione: si gioca quando almeno due navi stanno facendo una corsa.` : 'Tocca una casella d\'acqua per sparare (non sugli scali).', colore: 'var(--teal)' };
     render();
   }
 
@@ -196,10 +201,10 @@
 
   function render() {
     const affondate = g.navi.filter(n => n.colpi.size === n.len).length, fine = finePartita();
-    $('bg-info').innerHTML = `${g.navi.length} battelli in servizio oggi, dove li mette l'orario delle <b>${hhmm(g.ora)}</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
+    $('bg-info').innerHTML = g.chiuso ? `Nessuna sfida alle <b>${hhmm(g.ora)}</b>: riprova quando le navi sono in corsa.` : `${g.navi.length} battelli in navigazione, dove li mette l'orario delle <b>${hhmm(g.ora)}</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
     $('bg-punti').innerHTML = `Colpi <b>${COLPI - acqua()}</b>/${COLPI} · Affondati <b>${affondate}</b>/${g.navi.length}`;
     const t = $('bg-turno');
-    t.textContent = fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
+    t.textContent = g.chiuso ? 'Navi ferme' : fine ? (finita(g.navi) ? 'Tutti affondati!' : 'Colpi finiti') : g.valida ? 'Sfida del giorno' : 'Allenamento';
     t.className = `turno${fine ? ' fine' : g.valida ? '' : ' cpu'}`;
     lago($('bg-lago'), g.navi, g.colpi, fine || g.sbircia, g.ultimo);
     $('bg-sbircia').disabled = g.sbirciato || !!fine; $('bg-sbircia').style.opacity = g.sbirciato || fine ? .4 : 1;
@@ -233,7 +238,7 @@
     caricaClassifica();
   }
 
-  const finePartita = () => !!g.navi.length && (finita(g.navi) || acqua() >= COLPI);
+  const finePartita = () => g.chiuso || (!!g.navi.length && (finita(g.navi) || acqua() >= COLPI));
   $('bg-lago').addEventListener('click', e => {
     const el = e.target.closest('[data-i]');
     if (!el || finePartita()) return;
@@ -254,8 +259,8 @@
     }
     render();
   });
-  // Sbircia: mostra i battelli per un decimo di secondo, una volta sola per partita
-  const SBIRCIA_MS = 100;
+  // Sbircia: mostra i battelli per mezzo secondo, una volta sola per partita
+  const SBIRCIA_MS = 500;
   $('bg-sbircia').addEventListener('click', () => {
     if (g.sbirciato || finePartita()) return;
     g.sbirciato = true; g.sbircia = true; render();
