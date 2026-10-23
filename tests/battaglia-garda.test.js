@@ -36,4 +36,6 @@ for (let k = 0; k < 40; k++) {
   const f = B.piazzaCasuale(), colpi = new Set();
   while (!B.finita(f)) { const i = B.mossaComputer(f, colpi); assert.ok(B.ACQUA.has(i) && !colpi.has(i)); B.spara(f, colpi, i); mosse++; }
 }
+const r = B.rottaGiornata([{ turno: 'D1', scali: [['Desenzano', '10.00'], ['Sirmione', '10.20']] }, { turno: 'D1', scali: [['Sirmione', '10.30'], ['Garda', '11.30']] }], 'D1');
+assert.ok(r.length >= 3, 'rotta della giornata con tutti gli scali');
 console.log(`battaglia-garda: ok (${B.ACQUA.size} caselle d'acqua, computer ${Math.round(mosse / 40)} mosse in media)`);

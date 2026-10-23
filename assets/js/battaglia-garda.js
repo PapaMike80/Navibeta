@@ -139,7 +139,13 @@
     return pool[Math.floor(rnd() * pool.length)];
   }
 
-  root.NaviBattagliaGarda = { C, COL, RIG, ACQUA, SCALI_CELLE, piazzaCasuale, piazzaOrario, posizioni, inNavigazione, spara, finita, mossaComputer };
+  // Rotta di tutta la giornata di un turno: gli scali in ordine di orario, uniti dalle rotte in acqua della mappa
+  function rottaGiornata(corse, turno) {
+    const scali = corse.filter(c => c.turno === turno).flatMap(c => c.scali.map(([scalo, ora]) => ({ scalo, t: minuti(ora) })))
+      .filter(x => POS[x.scalo]).sort((a, b) => a.t - b.t).map(x => x.scalo).filter((x, i, a) => x !== a[i - 1]);
+    return scali.slice(1).flatMap((b, i) => { const tratto = rotta(scali[i], b); return i ? tratto.slice(1) : tratto; });
+  }
+  root.NaviBattagliaGarda = { rottaGiornata, C, COL, RIG, ACQUA, SCALI_CELLE, piazzaCasuale, piazzaOrario, posizioni, inNavigazione, spara, finita, mossaComputer };
   if (typeof document === 'undefined' || !document.getElementById('bg-lago')) return;
 
   // ---- Pagina ----
@@ -165,6 +171,8 @@
     const navi = ore.length ? piazzaOrario(posizioni(corse, t).filter(n => !n.fermo)) : [];
     const chiuso = navi.length < 2;
     const valida = !giaFatta();
+    // rotta della giornata di ogni nave: si disegna quando la nave viene affondata
+    navi.forEach(n => { n.rotta = rottaGiornata(corse, n.nome); });
     g = { navi: chiuso ? [] : navi, chiuso, aCaso, ora: t, sonarUsato: false, giro: false, colpi: new Set(), dist: {}, ultimo: null, valida, log: chiuso ? `Adesso ${navi.length ? 'c\'è una sola nave' : 'non ci sono navi'} in navigazione: si gioca quando almeno due navi stanno facendo una corsa.` : 'Tocca una casella d\'acqua per sparare (non sugli scali).', colore: 'var(--teal)' };
     render();
   }
@@ -207,6 +215,14 @@
       const ritardo = ((gradi - g.giroDa + 360) % 360) / 360 * GIRO_MS - (performance.now() - g.giroT0);
       sopra += `<circle class="sonar-blip" style="animation-delay:${Math.round(ritardo)}ms" cx="${cx}" cy="${cy}" r="1.3" fill="#2dd4bf" pointer-events="none"/>`;
     }));
+    // navi affondate: tutta la rotta della giornata con la sigla della corsa
+    navi.filter(n => n.colpi.size === n.len && n.rotta?.length > 1).forEach((n, k) => {
+      const col = ['#fb7185', '#fbbf24', '#a78bfa', '#2dd4bf', '#fb923c', '#a3e635', '#67d7e6', '#f472b6'][navi.indexOf(n) % 8];
+      h += `<polyline points="${n.rotta.map(q => q.join(',')).join(' ')}" fill="none" stroke="${col}" stroke-width=".55" stroke-linejoin="round" stroke-dasharray="1.6 .8" opacity=".9" pointer-events="none"/>`;
+      const i = n.celle[0], cx = p(i) * C + C / 2, cy = Math.floor(i / COL) * C + C / 2;
+      const w = n.nome.length * 1.9 + 1.4, lx = cx + 1.6 + w > LARGO ? cx - 1.6 - w : cx + 1.6; // vicino al bordo: etichetta a sinistra
+      sopra += `<g pointer-events="none"><rect x="${lx}" y="${cy - 2.1}" width="${w}" height="3.2" rx=".8" fill="${col}"/><text x="${lx + .7}" y="${cy + .4}" font-size="2.4" font-weight="900" fill="#06231f">${n.nome}</text></g>`;
+    });
     h += sopra;
     Object.entries(MAPPA.scali).forEach(([n, s]) => {
       // il nome va dalla parte della costa; se uscirebbe dal tabellone, dall'altra parte del pontile
@@ -280,7 +296,7 @@
     g.colore = r.esito === 'acqua' ? 'var(--cyan)' : r.esito === 'colpita' ? 'var(--amber)' : 'var(--rose)';
     if (finePartita()) {
       const n = g.navi.filter(x => x.colpi.size === x.len).length;
-      g.log = finita(g.navi) ? `🏆 Hai affondato tutta la flotta Navigarda (${n} battelli) in <b>${g.colpi.size} siluri</b>!` : `Siluri finiti: hai affondato <b>${n} battelli su ${g.navi.length}</b>.`;
+      g.log = finita(g.navi) ? `🏆 Hai affondato tutta la flotta Navigarda (${n} battelli) in <b>${g.colpi.size} siluri</b>!` : `Siluri finiti: hai affondato <b>${n} ${n === 1 ? 'battello' : 'battelli'} su ${g.navi.length}</b>.`;
       if (!g.valida) g.log += ' (allenamento, non conta)';
       g.colore = 'var(--green)';
       if (g.valida) salvaRisultato();
