@@ -1,6 +1,7 @@
-// Battaglia sul Garda: battaglia navale su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
-// Classica: navi nemiche a caso. Orario di adesso: le navi nemiche sono le corse in servizio, sulla loro rotta fra due scali,
-// nel punto in cui le mette l'orario (come la mappa di Scali). La mia flotta e' sempre a caso; chi colpisce ritira.
+// Battaglia sul Garda: sfida del giorno su un tabellone a forma di lago (costa di orario-lago.js divisa in caselle d'acqua).
+// I bersagli sono tutti i battelli in servizio oggi, nel punto in cui li mette l'orario alle 11:00 (in navigazione sulla
+// rotta, oppure all'ormeggio davanti allo scalo): uguale per tutti i colleghi. Niente computer: si spara finche' non sono
+// tutti affondati e in classifica va davanti chi ci mette meno colpi. Conta solo la prima partita finita del giorno.
 (function (root) {
   'use strict';
   const MAPPA = root.NaviLagoMappa;
@@ -69,19 +70,22 @@
     }
     return { xy: punti[punti.length - 1], verso: [0, 1] };
   }
-  // Navi in navigazione all'ora t: [{ turno, da, a, xy, verso }]
-  function inNavigazione(corse, t) {
+  // Tutti i battelli del giorno all'ora t: in navigazione sulla rotta, altrimenti fermi davanti allo scalo
+  // (prima della partenza, tra due corse o a fine servizio). [{ turno, da, a, xy, verso, fermo }]
+  function posizioni(corse, t) {
     const perTurno = {};
     corse.forEach(c => c.scali.forEach(([scalo, ora]) => { if (POS[scalo]) (perTurno[c.turno] ||= []).push({ scalo, t: minuti(ora) }); }));
-    return Object.entries(perTurno).map(([turno, punti]) => {
-      punti.sort((x, y) => x.t - y.t);
+    return Object.keys(perTurno).sort().map(turno => {
+      const punti = perTurno[turno].sort((x, y) => x.t - y.t);
       let i = 0; while (i < punti.length - 1 && punti[i + 1].t <= t) i++;
       const a = punti[i], b = punti[i + 1];
-      if (!b || t < a.t || a.scalo === b.scalo) return null;
-      const r = lungoRotta(rotta(a.scalo, b.scalo), (t - a.t) / Math.max(1, b.t - a.t));
-      return { turno, da: a.scalo, a: b.scalo, ...r };
-    }).filter(Boolean);
+      if (b && t >= a.t && a.scalo !== b.scalo) return { turno, da: a.scalo, a: b.scalo, ...lungoRotta(rotta(a.scalo, b.scalo), (t - a.t) / Math.max(1, b.t - a.t)) };
+      const qui = t < punti[0].t ? punti[0] : a, altro = punti.find(q => q.scalo !== qui.scalo);
+      const [x, y] = POS[qui.scalo], verso = altro ? [POS[altro.scalo][0] - x, POS[altro.scalo][1] - y] : [38 - x, 0];
+      return { turno, da: qui.scalo, a: qui.scalo, xy: [x, y], verso, fermo: true };
+    });
   }
+  const inNavigazione = (corse, t) => posizioni(corse, t).filter(n => !n.fermo);
   // Navi nemiche dalle corse: 2 caselle (3 per le motonavi delle linee lunghe), sulla rotta, senza toccarsi
   function piazzaOrario(navigazione) {
     const occupate = new Set(), navi = [];
@@ -90,10 +94,11 @@
       const [vx, vy] = n.verso, passo = Math.abs(vx) > Math.abs(vy) ? (vx > 0 ? 1 : -1) : (vy > 0 ? COL : -COL);
       let base = cellaDi(n.xy);
       if (!ACQUA.has(base)) base = [...ACQUA].sort((x, y) => Math.hypot(...centro(x).map((v, k) => v - n.xy[k])) - Math.hypot(...centro(y).map((v, k) => v - n.xy[k])))[0];
-      for (const l of [len, 2]) {
-        const prove = [linea(base, passo, l), linea(base, -passo, l), ...passi.map(q => linea(base, q, l))].filter(Boolean);
+      const basi = [...ACQUA].sort((x, y) => Math.hypot(...centro(x).map((v, k) => v - centro(base)[k])) - Math.hypot(...centro(y).map((v, k) => v - centro(base)[k]))).slice(0, 40);
+      for (const b0 of basi) for (const l of [len, 2]) {
+        const prove = [linea(b0, passo, l), linea(b0, -passo, l), ...passi.map(q => linea(b0, q, l))].filter(Boolean);
         const celle = prove.find(c => libera(c, occupate));
-        if (celle) { celle.forEach(x => occupate.add(x)); navi.push({ nome: n.turno, tratta: `${n.da}→${n.a}`, len: celle.length, celle, colpi: new Set() }); return; }
+        if (celle) { celle.forEach(x => occupate.add(x)); navi.push({ nome: n.turno, tratta: n.fermo ? `ferma a ${n.da}` : `${n.da}→${n.a}`, len: celle.length, celle, colpi: new Set() }); return; }
       }
     });
     return navi;
@@ -128,41 +133,33 @@
     return pool[Math.floor(rnd() * pool.length)];
   }
 
-  root.NaviBattagliaGarda = { C, COL, RIG, ACQUA, piazzaCasuale, piazzaOrario, inNavigazione, spara, finita, mossaComputer };
+  root.NaviBattagliaGarda = { C, COL, RIG, ACQUA, piazzaCasuale, piazzaOrario, posizioni, inNavigazione, spara, finita, mossaComputer };
   if (typeof document === 'undefined' || !document.getElementById('bg-lago')) return;
 
   // ---- Pagina ----
   const $ = id => document.getElementById(id);
   const O = root.NaviOrarioGiorno;
-  const STAT = 'navisuite.battagliaGarda.v1';
-  const stat = (() => { try { return { vinte: 0, perse: 0, ...JSON.parse(localStorage.getItem(STAT) || '{}') }; } catch { return { vinte: 0, perse: 0 }; } })();
-  const salvaStat = () => { try { localStorage.setItem(STAT, JSON.stringify(stat)); } catch { /* niente */ } };
+  const ORA = 11 * 60;
   const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const hhmm = m => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
-  const nomeCella = i => { const [x, y] = centro(i); const vicino = Object.entries(POS).sort((a, b) => Math.hypot(a[1][0] - x, a[1][1] - y) - Math.hypot(b[1][0] - x, b[1][1] - y))[0]; return `davanti a ${vicino[0]}`; };
-  let modo = (() => { try { return localStorage.getItem(`${STAT}.modo`) || 'orario'; } catch { return 'orario'; } })();
-  let g;
-
-  function naviOrario() {
-    const ora = new Date(), day = iso(ora);
-    let corse = [];
-    try { corse = O?.corseDelGiorno?.(day) || []; } catch { corse = []; }
-    let t = ora.getHours() * 60 + ora.getMinutes(), navi = piazzaOrario(inNavigazione(corse, t)), nota = '';
-    // di notte o a servizio fermo: le navi dell'ora di punta (11:00)
-    if (navi.length < 3) { t = 11 * 60; navi = piazzaOrario(inNavigazione(corse, t)); nota = ' (ora nessuna nave in navigazione)'; }
-    return navi.length >= 3 ? { navi, testo: `Le navi nemiche sono dove le mette l'orario delle <b>${hhmm(t)}</b>${nota}` } : null;
-  }
+  const oggi = iso(new Date());
+  const profilo = (() => { try { return JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } })();
+  const FATTA = `navisuite.battagliaGarda.fatta.${oggi}`;
+  const giaFatta = () => { try { return localStorage.getItem(FATTA); } catch { return null; } };
+  const esc = t => String(t ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const nomeCella = i => { const [x, y] = centro(i); return `davanti a ${Object.entries(POS).sort((a, b) => Math.hypot(a[1][0] - x, a[1][1] - y) - Math.hypot(b[1][0] - x, b[1][1] - y))[0][0]}`; };
+  let g, classifica = {};
 
   function nuova() {
-    let sue, testo;
-    if (modo === 'orario') { const o = naviOrario(); if (o) ({ navi: sue, testo } = o); }
-    if (!sue) { sue = piazzaCasuale(); testo = modo === 'orario' ? 'Oggi l\'orario non ha navi in servizio: partita classica.' : 'Navi nemiche nascoste a caso nel lago.'; }
-    g = { mie: piazzaCasuale(), sue, colpiMiei: new Set(), colpiSuoi: new Set(), turno: 'io', iniziata: false, ultimoMio: null, ultimoSuo: null, testo, log: 'Tocca una casella d\'acqua per sparare.', colore: 'var(--teal)' };
+    let corse = [];
+    try { corse = O?.corseDelGiorno?.(oggi) || []; } catch { corse = []; }
+    const navi = piazzaOrario(posizioni(corse, ORA));
+    const valida = !giaFatta();
+    g = { navi, colpi: new Set(), ultimo: null, valida, log: navi.length ? 'Tocca una casella d\'acqua per sparare.' : 'Oggi non ci sono battelli in servizio.', colore: 'var(--teal)' };
     render();
   }
 
   const NS = 'http://www.w3.org/2000/svg';
-  function lago(svg, navi, colpi, mostraNavi, ultimo, conNomi) {
+  function lago(svg, navi, colpi, mostraNavi, ultimo) {
     let h = `<path d="${MAPPA.costa}" fill="#0d3446" stroke="#67d7e6" stroke-width=".4"/>`;
     ACQUA.forEach(i => {
       const x = p(i) * C, y = Math.floor(i / COL) * C, nave = navi.find(n => n.celle.includes(i)), colpita = colpi.has(i);
@@ -173,7 +170,7 @@
       if (colpita && !nave) h += `<circle cx="${x + C / 2}" cy="${y + C / 2}" r=".55" fill="#67d7e6" pointer-events="none"/>`;
       if (colpita && nave) h += `<text x="${x + C / 2}" y="${y + C / 2 + .9}" font-size="2.6" text-anchor="middle" fill="#3b0010" font-weight="900" pointer-events="none">✕</text>`;
     });
-    if (conNomi) Object.entries(MAPPA.scali).forEach(([n, s]) => {
+    Object.entries(MAPPA.scali).forEach(([n, s]) => {
       // il nome va dalla parte della costa; se uscirebbe dal tabellone, dall'altra parte del pontile
       const [x, y] = s.porto, largo = n.length * 1.45;
       let est = s.lato === 'e';
@@ -183,56 +180,71 @@
     svg.innerHTML = h;
   }
 
+  function renderClassifica() {
+    const righe = Object.entries(classifica).map(([id, r]) => ({ id, ...r })).filter(r => Number(r.colpi) > 0).sort((a, b) => a.colpi - b.colpi || a.t - b.t);
+    const mio = String(profilo?.id || '').replace(/[.#$\[\]\/]/g, '_');
+    $('bg-classifica').innerHTML = righe.length
+      ? righe.slice(0, 20).map((r, k) => `<div class="${r.id === mio ? 'io' : ''}"><span><b>${k + 1}</b> ${esc(r.nome || r.id)}</span><span>${r.colpi} colpi</span></div>`).join('')
+      : '<p>Ancora nessuno ha affondato tutti i battelli di oggi.</p>';
+  }
+
   function render() {
-    const fine = finita(g.sue) || finita(g.mie);
-    document.querySelectorAll('[data-modo]').forEach(b => b.classList.toggle('on', b.dataset.modo === modo));
-    $('bg-info').innerHTML = g.testo;
-    $('bg-punti').innerHTML = `Vinte <b>${stat.vinte}</b> · Perse <b>${stat.perse}</b>`;
+    const fine = g.navi.length && finita(g.navi), rimaste = g.navi.filter(n => n.colpi.size < n.len).length;
+    $('bg-info').innerHTML = `${g.navi.length} battelli in servizio oggi, dove li mette l'orario delle <b>11:00</b>${g.valida ? '' : ' · <b>allenamento</b>: la partita di oggi è già in classifica'}`;
+    $('bg-punti').innerHTML = `Colpi <b>${g.colpi.size}</b> · Da affondare <b>${rimaste}</b>`;
     const t = $('bg-turno');
-    t.textContent = fine ? (finita(g.sue) ? 'Hai vinto!' : 'Hai perso') : g.turno === 'io' ? 'Tocca a te' : 'Tocca al computer';
-    t.className = `turno${fine ? ' fine' : g.turno === 'io' ? '' : ' cpu'}`;
-    lago($('bg-lago'), g.sue, g.colpiMiei, fine, g.ultimoMio, true);
-    $('bg-lago').classList.toggle('attesa', fine || g.turno !== 'io');
-    lago($('bg-mio'), g.mie, g.colpiSuoi, true, g.ultimoSuo, false);
-    $('bg-flotta').innerHTML = g.sue.map(n => {
-      const nome = n.tratta ? `<i>${n.nome}</i> ${n.colpi.size === n.len || fine ? n.tratta : ''}` : n.nome;
+    t.textContent = fine ? 'Tutti affondati!' : g.valida ? 'Sfida del giorno' : 'Allenamento';
+    t.className = `turno${fine ? ' fine' : g.valida ? '' : ' cpu'}`;
+    lago($('bg-lago'), g.navi, g.colpi, fine, g.ultimo);
+    $('bg-lago').classList.toggle('attesa', !!fine);
+    $('bg-flotta').innerHTML = g.navi.map(n => {
+      const nome = `<i>${n.nome}</i> ${n.colpi.size === n.len ? n.tratta : ''}`;
       return n.colpi.size === n.len ? `<div><s>${nome}</s><span>✕</span></div>` : `<div><span>${nome}</span><span>${n.len}</span></div>`;
     }).join('');
     $('bg-log').innerHTML = g.log; $('bg-log').style.setProperty('--c', g.colore);
-    $('bg-mescola').disabled = g.iniziata; $('bg-mescola').style.opacity = g.iniziata ? .4 : 1;
+    renderClassifica();
   }
 
-  const nomeNave = n => n.tratta ? `la ${n.nome} (${n.tratta})` : `il ${n.nome}`;
-  const frase = (chi, r, i) => r.esito === 'acqua' ? `${chi} ${nomeCella(i)}: acqua` : r.esito === 'colpita' ? `${chi} ${nomeCella(i)}: <b>colpita!</b>` : `💥 ${chi} ${nomeCella(i)}: <b>affondata ${nomeNave(r.nave)}!</b>`;
-
-  function turnoComputer() {
-    const i = mossaComputer(g.mie, g.colpiSuoi), r = spara(g.mie, g.colpiSuoi, i);
-    g.ultimoSuo = i;
-    g.log += ` · ${frase('Computer', r, i)}`;
-    if (finita(g.mie)) { stat.perse++; salvaStat(); g.log = 'Il computer ha affondato tutta la tua flotta.'; g.colore = 'var(--rose)'; render(); return; }
-    if (r.esito !== 'acqua') { render(); setTimeout(turnoComputer, 700); return; }
-    g.turno = 'io'; render();
+  async function caricaClassifica() {
+    const mio = String(profilo?.id || '').replace(/[.#$\[\]\/]/g, '_');
+    try {
+      await window.NaviAdminFirebase?.ready;
+      const letta = await window.NaviAdminFirebase?.getClassificaGarda?.(oggi) || {};
+      if (classifica[mio] && !letta[mio]) letta[mio] = classifica[mio]; // il mio appena salvato
+      classifica = letta;
+    } catch { /* resta quella che c'era */ }
+    // gia' in classifica (anche da un altro telefono): questa partita e' un allenamento
+    if (g && mio && classifica[mio] && g.valida && !g.colpi.size) g.valida = false;
+    if (g) render();
+  }
+  async function salvaRisultato() {
+    try { localStorage.setItem(FATTA, String(g.colpi.size)); } catch { /* niente */ }
+    if (!profilo?.id) return;
+    const r = { colpi: g.colpi.size, nome: profilo.name || profilo.agente || profilo.id, t: Date.now() };
+    classifica[String(profilo.id).replace(/[.#$\[\]\/]/g, '_')] = r;
+    try { await window.NaviAdminFirebase?.saveRisultatoGarda?.(oggi, profilo.id, r); } catch (error) { console.warn('Risultato non salvato', error); }
+    caricaClassifica();
   }
 
   $('bg-lago').addEventListener('click', e => {
     const el = e.target.closest('[data-i]');
-    if (!el || g.turno !== 'io' || finita(g.sue) || finita(g.mie)) return;
-    const i = Number(el.dataset.i), r = spara(g.sue, g.colpiMiei, i);
+    if (!el || !g.navi.length || finita(g.navi)) return;
+    const i = Number(el.dataset.i), r = spara(g.navi, g.colpi, i);
     if (!r) return;
-    g.iniziata = true; g.ultimoMio = i;
-    g.log = frase('Tu', r, i); g.colore = r.esito === 'acqua' ? 'var(--cyan)' : r.esito === 'colpita' ? 'var(--amber)' : 'var(--rose)';
-    if (finita(g.sue)) { stat.vinte++; salvaStat(); g.log = '🏆 Hai affondato tutta la flotta nemica!'; g.colore = 'var(--green)'; render(); return; }
-    if (r.esito !== 'acqua') { render(); return; }
-    g.turno = 'cpu'; render();
-    setTimeout(turnoComputer, 700);
+    g.ultimo = i;
+    const nome = r.nave ? `la ${r.nave.nome} (${r.nave.tratta})` : '';
+    g.log = r.esito === 'acqua' ? `${nomeCella(i)}: acqua` : r.esito === 'colpita' ? `${nomeCella(i)}: <b>colpita!</b>` : `💥 <b>Affondata ${nome}!</b>`;
+    g.colore = r.esito === 'acqua' ? 'var(--cyan)' : r.esito === 'colpita' ? 'var(--amber)' : 'var(--rose)';
+    if (finita(g.navi)) {
+      g.log = `🏆 Hai affondato tutti i ${g.navi.length} battelli in <b>${g.colpi.size} colpi</b>${g.valida ? '' : ' (allenamento, non conta)'}.`;
+      g.colore = 'var(--green)';
+      if (g.valida) salvaRisultato();
+    }
+    render();
   });
-  document.querySelectorAll('[data-modo]').forEach(b => b.addEventListener('click', () => {
-    if (b.dataset.modo === modo || (g.iniziata && !finita(g.sue) && !finita(g.mie) && !confirm('Abbandonare la partita in corso?'))) return;
-    modo = b.dataset.modo; try { localStorage.setItem(`${STAT}.modo`, modo); } catch { /* niente */ }
-    nuova();
-  }));
-  $('bg-mescola').addEventListener('click', () => { if (!g.iniziata) { g.mie = piazzaCasuale(); render(); } });
-  $('bg-nuova').addEventListener('click', () => { if (!g.iniziata || finita(g.sue) || finita(g.mie) || confirm('Abbandonare la partita in corso?')) nuova(); });
-  ['bg-lago', 'bg-mio'].forEach(id => { $(id).setAttribute('viewBox', `0 0 ${LARGO} ${ALTO}`); });
+  $('bg-nuova').addEventListener('click', () => { if (!g.colpi.size || finita(g.navi) || confirm('Ricominciare? Se è la sfida del giorno, questa partita non conterà.')) { if (g.colpi.size && !finita(g.navi) && g.valida) { try { localStorage.setItem(FATTA, 'abbandonata'); } catch { /* niente */ } } nuova(); } });
+  $('bg-lago').setAttribute('viewBox', `0 0 ${LARGO} ${ALTO}`);
   nuova();
+  caricaClassifica();
+  setInterval(() => { if (document.visibilityState === 'visible') caricaClassifica(); }, 60000);
 })(typeof window !== 'undefined' ? window : globalThis);
