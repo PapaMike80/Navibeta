@@ -1,6 +1,6 @@
 // Ferie: calendario del mese per scegliere i giorni da chiedere. Due scorte di ore separate, entrambe da spendere
-// in ferie: le ferie maturate e la banca ore. Un tocco sceglie il giorno, un altro lo toglie; le ore si prendono
-// in ordine di data prima dalle ferie e, quando finiscono, dalla banca ore (un giorno puo' usare un po' di tutte e due). Ogni giorno vale le
+// in ferie: le ferie maturate e la banca ore, inserite separate. Un tocco sceglie il giorno, un altro lo toglie; le ore
+// si prendono dal totale ferie + banca ore, con un solo residuo. Ogni giorno vale le
 // ore del servizio di quel giorno (dal turno), 7:48 se non c'e' (39 h / 5). Pagina a se': i dati restano su questo
 // dispositivo, per agente.
 (function () {
@@ -29,28 +29,27 @@
     const ore = Number(window.NaviShiftCompetence?.shiftForCode?.(t, day)?.hours);
     return t && !riposo(t) && ore > 0 ? Math.round(ore * 60) : GIORNATA;
   };
-  // Ripartizione in ordine di data: prima le ferie, poi la banca ore; oltre, ore che mancano
+  // Le ore si prendono, in ordine di data, dal totale di ferie + banca ore; oltre, ore che mancano
   function ripartisci() {
-    let ferie = Math.max(0, dati.ferie), banca = Math.max(0, dati.banca);
-    const giorni = {}, tot = { f: 0, b: 0, manca: 0 };
+    let resta = Math.max(0, dati.ferie) + Math.max(0, dati.banca);
+    const giorni = {}, tot = { usate: 0, manca: 0 };
     Object.keys(dati.giorni).sort().forEach(d => {
-      let m = minutiDi(d);
-      const f = Math.min(m, ferie); ferie -= f; m -= f;
-      const b = Math.min(m, banca); banca -= b; m -= b;
-      giorni[d] = { f, b, manca: m };
-      tot.f += f; tot.b += b; tot.manca += m;
+      const m = minutiDi(d), u = Math.min(m, resta);
+      resta -= u;
+      giorni[d] = { u, manca: m - u };
+      tot.usate += m; tot.manca += m - u;
     });
     return { giorni, tot };
   }
 
   function riepilogo() {
-    const { giorni, tot } = ripartisci(), uf = tot.f, ub = tot.b, rf = dati.ferie - uf, rb = tot.manca ? -tot.manca : dati.banca - ub;
-    $('fe-ferie-usate').textContent = hhmm(uf); $('fe-ferie-res').textContent = hhmm(rf); $('fe-ferie-res').classList.toggle('neg', rf < 0);
-    $('fe-banca-usate').textContent = hhmm(ub); $('fe-banca-res').textContent = hhmm(rb); $('fe-banca-res').classList.toggle('neg', rb < 0);
-    const scelti = Object.keys(dati.giorni).sort();
+    const { giorni, tot } = ripartisci(), totale = Math.max(0, dati.ferie) + Math.max(0, dati.banca), res = totale - tot.usate;
+    $('fe-tot').textContent = hhmm(totale); $('fe-usate').textContent = hhmm(tot.usate);
+    $('fe-res').textContent = hhmm(res); $('fe-res').classList.toggle('neg', res < 0);
+    const scelti = Object.keys(dati.giorni);
     $('fe-piede').innerHTML = scelti.length
-      ? `<b>${scelti.length} ${scelti.length === 1 ? 'giorno scelto' : 'giorni scelti'} · ${hhmm(uf + ub + tot.manca)}</b><small>${[uf ? `ferie ${hhmm(uf)}` : '', ub ? `banca ore ${hhmm(ub)}` : '', tot.manca ? `mancano ${hhmm(tot.manca)}` : ''].filter(Boolean).join(' · ')}</small>`
-      : '<b>Tocca i giorni da chiedere</b><small>Prima si usano le ferie, poi la banca ore.</small>';
+      ? `<b>${scelti.length} ${scelti.length === 1 ? 'giorno scelto' : 'giorni scelti'} · ${hhmm(tot.usate)}</b><small>${tot.manca ? `mancano ${hhmm(tot.manca)}` : `residuo dopo: ${hhmm(res)}`}</small>`
+      : '<b>Tocca i giorni da chiedere</b><small>Le ore si prendono dal totale di ferie e banca ore.</small>';
     return giorni;
   }
 
@@ -69,9 +68,8 @@
     // colore e scritta di ogni giorno scelto: ferie, banca, misto o ore che mancano
     $('fe-cal').querySelectorAll('[data-day]').forEach(b => {
       const r = giorniRip[b.dataset.day]; if (!r) return;
-      const tipo = r.manca ? 'x' : r.f && r.b ? 'm' : r.b ? 'b' : 'f';
-      b.classList.add(tipo);
-      b.querySelector('i').textContent = { f: 'ferie', b: 'banca', m: 'misto', x: 'manca' }[tipo];
+      b.classList.add(r.manca ? 'x' : 'f');
+      b.querySelector('i').textContent = r.manca ? 'manca' : 'ferie';
     });
   }
 

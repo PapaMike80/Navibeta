@@ -16,7 +16,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
   <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
   <style>
-    /* Ferie: calendario del mese per scegliere i giorni; ferie e banca ore sono due scorte di ore separate (docs/STILE-NAVISUITE.md) */
+    /* Ferie: calendario del mese per scegliere i giorni; ferie e banca ore si inseriscono separate e si spendono dalla loro somma (docs/STILE-NAVISUITE.md) */
     :root{--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--cyan:#67d7e6;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--green:#52c879}
     *{box-sizing:border-box}
     body.ferie-page{margin:0;min-height:100vh;background:var(--surface);color:var(--ink);font-family:Manrope,system-ui,sans-serif}
@@ -34,6 +34,7 @@
     .scorta dl{display:grid;grid-template-columns:1fr auto;gap:3px 6px;margin:8px 0 0;font-size:12px}
     .scorta dt{color:var(--muted)}.scorta dd{margin:0;font:500 13px 'DM Mono',ui-monospace,monospace;text-align:right}
     .scorta dd.res{font-size:20px;color:var(--c)}.scorta dd.neg{color:var(--rose)}
+.totale{margin-bottom:12px}.tre{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.tre div{background:var(--surface);border-radius:12px;padding:8px 4px;text-align:center}.tre small{display:block;font-size:11px;color:var(--muted)}.tre b{font:500 18px 'DM Mono',ui-monospace,monospace}.tre b.res{font-size:22px;color:var(--teal)}.tre b.neg{color:var(--rose)}
     .fonte{display:inline-block;margin-top:6px;font-size:10.5px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--cyan) 16%,transparent);color:var(--cyan);font-weight:700}
     .mese{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
     .mese b{font-size:20px;text-transform:capitalize}
@@ -64,20 +65,19 @@
     <div class="scorte">
       <section class="scorta" style="--c:var(--teal)"><h2>FERIE</h2>
         <label>Maturate <input id="fe-ferie" inputmode="numeric" placeholder="00:00" aria-label="Ore di ferie maturate"></label>
-        <dl><dt>Scelte</dt><dd id="fe-ferie-usate">0:00</dd><dt>Residue</dt><dd class="res" id="fe-ferie-res">0:00</dd></dl>
-        <span class="fonte" id="fe-ferie-fonte">inserite a mano</span>
       </section>
       <section class="scorta" style="--c:var(--violet)"><h2>BANCA ORE</h2>
         <label>Disponibili <input id="fe-banca" inputmode="numeric" placeholder="00:00" aria-label="Ore in banca"></label>
-        <dl><dt>Scelte</dt><dd id="fe-banca-usate">0:00</dd><dt>Residue</dt><dd class="res" id="fe-banca-res">0:00</dd></dl>
-        <span class="fonte">inserite a mano</span>
       </section>
     </div>
+    <section class="scorta totale" style="--c:var(--cyan)"><h2>TOTALE · FERIE + BANCA ORE</h2>
+      <div class="tre"><div><small>Disponibili</small><b id="fe-tot">0:00</b></div><div><small>Scelte</small><b id="fe-usate">0:00</b></div><div><small>Residuo</small><b class="res" id="fe-res">0:00</b></div></div>
+    </section>
     <div class="mese"><button type="button" id="fe-prev" aria-label="Mese precedente">‹</button><b id="fe-mese"></b><button type="button" id="fe-next" aria-label="Mese successivo">›</button></div>
     <div class="cal" id="fe-cal"></div>
-    <div class="leg"><span style="--c:var(--teal)">ferie</span><span style="--c:var(--violet)">banca ore</span><span style="--c:linear-gradient(135deg,var(--teal) 50%,var(--violet) 50%)">misto</span><span style="--c:var(--rose)">ore che mancano</span></div>
+    <div class="leg"><span style="--c:var(--teal)">giorni scelti</span><span style="--c:var(--rose)">ore che mancano</span></div>
   </main>
-  <div class="piede" id="fe-piede"><b>Tocca i giorni da chiedere</b><small>Prima si usano le ferie, poi la banca ore.</small></div>
+  <div class="piede" id="fe-piede"><b>Tocca i giorni da chiedere</b><small>Le ore si prendono dal totale di ferie e banca ore.</small></div>
   <script src="assets/js/shared-roles.js?v=15"></script>
   <script src="assets/js/admin-firebase-rest.js?v=92"></script>
   <script src="assets/js/shared-data.js?v=137"></script>
@@ -87,6 +87,6 @@
   <script src="assets/js/course-info.js?v=1"></script>
   <script src="assets/js/turni-giorno.js?v=12"></script>
   <script src="assets/js/shift-competence.js?v=4"></script>
-  <script src="assets/js/ferie.js?v=2"></script>
+  <script src="assets/js/ferie.js?v=3"></script>
 </body>
 </html>
