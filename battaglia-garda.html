@@ -47,7 +47,8 @@
     #bg-lago{width:100%;height:auto;display:block;touch-action:manipulation}#bg-lago rect{cursor:pointer}#bg-lago.attesa rect{cursor:default}
     #bg-mio{width:100%;height:auto;display:block}
     .flotta #bg-flotta>div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}.flotta i{font-style:normal;color:var(--ink);font-weight:800}
-    .row{display:grid;grid-template-columns:40% 1fr;gap:12px;align-items:start}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+    .classifica #bg-classifica>div{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--line)}.classifica b{color:var(--amber);margin-right:4px}.classifica .io{color:var(--ink);font-weight:800}.classifica p{margin:0;font-size:12px}
   </style>
 <script src="assets/js/beta-readonly.js?v=5"></script>
 </head>
@@ -55,20 +56,19 @@
   <aside class="app-sidebar" aria-hidden="true"></aside>
   <header class="page-header"><div><small>NAVISUITE · GIOCO</small><h1>Battaglia sul Garda</h1></div></header>
   <main>
-    <div class="modi"><button type="button" data-modo="classica">Classica</button><button type="button" data-modo="orario">⏱ Orario di adesso</button></div>
     <div class="vs"><span id="bg-punti"></span><span class="turno" id="bg-turno"></span></div>
     <p class="info" id="bg-info"></p>
-    <h2 style="--c:var(--rose)">ACQUE NEMICHE · TOCCA PER SPARARE</h2>
-    <svg id="bg-lago" xmlns="http://www.w3.org/2000/svg" aria-label="Lago di Garda nemico"></svg>
+    <h2 style="--c:var(--rose)">AFFONDA TUTTI I BATTELLI · TOCCA PER SPARARE</h2>
+    <svg id="bg-lago" xmlns="http://www.w3.org/2000/svg" aria-label="Lago di Garda"></svg>
     <div class="log" id="bg-log"></div>
     <div class="row">
-      <div class="mini"><h2 style="--c:var(--teal)">LA TUA FLOTTA</h2><svg id="bg-mio" xmlns="http://www.w3.org/2000/svg" aria-label="La tua flotta"></svg></div>
-      <div class="flotta"><h2 style="--c:var(--cyan)">FLOTTA NEMICA</h2><div id="bg-flotta"></div></div>
+      <div class="flotta"><h2 style="--c:var(--cyan)">BATTELLI DI OGGI</h2><div id="bg-flotta"></div></div>
+      <div class="flotta classifica"><h2 style="--c:var(--amber)">CLASSIFICA DI OGGI</h2><div id="bg-classifica"></div></div>
     </div>
-    <div class="azioni"><button type="button" id="bg-mescola">⟳ Rimescola la flotta</button><button type="button" class="ok" id="bg-nuova">Nuova partita</button></div>
+    <div class="azioni"><button type="button" class="ok" id="bg-nuova">Ricomincia</button></div>
   </main>
   <script src="assets/js/shared-roles.js?v=15"></script>
-  <script src="assets/js/admin-firebase-rest.js?v=92"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=93"></script>
   <script src="assets/js/shared-data.js?v=137"></script>
   <script src="assets/js/firebase-auth.js?v=2"></script>
   <script src="assets/js/shared-menu.js?v=2.01"></script>
@@ -81,6 +81,6 @@
   <script src="assets/js/orario-giorno.js?v=7"></script>
   <script src="assets/js/orari-stagioni.js?v=9"></script>
   <script src="assets/js/orario-lago.js?v=2"></script>
-  <script src="assets/js/battaglia-garda.js?v=1"></script>
+  <script src="assets/js/battaglia-garda.js?v=2"></script>
 </body>
 </html>

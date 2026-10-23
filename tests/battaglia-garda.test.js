@@ -18,6 +18,13 @@ const corse = [
 ];
 const nav = B.inNavigazione(corse, 10 * 60 + 30);
 assert.deepStrictEqual(nav.map(n => n.turno).sort(), ['D1', 'R3'], 'solo le navi in viaggio');
+const tutte = B.posizioni(corse, 10 * 60 + 30);
+assert.strictEqual(tutte.length, 3, 'anche le navi ferme');
+assert.ok(tutte.find(n => n.turno === 'M1').fermo);
+const tutteNavi = B.piazzaOrario(tutte);
+assert.strictEqual(tutteNavi.length, 3);
+assert.strictEqual(tutteNavi.find(n => n.nome === 'M1').tratta, 'ferma a Maderno');
+assert.deepStrictEqual(B.piazzaOrario(B.posizioni(corse, 660)).map(n => n.celle), B.piazzaOrario(B.posizioni(corse, 660)).map(n => n.celle), 'uguale per tutti');
 const navi = B.piazzaOrario(nav);
 assert.strictEqual(navi.length, 2);
 navi.forEach(n => n.celle.forEach(c => assert.ok(B.ACQUA.has(c))));
