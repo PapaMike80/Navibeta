@@ -88,6 +88,7 @@
       ['documenti.html','▤','Documenti'],
       ['cambi_turno.html','⇄','Cambio'],
       ['ferie.html','☀','Ferie'],
+      ['battaglia-navale.html','⚓','Battaglia navale'],
       ['controllo_cassa.html','$','Cassa'],
       ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
       ['backup-dati.html','⤓','Backup'],
