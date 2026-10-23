@@ -8,7 +8,7 @@
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const M = window.NaviCostruisciTurno, G = window.NaviTurniGiorno, O = window.NaviOrarioGiorno, C = window.NaviShiftCompetence, ST = window.NaviServiziTerra;
   const RESIDENZE = ['DESENZANO', 'MADERNO', 'RIVA', 'PESCHIERA'];
-  const RUOLO = { Capitano: 'capitano', 'Capo timoniere': 'capo_timoniere', Timoniere: 'timoniere', Motorista: 'motorista', 'Aiuto motorista': 'aiuto_motorista', Marinaio: 'marinaio' };
+  const RUOLO = { Capitano: 'capitano', 'Capo timoniere': 'capo_timoniere', Timoniere: 'timoniere', Motorista: 'motorista', 'Aiuto motorista': 'aiuto_motorista', Marinaio: 'marinaio', Applicato: 'marinaio' };
   const RUOLO_INFO = { capitano: ['Cap', '#facc15', 'Capitani'], capo_timoniere: ['CT', '#fb923c', 'Capi timonieri'], timoniere: ['Tim', '#22c55e', 'Timonieri'],
     motorista: ['Mot', '#a855f7', 'Motoristi'], aiuto_motorista: ['AM', '#3b82f6', 'Aiuto motoristi'], marinaio: ['Mar', '#e8f3f6', 'Marinai'] };
   const EQUIPAGGIO_BASE = { capitano: 1, motorista: 1, marinaio: 2 };
@@ -384,7 +384,8 @@
           if (c && !isRiposo(c)) turni[g] = c;
           else if (c && !mio) turni[g] = c; // nel turno attuale restano rip., rip--, ---- come scritti
         });
-        agenti.push({ nome: String(a.agente || a.name || id), ruolo: RUOLO[G.gradoOf(a)[0]] || '', turni });
+        const [grado, coloreGrado] = G.gradoOf(a);
+        agenti.push({ nome: String(a.agente || a.name || id), ruolo: RUOLO[grado] || '', ...(grado === 'Applicato' ? { colore: coloreGrado } : {}), turni });
       }));
       return { nome, agenti };
     }).filter(x => x.agenti.length);
