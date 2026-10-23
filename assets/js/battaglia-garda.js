@@ -177,17 +177,17 @@
   const acqua = () => [...g.colpi].filter(i => !g.navi.some(n => n.celle.includes(i))).length;
   // Schermo sonar con i colori di NaviSuite: acqua blu notte, costa e cerchi azzurri, raggio verde acqua che gira;
   // siluro in acqua = puntino azzurro; sonar = quadrato 3x3 tratteggiato con il numero di battelli; affondato = punto rosa che pulsa.
-  // il raggio gira con un'animazione SVG (dentro il ritaglio del lago anche su iPhone)
+  // il raggio gira con un'animazione SVG su tutto il riquadro della mappa, sotto il lago semitrasparente
   const CX = 38, CY = 76, FERMO = !!root.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   function lago(svg, navi, colpi, mostraNavi, ultimo) {
     let h = `<defs><clipPath id="bg-clip"><path d="${MAPPA.costa}"/></clipPath>
       <linearGradient id="bg-raggio" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#2dd4bf" stop-opacity="0"/><stop offset="1" stop-color="#2dd4bf" stop-opacity=".38"/></linearGradient></defs>
-      <path d="${MAPPA.costa}" fill="#0b2a38" stroke="#67d7e6" stroke-width=".45"/>
-      <g clip-path="url(#bg-clip)" pointer-events="none">
-        ${[18, 36, 54, 72].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
+      <g pointer-events="none">
+        ${[18, 36, 54, 72, 90].map(r => `<circle cx="${CX}" cy="${CY}" r="${r}" fill="none" stroke="#1f4250" stroke-width=".3"/>`).join('')}
         <line x1="${CX}" y1="0" x2="${CX}" y2="${ALTO}" stroke="#1f4250" stroke-width=".25"/><line x1="0" y1="${CY}" x2="${LARGO}" y2="${CY}" stroke="#1f4250" stroke-width=".25"/>
-        <g><path d="M${CX} ${CY} L${CX + 80} ${CY - 22} A83 83 0 0 1 ${CX + 80} ${CY + 22} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
-      </g>`;
+        <g><path d="M${CX} ${CY} L${CX + 95} ${CY - 26} A98 98 0 0 1 ${CX + 95} ${CY + 26} Z" fill="url(#bg-raggio)"/>${FERMO ? '' : `<animateTransform attributeName="transform" type="rotate" from="0 ${CX} ${CY}" to="360 ${CX} ${CY}" dur="4s" repeatCount="indefinite"/>`}</g>
+      </g>
+      <path d="${MAPPA.costa}" fill="#0b2a38" fill-opacity=".72" stroke="#67d7e6" stroke-width=".45"/>`;
     let sopra = '';
     ACQUA.forEach(i => {
       const x = p(i) * C, y = Math.floor(i / COL) * C, cx = x + C / 2, cy = y + C / 2, nave = navi.find(n => n.celle.includes(i)), colpita = colpi.has(i);
