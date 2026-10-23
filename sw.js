@@ -8,7 +8,7 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v730-ritardi-popup';
+const CACHE_VERSION = 'navibeta-v731-ferie';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
@@ -35,6 +35,8 @@ const CORE_ASSETS = [
   // pagine principali: Scali e Il mio turno (e Documenti), disponibili anche senza rete
   './orario.html',
   './mio-turno.html',
+  './ferie.html',
+  './assets/js/ferie.js',
   './documenti.html',
   './navidistinta.html',
   './verifica-busta.html',

@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="NaviBeta">
+  <meta name="theme-color" content="#0d1a1c">
+  <title>NaviBeta Ferie</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
+  <style>
+    /* Ferie: calendario del mese per scegliere i giorni; ferie e banca ore sono due scorte di ore separate (docs/STILE-NAVISUITE.md) */
+    :root{--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--cyan:#67d7e6;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--green:#52c879}
+    *{box-sizing:border-box}
+    body.ferie-page{margin:0;min-height:100vh;background:var(--surface);color:var(--ink);font-family:Manrope,system-ui,sans-serif}
+    .ferie-page .app-sidebar{display:none}
+    .ferie-page>header{display:flex;align-items:center;justify-content:space-between;gap:16px;width:min(560px,100%);margin:0 auto;padding:calc(18px + env(safe-area-inset-top,0px)) 16px 10px}
+    .ferie-page>header small{display:block;color:var(--teal);font-size:11px;font-weight:800;letter-spacing:.2em}
+    .ferie-page>header h1{margin:4px 0 0;font-size:25px;font-weight:800}
+    .ferie-page>header #navisuite-header-menu{position:static!important;flex-shrink:0;width:48px!important;height:48px!important;border:1px solid var(--teal)!important;border-radius:14px!important;background:var(--card)!important;color:var(--teal)!important;font-size:22px!important}
+    main{width:min(560px,100%);margin:0 auto;padding:6px 14px 120px}
+    .scorte{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+    .scorta{--c:var(--teal);border:1px solid color-mix(in srgb,var(--c) 45%,transparent);background:color-mix(in srgb,var(--c) 8%,var(--card));border-radius:16px;padding:12px}
+    .scorta h2{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--c)}
+    .scorta label{display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:12px;color:var(--muted)}
+    .scorta input{width:84px;background:var(--surface);border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:7px 6px;font:500 17px 'DM Mono',ui-monospace,monospace;text-align:center}
+    .scorta dl{display:grid;grid-template-columns:1fr auto;gap:3px 6px;margin:8px 0 0;font-size:12px}
+    .scorta dt{color:var(--muted)}.scorta dd{margin:0;font:500 13px 'DM Mono',ui-monospace,monospace;text-align:right}
+    .scorta dd.res{font-size:20px;color:var(--c)}.scorta dd.neg{color:var(--rose)}
+    .fonte{display:inline-block;margin-top:6px;font-size:10.5px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--cyan) 16%,transparent);color:var(--cyan);font-weight:700}
+    .mese{display:flex;align-items:center;justify-content:space-between;margin:6px 0 10px}
+    .mese b{font-size:20px;text-transform:capitalize}
+    .mese button{width:44px;height:44px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--ink);font-size:18px}
+    .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+    .dn{font-size:11px;color:var(--muted);text-align:center;font-weight:800;padding-bottom:2px}
+    .d{aspect-ratio:1/1.15;border-radius:11px;background:var(--card);border:1px solid var(--line);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;font:800 15px Manrope,system-ui,sans-serif;padding:0}
+    .d i{font-style:normal;font-size:9.5px;color:var(--muted);font-weight:700;margin-top:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .d.dom{color:var(--rose)}
+    .d.rip{opacity:.5}
+    .d.f{background:var(--teal);border-color:var(--teal);color:var(--on)}.d.f i{color:var(--on)}
+    .d.b{background:var(--violet);border-color:var(--violet);color:var(--on)}.d.b i{color:var(--on)}
+    .d.oggi{outline:2px solid var(--cyan);outline-offset:1px}
+    .vuoto{visibility:hidden}
+    .leg{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);margin:12px 2px}
+    .leg span:before{content:"";display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;background:var(--c);vertical-align:-1px}
+    .piede{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(12px + env(safe-area-inset-bottom,0px));width:min(532px,calc(100% - 28px));background:var(--card2);border:1px solid var(--teal);border-radius:16px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+    .piede b{font-size:14.5px}.piede small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
+  </style>
+<script src="assets/js/beta-readonly.js?v=5"></script>
+</head>
+<body class="ferie-page">
+  <aside class="app-sidebar" aria-hidden="true"></aside>
+  <header class="page-header"><div><small>NAVISUITE</small><h1>Ferie</h1></div></header>
+  <main>
+    <div class="scorte">
+      <section class="scorta" style="--c:var(--teal)"><h2>FERIE</h2>
+        <label>Maturate <input id="fe-ferie" inputmode="numeric" placeholder="00:00" aria-label="Ore di ferie maturate"></label>
+        <dl><dt>Scelte</dt><dd id="fe-ferie-usate">0:00</dd><dt>Residue</dt><dd class="res" id="fe-ferie-res">0:00</dd></dl>
+        <span class="fonte" id="fe-ferie-fonte">inserite a mano</span>
+      </section>
+      <section class="scorta" style="--c:var(--violet)"><h2>BANCA ORE</h2>
+        <label>Disponibili <input id="fe-banca" inputmode="numeric" placeholder="00:00" aria-label="Ore in banca"></label>
+        <dl><dt>Scelte</dt><dd id="fe-banca-usate">0:00</dd><dt>Residue</dt><dd class="res" id="fe-banca-res">0:00</dd></dl>
+        <span class="fonte">inserite a mano</span>
+      </section>
+    </div>
+    <div class="mese"><button type="button" id="fe-prev" aria-label="Mese precedente">‹</button><b id="fe-mese"></b><button type="button" id="fe-next" aria-label="Mese successivo">›</button></div>
+    <div class="cal" id="fe-cal"></div>
+    <div class="leg"><span style="--c:var(--teal)">ferie (1 tocco)</span><span style="--c:var(--violet)">banca ore (2 tocchi)</span><span style="--c:var(--line)">3 tocchi: togli</span></div>
+  </main>
+  <div class="piede" id="fe-piede"><b>Tocca i giorni da chiedere</b><small>Ogni giorno vale le ore del tuo servizio di quel giorno.</small></div>
+  <script src="assets/js/shared-roles.js?v=15"></script>
+  <script src="assets/js/admin-firebase-rest.js?v=92"></script>
+  <script src="assets/js/shared-data.js?v=137"></script>
+  <script src="assets/js/firebase-auth.js?v=2"></script>
+  <script src="assets/js/shared-menu.js?v=1.99"></script>
+  <script src="assets/js/offline.js?v=2"></script>
+  <script src="assets/js/course-info.js?v=1"></script>
+  <script src="assets/js/turni-giorno.js?v=12"></script>
+  <script src="assets/js/shift-competence.js?v=4"></script>
+  <script src="assets/js/ferie.js?v=1"></script>
+</body>
+</html>
