@@ -1,0 +1,47 @@
+<!DOCTYPE html><html lang="it"><head><meta charset="UTF-8"><title>Mockup · Richieste per il turno</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Mono:wght@400;500&display=swap"><style>
+:root{--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--green:#52c879;--sky:#38bdf8}
+*{box-sizing:border-box}body{margin:0;padding:18px;width:1220px;background:#071923;color:var(--ink);font:500 13px/1.4 Manrope,system-ui,sans-serif}
+h1{margin:0 0 4px;font-size:19px}.n{margin:0 0 14px;color:var(--muted);font-size:12px;max-width:1150px}
+.w{display:grid;grid-template-columns:390px 1fr;gap:20px;align-items:start}.cap{font-size:11px;color:var(--teal);font-weight:800;letter-spacing:.12em;margin-bottom:6px}
+.tel{background:var(--surface);border:1px solid var(--line);border-radius:26px;padding:14px;display:grid;gap:10px}
+.eb{color:var(--teal);font-size:10px;font-weight:800;letter-spacing:.2em}.tt{font-size:21px;font-weight:800;margin:0}
+.sez{--c:var(--teal);display:grid;gap:8px;padding:12px;border-radius:16px;background:color-mix(in srgb,var(--c) 10%,var(--card));border:1px solid color-mix(in srgb,var(--c) 38%,transparent)}
+.sez h3{margin:0;font-size:14px;color:var(--c)}.sez p{margin:0;font-size:12px;color:var(--muted)}
+.seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:var(--card)}.seg span{flex:1;text-align:center;padding:8px 4px;border-radius:9px;font-weight:800;font-size:12px;color:var(--muted)}.seg span.on{background:var(--c);color:var(--on)}
+.per{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;padding:8px 10px;border-radius:11px;background:var(--card);border-left:3px solid var(--c)}
+.per b{font-family:'DM Mono',monospace;font-weight:500}.per small{display:block;color:var(--muted);font-size:11px}
+.st{font-size:10px;font-weight:900;padding:2px 8px;border-radius:999px}.st.ok{background:#52c87926;color:#86efac}.st.wa{background:#fbbf2426;color:#fde68a}
+.btn{min-height:38px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:linear-gradient(90deg,var(--teal),#67d7e6);color:var(--on)}.btn.o{background:transparent;border:1px dashed color-mix(in srgb,var(--c) 60%,transparent);color:var(--c)}
+.lock{font-size:11px;color:var(--muted)}
+table{width:100%;border-collapse:separate;border-spacing:0 4px;font-size:12px}th{text-align:left;color:var(--muted);font-size:10px;letter-spacing:.1em;padding:0 8px}
+td{background:var(--card);padding:7px 8px}td:first-child{border-radius:9px 0 0 9px;font-weight:800}td:last-child{border-radius:0 9px 9px 0}
+.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:11px;font-weight:800;border:1px solid}
+.p39{color:var(--sky);border-color:#38bdf866}.pn{color:var(--muted);border-color:var(--line)}.pmax{color:var(--amber);border-color:#fbbf2466}
+.gr{display:inline-grid;place-items:center;width:26px;height:18px;margin-right:6px;border-radius:9px;border:1.5px solid var(--g);color:var(--g);font-size:8px;font-weight:900}
+.fer{display:inline-block;padding:2px 7px;border-radius:7px;background:#a78bfa33;color:#ddd6fe;font-size:11px;font-weight:700;margin-right:3px}
+</style></head><body>
+<h1>Richieste per il turno: ferie e straordinario</h1>
+<p class="n">Ogni agente, prima che venga costruito il turno del mese, indica le ferie che chiede e quanto vuole lavorare. Costruisci turno ne tiene conto: le ferie diventano giorni fissi (come il congedo), e lo straordinario si distribuisce solo tra chi lo vuole, in modo equo dentro ogni grado. «#» (concordato) è trattato come assenza retribuita: l'agente non è disponibile, non conta come giorno di lavoro.</p>
+<div class="w">
+<div><div class="cap">AGENTE · IL MIO TURNO › LE MIE RICHIESTE (TELEFONO)</div><div class="tel">
+<div><span class="eb">IL MIO TURNO</span><p class="tt">Le mie richieste</p></div>
+<div class="sez" style="--c:var(--amber)"><h3>⏱ Quanto vuoi lavorare</h3><p>Vale per i prossimi turni finché non la cambi.</p>
+<div class="seg"><span>Solo 39 h</span><span>Normale</span><span class="on">Più straordinario</span></div>
+<p>«Più straordinario»: quando servono ore in più, vieni scelto prima di chi ha scelto «Normale». Con «Solo 39 h» non superi le 39 ore a settimana, salvo emergenze.</p></div>
+<div class="sez" style="--c:var(--violet)"><h3>🌴 Ferie richieste</h3><p>Per il turno di <b>dicembre 2026</b> · richieste entro il <b>20 novembre</b>.</p>
+<div class="per"><span><b>7/12 – 11/12</b><small>5 giorni · inviata il 3/11</small></span><span class="st ok">ACCETTATA</span></div>
+<div class="per"><span><b>24/12 – 26/12</b><small>3 giorni · inviata il 4/11</small></span><span class="st wa">IN ATTESA</span></div>
+<div class="btn o">＋ Chiedi ferie</div></div>
+<p class="lock">🔒 Le richieste le vede solo l'amministratore; l'esito lo trovi qui.</p>
+</div></div>
+<div><div class="cap">ADMIN · COSTRUISCI TURNO › RICHIESTE DEGLI AGENTI (PC)</div>
+<div class="sez" style="--c:var(--violet)"><h3>📨 Richieste per dicembre 2026 · Desenzano</h3><p>Accetta o rifiuta le ferie prima di generare la bozza: quelle accettate diventano giorni fissi. 3 agenti non hanno ancora indicato quanto vogliono lavorare (vale «Normale»).</p>
+<table><tr><th>AGENTE</th><th>ORE</th><th>FERIE RICHIESTE</th><th></th></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>BITTURINI D.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">7–11/12</span></td><td><span class="st ok">accettata</span></td></tr>
+<tr><td><span class="gr" style="--g:#facc15">Cap</span>SCARMIGLIATI A.</td><td><span class="pill p39">Solo 39 h</span></td><td><span class="fer">24–26/12</span><span class="fer">31/12</span></td><td><span class="st wa">2 da decidere ▸ Accetta · Rifiuta</span></td></tr>
+<tr><td><span class="gr" style="--g:#a855f7">Mot</span>BURDO A.</td><td><span class="pill pn">Normale</span></td><td>—</td><td></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>PEDRONI M.</td><td><span class="pill pmax">Più straordinario</span></td><td><span class="fer">14–18/12</span></td><td><span class="st ok">accettata</span></td></tr>
+<tr><td><span class="gr" style="--g:#e8f3f6">Mar</span>GIACCI GL.</td><td><span class="pill p39">Solo 39 h</span></td><td>—</td><td></td></tr></table></div>
+<div class="sez" style="--c:var(--teal);margin-top:12px"><h3>⚖ Come cambia l'equità</h3><p>Lo straordinario del mese si divide solo tra «Normale» e «Più straordinario» (questi ultimi per primi), sempre in modo equo dentro ogni grado. Chi ha «Solo 39 h» resta intorno alle 39 ore settimanali; se senza di lui una corsa resterebbe scoperta, lo si usa lo stesso e lo trovi in «Da guardare».</p></div>
+</div></div></body></html>
