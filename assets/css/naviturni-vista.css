@@ -55,3 +55,4 @@ body.nt-stile #tbody .cell-pill:not(.c-rip){box-sizing:border-box;min-width:0;ma
 /* il riquadro dell'equipaggio resta fermo anche scorrendo a destra e sinistra */
 body.nt-stile #nt-vista{position:sticky;left:8px;width:min(900px,calc(100vw - 16px));box-sizing:border-box;margin-left:8px;margin-right:0}
 body.nt-stile #turni-operativi{width:max-content!important;min-width:100%!important;max-width:none!important}
+body.nt-stile #nt-vista{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 14px)}
