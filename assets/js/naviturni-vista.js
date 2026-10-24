@@ -172,7 +172,10 @@
     document.querySelectorAll('.date-header th[data-col]').forEach(th => {
       const c = dateCalendario.find(x => x.col === Number(th.dataset.col)); if (!c) return;
       th.classList.toggle('nt-bozza', !!th.querySelector('.week-draft-label:not(.is-empty)'));
-      const t = turno(mio.a, c.iso), rip = !t || RIPOSO.test(t);
+      // il turno è quello scritto nella mia riga della tabella (anche nelle settimane in bozza), altrimenti dai dati
+      const cella = document.querySelector(`#tbody tr.logged-agent-row td[data-col="${c.col}"]`);
+      const scritto = (cella?.querySelector('.cell-pill')?.textContent || cella?.textContent || '').trim();
+      const t = scritto || turno(mio.a, c.iso), rip = !t || RIPOSO.test(t) || /^[—-]+$/.test(t);
       const testo = rip ? '—' : t;
       let b = th.querySelector('.nt-mt');
       if (b && b.dataset.t === testo) return;
