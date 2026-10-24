@@ -182,3 +182,6 @@ body.nt-stile #tbody td.elsewhere-span{background:transparent!important}
 /* oggi è subito accanto alla colonna dei nomi (che ha il suo bordo): tessera e colonna rientrano di 2px, insieme */
 body.nt-stile .date-header th.nt-oggi:not(.nt-selcol)::before{left:2px}
 .nt-cornice-oggi{margin-left:2px;width:calc(var(--w) - 2px)!important}
+/* testo delle bolle centrato al pixel: altezza fissa e lettere centrate sull'altezza delle maiuscole */
+body.nt-stile #tbody .cell-pill:not(.c-rip),body.nt-stile .date-header th[data-col] .nt-mt{height:24px;padding-top:0!important;padding-bottom:0!important;line-height:1!important;text-box:trim-both cap alphabetic;align-items:center;justify-content:center;text-align:center}
+body.nt-stile #tbody td.elsewhere-span .cell-pill{height:26px}
