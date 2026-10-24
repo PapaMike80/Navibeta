@@ -110,9 +110,6 @@
     scelta = { day: cal.iso, code, res: typeof currentResidence !== 'undefined' ? currentResidence : '' };
     segnaScelta();
     colonneAltrove();
-    // la bolla della corsa scelta pulsa con un leggerissimo bagliore
-    document.querySelectorAll('.nt-pulsa').forEach(x => x.classList.remove('nt-pulsa'));
-    td.querySelector('.cell-pill')?.classList.add('nt-pulsa');
     disegnaScheda();
     // la testata resta sempre ferma in alto: niente da scorrere
   }, true);
@@ -200,6 +197,12 @@
   function segnaScelta() {
     const cal = scelta && typeof dateCalendario !== 'undefined' ? dateCalendario.find(c => c.iso === scelta.day) : null;
     document.querySelectorAll('.nt-selcol').forEach(x => { if (!cal || Number(x.dataset.col) !== cal.col) x.classList.remove('nt-selcol', 'nt-oro', 'nt-rosso'); });
+    // si accendono (bagliore esterno che pulsa) tutte le bolle della stessa corsa in quel giorno, la mia compresa
+    document.querySelectorAll('.nt-pulsa').forEach(x => x.classList.remove('nt-pulsa'));
+    if (cal && scelta?.code) {
+      const chiave = c => { const t = String(c || '').trim().toUpperCase(); return G.naveCode(t) || t; }, k = chiave(scelta.code);
+      document.querySelectorAll(`#tbody td[data-col="${cal.col}"] .cell-pill, .date-header th[data-col="${cal.col}"] .nt-mt`).forEach(b => { if (chiave(b.textContent) === k) b.classList.add('nt-pulsa'); });
+    }
     if (!cal) return;
     const oro = cal.iso === giornoPaga(cal.iso);
     const rosso = !oro && parse(cal.iso).getDay() === 0;
