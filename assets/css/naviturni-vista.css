@@ -19,8 +19,13 @@ table.nt-g{border-collapse:separate;border-spacing:0;font-size:11px}
 
 .nt-g thead th{background:var(--card2);color:var(--muted);height:40px;position:relative}.nt-g thead th small{display:block;font-size:9px;font-weight:800}.nt-g thead th b{font-size:13px;color:var(--ink)}
 .nt-g thead th.dom small,.nt-g thead th.dom b{color:var(--rose)}
-.nt-g th.oggi{background:color-mix(in srgb,var(--teal) 30%,var(--card2))}.nt-g th.oggi b{color:var(--teal)}
-.nt-g td.oggi{background:color-mix(in srgb,var(--teal) 12%,transparent)}
+/* oggi: intestazione verde acqua piena con la scritta OGGI, colonna bordata e piu' accesa */
+.nt-g thead th.oggi{background:var(--teal)!important;color:var(--on);box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal)}
+.nt-g thead th.oggi small,.nt-g thead th.oggi b{color:var(--on)!important}
+.nt-g thead th.oggi::after{content:'OGGI';position:absolute;left:0;right:0;bottom:1px;font-size:7.5px;font-weight:900;letter-spacing:.08em;color:var(--on)}
+.nt-g thead th.oggi small{margin-top:-3px}
+#nt-vista .nt-g tbody td.oggi{background:color-mix(in srgb,var(--teal) 30%,var(--card))!important;box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal)}
+.nt-g tbody tr:last-child td.oggi{box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal),inset 0 -2px 0 var(--teal)}
 .nt-g .lun{border-left:2px solid color-mix(in srgb,var(--teal) 45%,transparent)}
 .nt-sw{position:absolute;left:2px;top:1px;font-style:normal;font-size:8px;color:var(--teal);font-weight:900}
 .nt-g .nm{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;padding:0 6px;font-weight:800;font-size:11px;white-space:nowrap;width:auto;min-width:0;max-width:96px;overflow:hidden;text-overflow:ellipsis}
