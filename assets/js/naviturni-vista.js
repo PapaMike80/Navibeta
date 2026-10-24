@@ -55,7 +55,7 @@
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
     const nomi = crew.map(m => `<span style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
     const chip = `<span class="chip" style="--c:${G.coloreTurno(code)}">${esc(code)}</span>`;
-    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : 'A terra'))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
+    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : ''))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
   }
 
 
@@ -72,7 +72,9 @@
     const cal = dateCalendario.find(c => c.col === Number(td.dataset.col));
     let agente = null; try { agente = getAgentForTableRow(td.closest('tr')); } catch { agente = null; }
     if (!cal || !agente) return;
-    let code = ''; try { code = String(ottieniTurnoPulito(getAgentShiftOnDate(agente, cal.iso)) || '').trim(); } catch { code = td.textContent.trim(); }
+    // il codice è quello scritto nella bolla (LAV, L.D., AgB...): ottieniTurnoPulito raggruppa i servizi a terra in «TERRA»
+    let code = (td.querySelector('.cell-pill')?.textContent || td.textContent || '').trim();
+    if (!code) { try { code = String(getAgentShiftOnDate(agente, cal.iso) || '').trim(); } catch { code = ''; } }
     if (!code || RIPOSO.test(code)) return;
     e.stopPropagation(); e.preventDefault();
     scelta = { day: cal.iso, code };
