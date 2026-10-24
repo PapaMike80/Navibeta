@@ -73,13 +73,13 @@
     return `<div class="nt-strip" id="nt-strip"><table class="nt-g"><thead><tr><th class="nm"></th>${testa}</tr></thead><tbody>${corpo}</tbody></table></div>`;
   }
 
-  // giorno da tenere come primo visibile dopo la colonna dei nomi (all'apertura il lunedi' di questa settimana)
-  let primoGiorno = addDays(oggi, -((parse(oggi).getDay() + 6) % 7));
+  // giorno da tenere come primo visibile dopo la colonna dei nomi: all'apertura oggi
+  let primoGiorno = oggi;
+  const misure = s => { const ths = [...s.querySelectorAll('thead th')].slice(1), nm = ths[0].offsetLeft; return { ths, nm, pos: i => ths[i].offsetLeft - nm }; };
   function allinea() {
     const s = document.getElementById('nt-strip'); if (!s) return;
-    const ths = s.querySelectorAll('thead th'), nm = ths[1].offsetLeft, i = GG.indexOf(primoGiorno), th = ths[i + 1]; // nm: dove comincia il primo giorno (larghezza vera della colonna dei nomi)
-    s.style.scrollPaddingLeft = `${nm}px`;
-    if (th) s.scrollLeft = th.offsetLeft - nm;
+    const { pos } = misure(s), i = GG.indexOf(primoGiorno);
+    if (i >= 0) s.scrollLeft = pos(i);
   }
   function render() {
     const residenze = Object.keys(schedule?.residenze || {});
@@ -87,14 +87,23 @@
       <div class="nt-res">${residenze.map(r => `<button type="button" class="${r === residenza ? 'on' : ''}" data-res="${esc(r)}">${esc(r.charAt(0) + r.slice(1).toLowerCase())}</button>`).join('')}</div>
       <div class="nt-sez nt-tab">${griglia()}<p class="nt-hint">← scorri i giorni →</p></div>`;
     allinea(); requestAnimationFrame(allinea); setTimeout(allinea, 300); // dopo che la tabella ha preso le misure definitive
-    // scorrendo si ricorda il primo giorno visibile, cosi' un nuovo disegno della griglia non sposta la vista
-    const s = document.getElementById('nt-strip');
-    let mio = 0; s.addEventListener('pointerdown', () => { mio = 1; }, { passive: true }); s.addEventListener('touchstart', () => { mio = 1; }, { passive: true });
+    // Scatto: lasciato lo scorrimento, la tabella si ferma allineata a un giorno. Verso il futuro si scorre libero;
+    // verso il passato c'e' uno «scalino» su oggi: tirando meno di due giorni oltre oggi si torna su oggi.
+    const s = document.getElementById('nt-strip'), iOggi = GG.indexOf(oggi), SCALINO = 2;
+    let fermo = null, utente = false, eraFuturo = true;
+    const tocca = () => { utente = true; eraFuturo = GG.indexOf(primoGiorno) >= iOggi; };
+    s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true }); s.addEventListener('wheel', tocca, { passive: true });
     s.addEventListener('scroll', () => {
-      if (!mio) return; // solo quando scorre l'utente
-      const tutti = [...s.querySelectorAll('thead th')], nm = tutti[1].offsetLeft, ths = tutti.slice(1);
-      const k = ths.findIndex(th => th.offsetLeft - nm >= s.scrollLeft - 4);
-      if (k >= 0) primoGiorno = GG[k];
+      if (!utente) return; // gli scorrimenti fatti dal programma non contano
+      clearTimeout(fermo);
+      fermo = setTimeout(() => {
+        const { ths, pos } = misure(s), w = ths[1].offsetLeft - ths[0].offsetLeft;
+        let k = Math.max(0, Math.min(GG.length - 1, Math.round(s.scrollLeft / w)));
+        k = ths.reduce((best, _, i) => Math.abs(pos(i) - s.scrollLeft) < Math.abs(pos(best) - s.scrollLeft) ? i : best, k);
+        if (eraFuturo && k < iOggi && (pos(iOggi) - s.scrollLeft) / w < SCALINO) k = iOggi; // scalino: non abbastanza forte
+        primoGiorno = GG[k]; utente = false;
+        s.scrollTo({ left: pos(k), behavior: 'smooth' });
+      }, 140);
     }, { passive: true });
   }
 
