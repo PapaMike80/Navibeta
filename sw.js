@@ -8,7 +8,7 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v760-classifica-importata';
+const CACHE_VERSION = 'navibeta-v761-naviturni-stile';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
@@ -30,6 +30,8 @@ const CORE_ASSETS = [
   './index.html',
   './oggi.html',
   './naviturni.html',
+  './assets/js/naviturni-vista.js',
+  './assets/css/naviturni-vista.css',
   './cambi_turno.html',
   './navidiaria.html',
   // pagine principali: Scali e Il mio turno (e Documenti), disponibili anche senza rete
