@@ -154,6 +154,25 @@
     if (p.getDay() === 6) p.setDate(26); else if (p.getDay() === 0) p.setDate(28);
     return iso(p);
   }
+  // Riga delle date come la striscia del Mio turno: in ogni tessera la bolla del mio turno di quel giorno,
+  // al posto delle residenze il mio nome (la mia riga separata non serve più)
+  function mieiTurni() {
+    const mio = io(); if (!mio) return;
+    const primo = document.querySelector('.date-header th:not([data-col])');
+    if (primo && !primo.querySelector('.nt-mionome')) primo.innerHTML = `<span class="nt-mionome">${esc(mio.a.agente)}</span>`;
+    document.querySelectorAll('.date-header th[data-col]').forEach(th => {
+      const c = dateCalendario.find(x => x.col === Number(th.dataset.col)); if (!c) return;
+      th.classList.toggle('nt-bozza', !!th.querySelector('.week-draft-label:not(.is-empty)'));
+      const t = turno(mio.a, c.iso), rip = !t || RIPOSO.test(t);
+      const testo = rip ? 'rip' : t;
+      let b = th.querySelector('.nt-mt');
+      if (b && b.dataset.t === testo) return;
+      if (!b) { b = document.createElement('span'); b.className = 'nt-mt'; th.appendChild(b); }
+      b.dataset.t = testo; b.textContent = testo; b.classList.toggle('rip', rip);
+      b.style.setProperty('--c', rip ? 'transparent' : G.coloreTurno(t));
+    });
+    document.body.classList.add('nt-mia-in-date');
+  }
   function segnaOggi() {
     altezze();
     adatta();
@@ -168,6 +187,7 @@
       if (parse(c.iso).getDay() === 0) th.classList.add('nt-dom');
       if (c.iso === giornoPaga(c.iso)) th.classList.add('nt-paga');
     });
+    mieiTurni();
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
   }

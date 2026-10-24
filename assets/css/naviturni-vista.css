@@ -145,3 +145,13 @@ body.nt-stile .date-header th.nt-paga .date-head-day{color:#fde68a!important}
 body.nt-stile .date-header th.nt-oggi::before{border:2px dashed rgba(45,212,191,.8);box-shadow:0 0 10px rgba(45,212,191,.3)}
 body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day{font-size:0!important;letter-spacing:0!important}
 body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day::after{content:'OGGI';font:900 8px Manrope,system-ui,sans-serif;letter-spacing:.12em;color:#06231f;background:#2dd4bf;border-radius:99px;padding:1px 5px}
+/* la mia riga dentro la riga delle date (striscia del Mio turno) */
+body.nt-stile #matrix-scroll-wrap .date-header th[data-col]{height:74px!important;min-height:74px!important;max-height:74px!important}
+body.nt-stile .date-header th[data-col] .nt-mt{position:relative;z-index:1;display:inline-block;margin-top:3px;min-width:28px;max-width:34px;box-sizing:border-box;padding:2px 4px;border-radius:999px;background:var(--c);color:#fff;font:900 10px/1.1 Manrope,system-ui,sans-serif;text-align:center;overflow:hidden;white-space:nowrap}
+body.nt-stile .date-header th[data-col] .nt-mt.rip{background:transparent;border:1px solid #1f4250;color:#9fb8c2;font-weight:700}
+body.nt-stile .date-header th[data-col] .date-head-markers,body.nt-stile .date-header th[data-col] .week-draft-label{display:none!important}
+body.nt-stile .date-header th:not([data-col]) .nt-mionome{display:flex;align-items:center;height:100%;padding-left:10px;color:#2dd4bf;font:900 14px Manrope,system-ui,sans-serif;white-space:nowrap}
+body.nt-stile.nt-mia-in-date #tbody tr.logged-agent-row{display:none!important}
+/* bolle di tutti come il Mio turno: piene, scritta bianca */
+body.nt-stile #tbody .cell-pill:not(.c-rip){background:var(--t,#94a3b8)!important;border:0!important;color:#fff!important}
+body.nt-stile .date-header th.nt-bozza::before{border:1.5px dashed #f59e0b}
