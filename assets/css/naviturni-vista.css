@@ -111,3 +111,13 @@ body.nt-stile #tbody td.elsewhere-span.nt-oggi{background:transparent!important;
 #nt-vista .nt-eq-nomi span::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--g)}
 #nt-vista .nt-eq-nomi span.me{outline:2px solid #2dd4bf;outline-offset:1px}
 body.nt-stile #nt-vista{width:calc(100vw - 32px)!important;max-width:900px}
+/* testata come il Mio turno, ad altezza fissa */
+body.nt-stile #nt-vista:empty{display:none}
+#nt-testata .terra-label{margin:0 0 4px;color:#2dd4bf;font-size:12px;font-weight:800;letter-spacing:.2em}
+#nt-testata .terra-title{display:flex;align-items:center;gap:10px;margin:0;height:38px;white-space:nowrap;overflow:hidden;font:800 26px/1.1 Manrope,system-ui,sans-serif;color:#eaf2f4;max-width:calc(100% - 60px)}
+#nt-testata .chip{--c:#94a3b8;display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:6px 12px;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);font:900 16px/1 Manrope,sans-serif}
+#nt-testata .terra-context{margin:5px 0 8px;height:20px;line-height:20px;color:#9bc8d5;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#nt-testata .nt-eq-nomi{display:flex;flex-wrap:wrap;align-content:flex-start;gap:5px;height:55px;overflow:hidden}
+#nt-testata .nt-eq-nomi span{display:inline-flex;align-items:center;gap:5px;height:25px;box-sizing:border-box;padding:0 9px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid #244653;color:#eaf2f4;font-size:12px;font-weight:900;white-space:nowrap}
+#nt-testata .nt-eq-nomi span::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--g)}
+body.nt-stile>header.page-header .turni-header-copy[hidden]{display:none!important}
