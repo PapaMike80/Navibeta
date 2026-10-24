@@ -5,6 +5,10 @@
   'use strict';
   const G = window.NaviTurniGiorno, C = window.NaviShiftCompetence;
   const box = document.getElementById('nt-vista');
+  // la testata della pagina diventa quella del turno scelto (al posto di «NaviSuite Turni»)
+  const header = document.querySelector('body>header.page-header');
+  const testata = document.createElement('div'); testata.id = 'nt-testata';
+  if (header) { header.querySelector('.turni-header-copy')?.setAttribute('hidden', ''); header.prepend(testata); }
   if (!G || !box) return;
   document.body.classList.add('nt-stile');
   const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'], MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
@@ -31,28 +35,31 @@
   const giornoLungo = day => { const d = parse(day); return `${GIORNI[d.getDay()]} ${d.getDate()} ${MESI[d.getMonth()]}`; };
 
   // Riquadro in alto: il turno scelto (di default il mio di oggi) e chi c'e' a bordo
+  // Testata come il Mio turno: etichetta, codice + nave, giorno e ore, poi l'equipaggio in bolle (due righe).
+  // Righe ad altezza fissa: cambiando corsa o servizio la tabella sotto non si sposta.
   function scheda() {
     const mio = io();
     const day = scelta?.day || oggi, code = scelta?.code || (mio ? turno(mio.a, oggi) : '');
-    
-    if (!code || RIPOSO.test(code)) return `<div class="nt-sez"><div class="nt-mio"><span class="nt-code rip">—</span><div><b>Riposo</b><small>Tocca un turno nella tabella per vedere l'equipaggio.</small></div></div></div>`;
+    const giorno = giornoLungo(day);
+    const testa = (titolo, contesto, nomi) => `<p class="terra-label">NAVITURNI</p><h1 class="terra-title nt-titolo">${titolo}</h1><p class="terra-context nt-contesto">${contesto}</p><div class="nt-eq-nomi">${nomi}</div>`;
+    if (!code || RIPOSO.test(code)) return testa('Riposo', `${giorno} · tocca un turno per vedere l'equipaggio`, '');
     const nave = G.naveCode(code), ore = Number(C?.shiftForCode?.(nave || code, day)?.hours) || 0;
     const riga = (schedule?.turni_navi || []).filter(r => String(r?.data || '').slice(0, 10) === day && G.naveCode(r?.corsa) === nave && r?.attiva !== false).pop();
-    const dettagli = [ore ? `${Math.floor(ore)} h${Math.round((ore % 1) * 60) ? ` ${String(Math.round((ore % 1) * 60)).padStart(2, '0')}'` : ''}` : '', riga?.nave ? `nave ${esc(riga.nave)}` : ''].filter(Boolean).join(' · ');
+    const durata = ore ? `${Math.floor(ore)} h${Math.round((ore % 1) * 60) ? ` ${String(Math.round((ore % 1) * 60)).padStart(2, '0')}'` : ''}` : '';
     let crew = [];
     try { const eq = G.equipaggi(schedule, day); crew = nave ? (eq.navi[nave] || []) : (eq.terra[G.terraCode(code)] || []).map(name => ({ name, grado: ['', '#94a3b8', 9] })); } catch { crew = []; }
-    const mioId = String(profilo()?.id || '');
     const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
-    // compatto: in alto codice del turno e ore, sotto i nomi in bolle col pallino del colore del grado
-    const righe = crew.map(m => `<span class="${m.id && m.id === mioId ? 'me' : ''}" style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
-    return `<div class="nt-eq"><div class="nt-eq-hd"><span class="nt-code" style="--t:${G.coloreTurno(code)}">${esc(code)}</span><small>${dettagli}</small></div><div class="nt-eq-nomi">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
+    const nomi = crew.map(m => `<span style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
+    const chip = `<span class="chip" style="--c:${G.coloreTurno(code)}">${esc(code)}</span>`;
+    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : 'Servizio a terra'))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
   }
+
 
   // ordine dell'equipaggio: per grado (l'applicato sopra il marinaio) e poi per anzianita'
   const ORDINE_GRADI = ['Capitano', 'Capo timoniere', 'Motorista', 'Timoniere', 'Aiuto motorista', 'Applicato', 'Marinaio'];
   const anzianita = a => { const r = Number(window.NaviSharedData?.seniorityRank?.(a.agente)); return Number.isFinite(r) ? r : 1e9; };
-  const disegnaScheda = () => { box.innerHTML = `<div id="nt-scheda">${scheda()}</div>`; };
+  const disegnaScheda = () => { (header ? testata : box).innerHTML = scheda(); };
 
   // Tocco su una bolla della tabella: l'equipaggio di quel turno in quel giorno (date e turni dalla tabella stessa)
   document.addEventListener('click', e => {
@@ -68,16 +75,15 @@
     document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel'));
     td.classList.add('nt-sel');
     disegnaScheda();
-    // tutta la scheda in vista, sotto la tacca dell'iPhone
+    // la testata in vista, sotto la tacca dell'iPhone
     const tacca = document.createElement('div'); tacca.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px)';
     document.body.appendChild(tacca); const alto = tacca.offsetHeight + 16; tacca.remove();
-    window.scrollTo({ top: Math.max(0, box.getBoundingClientRect().top + scrollY - alto), behavior: 'smooth' });
+    window.scrollTo({ top: Math.max(0, (header || box).getBoundingClientRect().top + scrollY - alto), behavior: 'smooth' });
   }, true);
   // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
   ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col], .date-header th[data-col]')) e.stopPropagation(); }, true));
   // anche toccando una data si apriva la vecchia scheda del giorno
   document.addEventListener('click', e => { if (e.target.closest('.date-header th[data-col]')) { e.stopPropagation(); e.preventDefault(); } }, true);
-  box.addEventListener('click', e => { if (e.target.closest('[data-oggi]')) { scelta = null; document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel')); disegnaScheda(); } });
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
   // altezze vere di mese e date: la mia riga si incolla subito sotto, senza spazi
