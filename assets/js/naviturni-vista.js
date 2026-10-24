@@ -242,7 +242,11 @@
   }
   new MutationObserver(() => segnaOggi()).observe(document.getElementById('turni-operativi') || document.body, { childList: true, subtree: true });
 
-  function carica(data) { schedule = data || { residenze: {} }; cache.clear(); disegnaScheda(); segnaOggi(); }
+  // all'apertura e cambiando residenza la tabella parte dal primo agente (in cima), senza slittare in giù
+  const inCima = () => [0, 120, 400].forEach(t => setTimeout(() => window.scrollTo({ top: 0, left: window.scrollX, behavior: 'auto' }), t));
+  if (typeof window.selectResidence === 'function') { const orig = window.selectResidence; window.selectResidence = function (...a) { const r = orig.apply(this, a); inCima(); return r; }; }
+  let primaVolta = true;
+  function carica(data) { schedule = data || { residenze: {} }; cache.clear(); disegnaScheda(); segnaOggi(); if (primaVolta) { primaVolta = false; inCima(); } }
   window.NaviSharedData?.loadCacheFirst?.(data => carica(data))?.catch?.(() => {});
   G.caricaModifiche?.(profilo())?.then?.(() => { if (schedule) { cache.clear(); disegnaScheda(); } })?.catch?.(() => {});
 })();
