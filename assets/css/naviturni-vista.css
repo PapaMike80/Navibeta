@@ -138,7 +138,7 @@ body.nt-stile .date-header th.nt-dom::before{border-color:rgba(251,113,133,.55);
 body.nt-stile .date-header th.nt-dom .date-head-day,body.nt-stile .date-header th.nt-dom .date-head-num{color:#fb7185!important}
 body.nt-stile .date-header th.nt-paga::before{background:linear-gradient(160deg,color-mix(in srgb,#fbbf24 55%,#102733),color-mix(in srgb,#f59e0b 30%,#102733));border-color:#fbbf24}
 body.nt-stile .date-header th.nt-paga .date-head-day{color:#fde68a!important}
-body.nt-stile .date-header th.nt-oggi::before{border:2px dashed rgba(45,212,191,.8);box-shadow:0 0 10px rgba(45,212,191,.3)}
+body.nt-stile .date-header th.nt-oggi::before{border:2px dashed rgba(45,212,191,.85);box-shadow:none}
 body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day{font-size:0!important;letter-spacing:0!important}
 body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day::after{content:'OGGI';font:900 8px Manrope,system-ui,sans-serif;letter-spacing:.12em;color:#06231f;background:#2dd4bf;border-radius:99px;padding:1px 5px}
 /* la mia riga dentro la riga delle date (striscia del Mio turno) */
@@ -161,17 +161,9 @@ body.nt-stile .date-header th[data-col] .nt-mt{margin:3px auto 0;line-height:1.1
 body.nt-stile .date-header th[data-col]{text-align:center!important}
 /* oggi: colonna tratteggiata dalla tessera fino in fondo */
 body.nt-stile .date-header th.nt-oggi::before,body.nt-stile .date-header th.nt-selcol::before{inset:4px 0 0 0;border-bottom:0!important;border-radius:11px 11px 0 0}
-body.nt-stile #tbody td.nt-oggi:not(.elsewhere-span),body.nt-stile #tbody td.nt-selcol{position:relative;background:color-mix(in srgb,#2dd4bf 7%,transparent)!important}
-body.nt-stile #tbody td.nt-oggi:not(.elsewhere-span)::after,body.nt-stile #tbody td.nt-selcol::after{content:'';position:absolute;inset:0;border-left:2px dashed rgba(45,212,191,.8);border-right:2px dashed rgba(45,212,191,.8);pointer-events:none}
-body.nt-stile #tbody tr:last-child td.nt-oggi::after{border-bottom:2px dashed rgba(45,212,191,.8)}
 /* giorno toccato: bordo pieno; il giorno di paga tutto dorato */
 body.nt-stile .date-header th.nt-selcol::before{border:2px solid #2dd4bf;box-shadow:0 0 12px rgba(45,212,191,.3)}
-body.nt-stile #tbody td.nt-selcol{background:color-mix(in srgb,#2dd4bf 12%,transparent)!important}
-body.nt-stile #tbody td.nt-selcol::after{border-left:2px solid #2dd4bf;border-right:2px solid #2dd4bf}
-body.nt-stile #tbody tr:last-child td.nt-selcol::after{border-bottom:2px solid #2dd4bf}
 body.nt-stile .date-header th.nt-selcol.nt-oro::before{border-color:#fbbf24;box-shadow:0 0 14px rgba(251,191,36,.5)}
-body.nt-stile #tbody td.nt-selcol.nt-oro{background:color-mix(in srgb,#fbbf24 16%,transparent)!important}
-body.nt-stile #tbody td.nt-selcol.nt-oro::after{border-color:#fbbf24}
 /* bolle come il codice in testata: fondo trasparente tinto, bordo e scritta del colore del turno; più strette perché il bordo della colonna le contenga */
 body.nt-stile #tbody .cell-pill:not(.c-rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--t,#94a3b8) 14%,transparent)!important;border:1px solid color-mix(in srgb,var(--t,#94a3b8) 55%,transparent)!important;color:color-mix(in srgb,var(--t,#94a3b8) 78%,#ffffff)!important}
 body.nt-stile .date-header th[data-col] .nt-mt:not(.rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);color:color-mix(in srgb,var(--c) 78%,#ffffff)}
@@ -180,6 +172,13 @@ body.nt-stile .date-header th[data-col] .nt-mt.rip{width:30px;min-width:30px;max
 body.nt-stile #tbody td.elsewhere-span .cell-pill{width:auto!important;min-width:0!important;max-width:none!important;padding:4px 10px!important}
 /* domenica scelta: tutta la colonna nel rosso trasparente della domenica */
 body.nt-stile .date-header th.nt-selcol.nt-rosso::before{border-color:rgba(251,113,133,.55);background:color-mix(in srgb,#fb7185 12%,#102733);box-shadow:none}
-body.nt-stile #tbody td.nt-selcol.nt-rosso{background:color-mix(in srgb,#fb7185 12%,transparent)!important}
-body.nt-stile #tbody td.nt-selcol.nt-rosso::after{border-color:rgba(251,113,133,.55)}
 body.nt-stile .date-header th.nt-primo .nt-mionome{transform:translateY(var(--sposta,0px))}
+/* cornici delle colonne (oggi tratteggiata, giorno scelto piena) sopra tutta la tabella */
+body.nt-stile #tbody td.elsewhere-span{background:transparent!important}
+.nt-cornice{position:absolute;z-index:1;pointer-events:none;box-sizing:border-box;border:2px dashed rgba(45,212,191,.85);border-top:0;border-radius:0 0 10px 10px;background:rgba(45,212,191,.07)}
+.nt-cornice-sel{border-style:solid;border-color:#2dd4bf;background:rgba(45,212,191,.12)}
+.nt-cornice-sel.nt-oro{border-color:#fbbf24;background:rgba(251,191,36,.16)}
+.nt-cornice-sel.nt-rosso{border-color:rgba(251,113,133,.55);background:rgba(251,113,133,.12)}
+/* oggi è subito accanto alla colonna dei nomi (che ha il suo bordo): tessera e colonna rientrano di 2px, insieme */
+body.nt-stile .date-header th.nt-oggi:not(.nt-selcol)::before{left:2px}
+.nt-cornice-oggi{margin-left:2px;width:calc(var(--w) - 2px)!important}
