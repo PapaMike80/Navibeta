@@ -201,3 +201,5 @@ body.nt-stile .date-header th[data-col] .nt-mt.rip{background:transparent!import
 @keyframes nt-pulsa{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 4px var(--t,var(--c,#2dd4bf))) drop-shadow(0 0 9px var(--t,var(--c,#2dd4bf)))}}
 body.nt-stile .date-header .nt-mt.nt-pulsa,body.nt-stile #tbody .cell-pill.nt-pulsa{animation:nt-pulsa 1.8s ease-in-out infinite!important}
 @media (prefers-reduced-motion:reduce){body.nt-stile .date-header .nt-mt.nt-pulsa,body.nt-stile #tbody .cell-pill.nt-pulsa{animation:none!important;filter:drop-shadow(0 0 4px var(--t,#2dd4bf))}}
+/* una vecchia regola (naviturni.html) spegne animazioni e filtri sulle bolle in comune: qui vince la pulsazione */
+body.nt-stile #tbody td.shared-crew-day .cell-pill.nt-pulsa,body.nt-stile #tbody td.pinned-shared-crew-day .cell-pill.nt-pulsa,body.nt-stile #tbody td.selected-shared-crew-day .cell-pill.nt-pulsa{animation:nt-pulsa 1.8s ease-in-out infinite!important}
