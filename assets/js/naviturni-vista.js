@@ -9,6 +9,8 @@
   const header = document.querySelector('body>header.page-header');
   const testata = document.createElement('div'); testata.id = 'nt-testata';
   if (header) { header.querySelector('.turni-header-copy')?.setAttribute('hidden', ''); header.prepend(testata); }
+  // durante il caricamento la testata ha già la sua altezza: quando arrivano i dati non si sposta nulla
+  testata.innerHTML = `<p class="terra-label">NAVITURNI</p><h1 class="terra-title nt-titolo">Caricamento…</h1><p class="terra-context nt-contesto">&nbsp;</p><div class="nt-eq-nomi"></div>`;
   if (!G || !box) return;
   document.body.classList.add('nt-stile');
   const GIORNI = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'], MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
@@ -79,6 +81,8 @@
   const anzianita = a => { const r = Number(window.NaviSharedData?.seniorityRank?.(a.agente)); return Number.isFinite(r) ? r : 1e9; };
   const disegnaScheda = () => { (header ? testata : box).innerHTML = scheda(); altezze(); };
   addEventListener('resize', () => altezze());
+  // le righe fisse si incollano sempre alla misura vera di testata, mese e date, anche mentre la tabella si ridisegna
+  if (window.ResizeObserver) { const ro = new ResizeObserver(() => altezze()); if (header) ro.observe(header); new MutationObserver(() => { document.querySelectorAll('.month-header,.date-header').forEach(el => { if (!el.dataset.ntOss) { el.dataset.ntOss = '1'; ro.observe(el); } }); }).observe(document.getElementById('turni-operativi') || document.body, { childList: true, subtree: true }); }
 
   // Tocco su una bolla della tabella: l'equipaggio di quel turno in quel giorno (date e turni dalla tabella stessa)
   document.addEventListener('click', e => {

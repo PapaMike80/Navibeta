@@ -132,3 +132,6 @@ body.nt-stile #tbody .cell-pill:not(.c-rip){font-size:12.5px;padding:5px 4px}
 body.nt-stile #tbody tr td.td-name{font-size:13.5px!important}
 body.nt-stile #matrix-scroll-wrap .date-header th[data-col]{min-width:40px!important;width:40px!important}
 body.nt-stile #tbody td[data-col]:not(.elsewhere-span){min-width:40px!important;width:40px!important}
+/* riquadro «Caricamento turni» dentro lo schermo */
+body.nt-stile #welcome-notice{position:sticky;left:16px;width:calc(100vw - 32px);max-width:900px;box-sizing:border-box;margin-left:0!important;margin-right:0!important}
+#nt-testata{flex:1 1 auto;width:100%;min-width:0}
