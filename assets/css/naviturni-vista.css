@@ -49,3 +49,4 @@ body.nt-stile #matrix-scroll-wrap .date-header th{top:calc(env(safe-area-inset-t
 body.nt-stile #matrix-scroll-wrap .month-header th{top:env(safe-area-inset-top,0px)!important}
 body.nt-stile #matrix-scroll-wrap #tbody tr.logged-agent-row td{position:sticky!important;top:calc(env(safe-area-inset-top,0px) + var(--nt-mia,70px))!important}
 .nt-crew{margin-top:10px}
+body.nt-stile .crew-hover-tooltip{display:none!important}
