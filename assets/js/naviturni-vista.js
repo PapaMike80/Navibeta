@@ -97,8 +97,20 @@
     const r = document.documentElement.style;
     if (r.getPropertyValue('--nt-mia') !== `${m + d}px` || r.getPropertyValue('--nt-mese') !== `${m}px`) { r.setProperty('--nt-mese', `${m}px`); r.setProperty('--nt-mia', `${m + d}px`); }
   }
+  // scritte sempre dentro la bolla: i codici lunghi (CONG, AGM*, CP1C...) rimpiccioliscono finché ci stanno
+  function adatta() {
+    document.querySelectorAll('#tbody .cell-pill:not(.c-rip)').forEach(b => {
+      const t = b.textContent.trim();
+      if (b.dataset.fit === t || !b.offsetWidth) return;
+      b.dataset.fit = t; b.style.fontSize = ''; b.style.letterSpacing = '';
+      if (t.length < 3) return;
+      let f = parseFloat(getComputedStyle(b).fontSize) || 10.5;
+      while (b.scrollWidth > b.clientWidth + 0.5 && f > 6.5) { f -= 0.5; b.style.fontSize = `${f}px`; b.style.letterSpacing = '-.04em'; }
+    });
+  }
   function segnaOggi() {
     altezze();
+    adatta();
     // righe «A residenza»: una cella unica su più giorni; la colonna di oggi si disegna col gradiente
     const th = document.querySelector('.date-header th.nt-oggi');
     if (th) { const t = th.getBoundingClientRect(); document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => { const r = td.getBoundingClientRect(); const dentro = t.left >= r.left - 1 && t.left < r.right - 1; td.classList.toggle('nt-oggi-in', dentro); if (dentro) { td.style.setProperty('--o', `${Math.round(t.left - r.left)}px`); td.style.setProperty('--w', `${Math.round(t.width)}px`); } }); }
