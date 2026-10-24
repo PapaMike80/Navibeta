@@ -79,3 +79,5 @@ body.nt-stile>footer{position:sticky!important;left:0!important;width:100vw;max-
 @media (display-mode: standalone){
   body.nt-stile #navisuite-popup .ns-menu-dialog{top:calc(12px + max(env(safe-area-inset-top,0px),47px))!important;max-height:calc(100dvh - max(env(safe-area-inset-top,0px),47px) - env(safe-area-inset-bottom,0px) - 32px)!important}
 }
+/* bolle come nel Mio turno: fondo scuro del colore del turno, bordo e scritta colorati */
+body.nt-stile #tbody .cell-pill:not(.c-rip){background:color-mix(in srgb,var(--t,#94a3b8) 22%,#0b1c26)!important;border:1.5px solid color-mix(in srgb,var(--t,#94a3b8) 70%,transparent)!important;color:color-mix(in srgb,var(--t,#94a3b8) 40%,#ffffff)!important;font-weight:800}
