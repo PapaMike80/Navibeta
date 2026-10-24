@@ -1,5 +1,5 @@
-/* NaviTurni, vista nello stile NaviSuite (docs/STILE-NAVISUITE.md): scheda con l'equipaggio e griglia dei turni in bolle */
-body.nt-nuova .ops-bar,body.nt-nuova #welcome-notice,body.nt-nuova #day-panel,body.nt-nuova #matrix-scroll-wrap,body.nt-nuova .date-head-legend{display:none!important}
+/* NaviTurni nello stile NaviSuite (docs/STILE-NAVISUITE.md): riquadro «Con chi navighi» e grafica nuova della tabella
+   di naviturni-page.js, che tiene il suo scorrimento e le sue regole */
 #nt-vista{--surface:#0b1c26;--card:#102733;--card2:#143140;--line:#1f4250;--ink:#eaf2f4;--muted:#9fb8c2;--on:#06231f;--teal:#2dd4bf;--cyan:#67d7e6;--violet:#a78bfa;--orange:#fb923c;--rose:#fb7185;color:var(--ink);font-family:Manrope,system-ui,sans-serif;max-width:900px;margin:0 auto 14px}
 .nt-sez{--c:var(--teal);border:1px solid color-mix(in srgb,var(--c) 40%,transparent);background:color-mix(in srgb,var(--c) 10%,var(--card));border-radius:16px;padding:11px 12px;margin-bottom:10px}
 .nt-sez h2{margin:0 0 8px;font-size:11px;letter-spacing:.16em;color:var(--c);display:flex;justify-content:space-between;align-items:center;gap:8px}
@@ -11,40 +11,32 @@ body.nt-nuova .ops-bar,body.nt-nuova #welcome-notice,body.nt-nuova #day-panel,bo
 .nt-cw{display:flex;align-items:center;gap:8px;background:var(--surface);border-radius:10px;padding:7px 9px;font-size:13px}.nt-cw.io{outline:1px solid color-mix(in srgb,var(--teal) 55%,transparent)}.nt-cw em{margin-left:auto;font-style:normal;font-size:11px;color:var(--teal);font-weight:800}
 .nt-gr{display:inline-block;min-width:32px;text-align:center;font-size:9.5px;font-weight:900;border-radius:6px;padding:2px 4px;background:var(--g);color:#06231f}
 .nt-vuoto{margin:0;font-size:12px;color:var(--muted)}
-.nt-res{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.nt-res button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;font:800 12.5px Manrope,system-ui,sans-serif}.nt-res button.on{background:var(--cyan);border-color:var(--cyan);color:var(--on)}
-.nt-tab{--c:var(--cyan);padding:6px}
-.nt-strip{overflow:auto;max-height:calc(100vh - 58px);max-height:calc(100dvh - 58px);overscroll-behavior-x:contain;border-radius:12px;border:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:none}.nt-strip::-webkit-scrollbar{display:none}
-table.nt-g{border-collapse:separate;border-spacing:0;font-size:11px}
-.nt-g th,.nt-g td{border-bottom:1px solid var(--line);height:32px;text-align:center;padding:0;width:calc((min(100vw,900px) - 150px) / 7);min-width:36px;max-width:64px}
-
-.nt-g thead th{background:var(--card2);color:var(--muted);height:40px;position:relative}.nt-g thead th small{display:block;font-size:9px;font-weight:800}.nt-g thead th b{font-size:13px;color:var(--ink)}
-.nt-g thead th.dom small,.nt-g thead th.dom b{color:var(--rose)}
-/* oggi: intestazione verde acqua piena con la scritta OGGI, colonna bordata e piu' accesa */
-.nt-g thead th.oggi{background:var(--teal)!important;color:var(--on);box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal)}
-.nt-g thead th.oggi small,.nt-g thead th.oggi b{color:var(--on)!important}
-.nt-g thead th.oggi::after{content:'OGGI';position:absolute;left:0;right:0;bottom:1px;font-size:7.5px;font-weight:900;letter-spacing:.08em;color:var(--on)}
-.nt-g thead th.oggi small{margin-top:-3px}
-#nt-vista .nt-g tbody td.oggi{background:color-mix(in srgb,var(--teal) 30%,var(--card))!important;box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal)}
-.nt-g tbody tr:last-child td.oggi{box-shadow:inset 2px 0 0 var(--teal),inset -2px 0 0 var(--teal),inset 0 -2px 0 var(--teal)}
-.nt-g .lun{border-left:2px solid color-mix(in srgb,var(--teal) 45%,transparent)}
-.nt-sw{position:absolute;left:2px;top:1px;font-style:normal;font-size:8px;color:var(--teal);font-weight:900}
-.nt-g .nm{position:sticky;left:0;z-index:2;background:var(--card);text-align:left;padding:0 6px;font-weight:800;font-size:11px;white-space:nowrap;width:auto;min-width:0;max-width:96px;overflow:hidden;text-overflow:ellipsis}
-.nt-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--g);margin-right:5px}
-.nt-b{display:inline-block;min-width:28px;padding:3px 3px;border:0;border-radius:999px;background:var(--t);font:900 10px Manrope,system-ui,sans-serif;line-height:1;cursor:pointer}
-.nt-b.tr{box-shadow:0 0 0 2px var(--orange)}.nt-b.imp{background:transparent;color:#93c5fd;box-shadow:inset 0 0 0 1.5px #3b82f6}
-.nt-b.sel{outline:2px solid var(--ink);outline-offset:1px}
-.nt-rip{color:#4f6b77}
-.nt-g tr.mia .nm{background:color-mix(in srgb,var(--teal) 22%,var(--card));color:var(--teal)}.nt-g tr.mia td{background:color-mix(in srgb,var(--teal) 9%,transparent)}
-.nt-hint{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
-.nt-altrove{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;border:1px dashed var(--line);border-radius:999px;padding:2px 4px}
 /* applicato = bigliettaio di bordo */
 .nt-ruolo{font-size:11px;color:var(--muted);font-weight:700}
-/* scorrendo in basso restano fisse la riga delle date e la mia riga (e a sinistra la colonna dei nomi) */
-.nt-g thead th{position:sticky;top:0;z-index:3}
-.nt-g thead th.nm{left:0;z-index:5;background:var(--card2)}
-.nt-g tr.mia th,.nt-g tr.mia td{position:sticky;top:40px;z-index:3;background:color-mix(in srgb,var(--teal) 16%,var(--card))!important;border-bottom:2px solid color-mix(in srgb,var(--teal) 50%,transparent)}
-.nt-g tr.mia th.nm{left:0;z-index:4;background:color-mix(in srgb,var(--teal) 26%,var(--card))!important}
-#nt-vista .nt-g tr.mia td.oggi{background:color-mix(in srgb,var(--teal) 38%,var(--card))!important}
-.nt-mese{position:absolute;right:2px;top:1px;font-style:normal;font-size:8px;color:var(--amber,#fbbf24);font-weight:900}
-.nt-g .mese{border-left:2px solid #fbbf24!important}
-.nt-mese-vista{margin:2px 4px 6px;font-size:13px;font-weight:800;color:var(--cyan)}
+body.nt-stile .ops-bar,body.nt-stile .date-head-legend{display:none!important}
+body.nt-stile #nt-vista{margin-bottom:10px}
+/* bolle piene con i colori dei turni */
+body.nt-stile #tbody .cell-pill{display:inline-block;min-width:32px;padding:4px 6px;border:0!important;border-radius:999px;font-weight:900;font-size:11.5px;line-height:1;color:#fff!important;background:var(--t,#94a3b8)!important;box-shadow:none!important;text-transform:uppercase}
+body.nt-stile #tbody .c-d1{--t:#3b6bcc}body.nt-stile #tbody .c-d2{--t:#2d9e6b}body.nt-stile #tbody .c-d3{--t:#e07b3a}body.nt-stile #tbody .c-d4{--t:#c45cba}
+body.nt-stile #tbody .c-dt{--t:#e6d44a;color:#06231f!important}body.nt-stile #tbody .c-bis{--t:#5ec4d4;color:#06231f!important}body.nt-stile #tbody .c-pond{--t:#f08080}
+body.nt-stile #tbody .c-cong{--t:#a78bfa}body.nt-stile #tbody .c-agb{--t:#60a5fa}body.nt-stile #tbody .c-fp{--t:#94a3b8}body.nt-stile #tbody .c-rf{--t:#84cc16}
+body.nt-stile #tbody .c-lav{--t:#c49a6c}body.nt-stile #tbody .c-agm{--t:#f472b6}body.nt-stile #tbody .c-agt{--t:#818cf8}body.nt-stile #tbody .c-other{--t:#94a3b8}
+/* riposo: solo un trattino spento */
+body.nt-stile #tbody .cell-pill.c-rip{background:transparent!important;color:transparent!important;font-size:0;min-width:0;padding:0}
+body.nt-stile #tbody .cell-pill.c-rip::after{content:'—';font-size:12px;color:#4f6b77}
+/* righe neutre, il grado e' un pallino colorato prima del nome */
+body.nt-stile #tbody tr td{background:transparent!important;border-left-color:transparent!important}
+body.nt-stile #tbody tr td.td-name{background:#102733!important;text-align:left!important;font-size:12.5px!important;font-weight:800;padding-left:8px!important;box-shadow:none!important}
+body.nt-stile #tbody tr td.td-name::before{content:'';display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;background:var(--g,#e8f3f6);vertical-align:1px}
+body.nt-stile #tbody tr.grado-capitano{--g:#facc15}body.nt-stile #tbody tr.grado-capo{--g:#fb923c}body.nt-stile #tbody tr.grado-motorista{--g:#a855f7}
+body.nt-stile #tbody tr.grado-aiuto{--g:#3b82f6}body.nt-stile #tbody tr.grado-timoniere{--g:#22c55e}body.nt-stile #tbody tr.grado-applicato{--g:#a3e635}body.nt-stile #tbody tr.grado-marinaio{--g:#e8f3f6}
+body.nt-stile #tbody tr{border-left:0!important}
+body.nt-stile #tbody tr.pinned-row td.td-name,body.nt-stile #tbody tr.cross-residence-logged-row td.td-name{background:color-mix(in srgb,#2dd4bf 24%,#102733)!important;color:#2dd4bf!important}
+body.nt-stile #tbody tr.pinned-row td{background:color-mix(in srgb,#2dd4bf 9%,transparent)!important}
+/* oggi: intestazione verde acqua piena con OGGI, colonna bordata e piu' accesa */
+body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi,body.nt-stile .date-header th.nt-oggi{background:#2dd4bf!important;color:#06231f!important;position:relative}
+body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi span,body.nt-stile .date-header th.nt-oggi span{color:#06231f!important}
+body.nt-stile .date-header th.nt-oggi::after{content:'OGGI';position:absolute;left:0;right:0;bottom:1px;font-size:8px;font-weight:900;letter-spacing:.08em;color:#06231f}
+body.nt-stile #tbody td.nt-oggi{background:color-mix(in srgb,#2dd4bf 22%,#102733)!important;box-shadow:inset 2px 0 0 #2dd4bf,inset -2px 0 0 #2dd4bf!important}
+/* bolla toccata */
+body.nt-stile #tbody td.nt-sel .cell-pill{outline:2px solid #eaf2f4;outline-offset:1px}
