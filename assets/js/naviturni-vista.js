@@ -67,7 +67,8 @@
     document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel'));
     td.classList.add('nt-sel');
     disegnaScheda();
-    window.scrollTo({ top: Math.max(0, box.getBoundingClientRect().top + scrollY - 10), behavior: 'smooth' });
+    // tutta la scheda in vista, sotto la tacca dell'iPhone (scroll-margin-top nel css)
+    box.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'smooth' });
   }, true);
   // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
   ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col]')) e.stopPropagation(); }, true));
