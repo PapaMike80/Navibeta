@@ -69,10 +69,20 @@
     disegnaScheda();
     window.scrollTo({ top: Math.max(0, box.getBoundingClientRect().top + scrollY - 10), behavior: 'smooth' });
   }, true);
+  // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
+  ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col]')) e.stopPropagation(); }, true));
   box.addEventListener('click', e => { if (e.target.closest('[data-oggi]')) { scelta = null; document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel')); disegnaScheda(); } });
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
+  // altezze vere di mese e date: la mia riga si incolla subito sotto, senza spazi
+  function altezze() {
+    const m = document.querySelector('.month-header')?.offsetHeight || 0, d = document.querySelector('.date-header')?.offsetHeight || 0;
+    if (!d) return;
+    const r = document.documentElement.style;
+    if (r.getPropertyValue('--nt-mia') !== `${m + d}px` || r.getPropertyValue('--nt-mese') !== `${m}px`) { r.setProperty('--nt-mese', `${m}px`); r.setProperty('--nt-mia', `${m + d}px`); }
+  }
   function segnaOggi() {
+    altezze();
     if (typeof dateCalendario === 'undefined') return;
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
