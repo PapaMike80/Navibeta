@@ -45,3 +45,6 @@ table.nt-g{border-collapse:separate;border-spacing:0;font-size:11px}
 .nt-g tr.mia th,.nt-g tr.mia td{position:sticky;top:40px;z-index:3;background:color-mix(in srgb,var(--teal) 16%,var(--card))!important;border-bottom:2px solid color-mix(in srgb,var(--teal) 50%,transparent)}
 .nt-g tr.mia th.nm{left:0;z-index:4;background:color-mix(in srgb,var(--teal) 26%,var(--card))!important}
 #nt-vista .nt-g tr.mia td.oggi{background:color-mix(in srgb,var(--teal) 38%,var(--card))!important}
+.nt-mese{position:absolute;right:2px;top:1px;font-style:normal;font-size:8px;color:var(--amber,#fbbf24);font-weight:900}
+.nt-g .mese{border-left:2px solid #fbbf24!important}
+.nt-mese-vista{margin:2px 4px 6px;font-size:13px;font-weight:800;color:var(--cyan)}
