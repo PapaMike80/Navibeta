@@ -109,6 +109,7 @@
     e.stopPropagation(); e.preventDefault();
     scelta = { day: cal.iso, code, res: typeof currentResidence !== 'undefined' ? currentResidence : '' };
     segnaScelta();
+    colonneAltrove();
     disegnaScheda();
     // la testata resta sempre ferma in alto: niente da scorrere
   }, true);
@@ -122,7 +123,7 @@
     const cal = dateCalendario.find(c => c.col === Number(th.dataset.col)); const mio = io(); if (!cal) return;
     const code = mio ? turno(mio.a, cal.iso) : '';
     scelta = { day: cal.iso, code: code && !RIPOSO.test(code) ? code : '', res: mio?.res || '' };
-    disegnaScheda(); segnaScelta();
+    disegnaScheda(); segnaScelta(); colonneAltrove();
   }, true);
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
@@ -189,12 +190,28 @@
     const oro = cal.iso === giornoPaga(cal.iso);
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"], #tbody td[data-col="${cal.col}"]:not(.elsewhere-span)`).forEach(x => { x.classList.add('nt-selcol'); x.classList.toggle('nt-oro', oro); });
   }
+  // righe «A residenza» (una cella unica su più giorni): la colonna di oggi (tratteggiata) e quella scelta
+  // (piena, dorata nel giorno di paga) si disegnano dentro la cella alla posizione delle loro date
+  function colonneAltrove() {
+    const oggiTh = document.querySelector('.date-header th.nt-oggi'), selTh = document.querySelector('.date-header th.nt-selcol');
+    const strati = (td, th, tipo) => {
+      if (!th) return [];
+      const r = td.getBoundingClientRect(), t = th.getBoundingClientRect();
+      if (t.left < r.left - 1 || t.left >= r.right - 1) return [];
+      const o = Math.round(t.left - r.left), w = Math.round(t.width);
+      const oro = tipo === 'sel' && th.classList.contains('nt-oro');
+      const c = oro ? '#fbbf24' : '#2dd4bf', tinta = oro ? 'rgba(251,191,36,.16)' : tipo === 'sel' ? 'rgba(45,212,191,.12)' : 'rgba(45,212,191,.07)';
+      const riga = tipo === 'sel' ? `linear-gradient(${c},${c})` : `repeating-linear-gradient(to bottom,rgba(45,212,191,.8) 0 6px,transparent 6px 10px)`;
+      return [`${riga} ${o}px 0/2px 100% no-repeat`, `${riga} ${o + w - 2}px 0/2px 100% no-repeat`, `linear-gradient(${tinta},${tinta}) ${o}px 0/${w}px 100% no-repeat`];
+    };
+    document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => {
+      const l = [...strati(td, selTh, 'sel'), ...(selTh === oggiTh ? [] : strati(td, oggiTh, 'oggi'))];
+      td.style.setProperty('background', l.length ? l.join(',') : 'transparent', 'important');
+    });
+  }
   function segnaOggi() {
     altezze();
     adatta();
-    // righe «A residenza»: una cella unica su più giorni; la colonna di oggi si disegna col gradiente
-    const th = document.querySelector('.date-header th.nt-oggi');
-    if (th) { const t = th.getBoundingClientRect(); document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => { const r = td.getBoundingClientRect(); const dentro = t.left >= r.left - 1 && t.left < r.right - 1; td.classList.toggle('nt-oggi-in', dentro); if (dentro) { td.style.setProperty('--o', `${Math.round(t.left - r.left)}px`); td.style.setProperty('--w', `${Math.round(t.width)}px`); } }); }
     if (typeof dateCalendario === 'undefined') return;
     // domeniche e giorno di paga, per le tessere della riga delle date
     document.querySelectorAll('.date-header th[data-col]:not([data-nt])').forEach(th => {
@@ -207,6 +224,7 @@
     segnaScelta();
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
+    colonneAltrove();
   }
   new MutationObserver(() => segnaOggi()).observe(document.getElementById('turni-operativi') || document.body, { childList: true, subtree: true });
 
