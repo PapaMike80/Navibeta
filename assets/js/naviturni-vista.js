@@ -124,6 +124,14 @@
       let f = parseFloat(getComputedStyle(b).fontSize) || 10.5;
       while (b.scrollWidth > b.clientWidth + 0.5 && f > 6.5) { f -= 0.5; b.style.fontSize = `${f}px`; b.style.letterSpacing = '-.04em'; }
     });
+    // anche i nomi: su una riga, i più lunghi un po' più piccoli
+    document.querySelectorAll('#tbody td.td-name').forEach(td => {
+      const t = td.textContent.trim();
+      if (td.dataset.fit === t || !td.offsetWidth) return;
+      td.dataset.fit = t; td.style.removeProperty('font-size');
+      let f = parseFloat(getComputedStyle(td).fontSize) || 13.5;
+      while (td.scrollWidth > td.clientWidth + 0.5 && f > 10) { f -= 0.5; td.style.setProperty('font-size', `${f}px`, 'important'); }
+    });
   }
   function segnaOggi() {
     altezze();

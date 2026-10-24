@@ -127,3 +127,8 @@ body.nt-stile #tbody td.elsewhere-span{box-shadow:none!important}
 body.nt-stile #tbody td.elsewhere-span:not(.nt-oggi-in){background:transparent!important}
 body.nt-stile #tbody td.elsewhere-span.nt-oggi-in{background:linear-gradient(to right,transparent var(--o),#2dd4bf var(--o),#2dd4bf calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w)),transparent calc(var(--o) + var(--w)))!important}
 #nt-testata .terra-title .chip{flex:none}
+/* caratteri della tabella più grandi e colonne un po' più larghe per starci */
+body.nt-stile #tbody .cell-pill:not(.c-rip){font-size:12.5px;padding:5px 4px}
+body.nt-stile #tbody tr td.td-name{font-size:13.5px!important}
+body.nt-stile #matrix-scroll-wrap .date-header th[data-col]{min-width:40px!important;width:40px!important}
+body.nt-stile #tbody td[data-col]:not(.elsewhere-span){min-width:40px!important;width:40px!important}
