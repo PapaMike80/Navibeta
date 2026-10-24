@@ -49,7 +49,6 @@ body.nt-stile #matrix-scroll-wrap .date-header th{top:calc(env(safe-area-inset-t
 body.nt-stile #matrix-scroll-wrap .month-header th{top:env(safe-area-inset-top,0px)!important}
 body.nt-stile #matrix-scroll-wrap #tbody tr.logged-agent-row td{position:sticky!important;top:calc(env(safe-area-inset-top,0px) + var(--nt-mia,70px))!important}
 .nt-crew{margin-top:10px}
-body.nt-stile .crew-hover-tooltip{display:none!important}
 /* bolle più piccole, sempre dentro la loro cella */
 body.nt-stile #tbody .cell-pill:not(.c-rip){box-sizing:border-box;min-width:0;max-width:calc(100% - 2px);padding:4px 4px;font-size:10.5px;overflow:hidden;white-space:nowrap;text-overflow:clip;vertical-align:middle}
 /* il riquadro dell'equipaggio resta fermo anche scorrendo a destra e sinistra */
