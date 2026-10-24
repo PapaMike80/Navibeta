@@ -29,7 +29,7 @@
   const tuttiAgenti = () => Object.entries(schedule?.residenze || {}).flatMap(([res, list]) => (list || []).filter(a => a && !window.NaviRoles?.isBaristaAgent?.(a)).map(a => ({ a, res })));
   function turno(agent, day) {
     const k = `${agent.id || agent.agente}|${day}`;
-    if (!cache.has(k)) { let t = ''; try { t = String(G.turnoAgente(schedule, { id: agent.id, name: agent.agente }, day)?.turno || '').trim(); } catch { t = ''; } cache.set(k, t); }
+    if (!cache.has(k)) { let t = ''; try { t = String(G.turnoAgente(schedule, { id: agent.id, name: agent.agente }, day)?.turno || '').trim(); } catch { t = ''; } if (/^TERRA/i.test(t)) { let r = ''; try { r = String(getAgentShiftOnDate(agent, day) || '').trim(); } catch { r = ''; } t = r && !/^TERRA/i.test(r) ? r : 'LAV'; } cache.set(k, t); }
     return cache.get(k);
   }
   const io = () => { const p = profilo(); return p ? tuttiAgenti().find(({ a }) => String(a.id) === String(p.id)) : null; };
