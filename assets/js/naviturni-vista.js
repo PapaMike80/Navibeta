@@ -199,44 +199,27 @@
     const rosso = !oro && parse(cal.iso).getDay() === 0;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"], #tbody td[data-col="${cal.col}"]:not(.elsewhere-span)`).forEach(x => { x.classList.add('nt-selcol'); x.classList.toggle('nt-oro', oro); x.classList.toggle('nt-rosso', rosso); });
   }
-  // righe «A residenza» (una cella unica su più giorni): la colonna di oggi (tratteggiata) e quella scelta
-  // (piena, dorata nel giorno di paga) si disegnano dentro la cella alla posizione delle loro date
+  // Colonne di oggi (tratteggiata) e del giorno scelto (piena; dorata nel giorno di paga, rossa la domenica):
+  // un'unica cornice sopra tutta la tabella, allineata alla tessera della data, senza salti tra le righe
+  // e anche sulle righe «A residenza».
+  const cornici = {};
+  function cornice(nome, th) {
+    const tbody = document.getElementById('tbody'), table = tbody?.closest('table'), host = table?.parentElement;
+    let el = cornici[nome];
+    if (!th || !host || !th.offsetWidth) { el?.remove(); delete cornici[nome]; return; }
+    if (getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    if (!el || el.parentElement !== host) { el?.remove(); el = cornici[nome] = document.createElement('div'); el.className = `nt-cornice nt-cornice-${nome}`; host.appendChild(el); }
+    const h = host.getBoundingClientRect(), t = th.getBoundingClientRect(), b = tbody.getBoundingClientRect();
+    el.style.setProperty('--w', `${t.width}px`);
+    el.classList.toggle('nt-oro', th.classList.contains('nt-oro')); el.classList.toggle('nt-rosso', th.classList.contains('nt-rosso'));
+    Object.assign(el.style, { left: `${t.left - h.left - host.clientLeft + host.scrollLeft}px`, width: `${t.width}px`, top: `${b.top - h.top - host.clientTop + host.scrollTop - 6}px`, height: `${b.height + 6}px` });
+  }
   function colonneAltrove() {
     const oggiTh = document.querySelector('.date-header th.nt-oggi'), selTh = document.querySelector('.date-header th.nt-selcol');
-    const strati = (td, th, tipo) => {
-      if (!th) return [];
-      const r = td.getBoundingClientRect(), t = th.getBoundingClientRect();
-      if (t.left < r.left - 1 || t.left >= r.right - 1) return [];
-      const o = Math.round(t.left - r.left), w = Math.round(t.width);
-      const oro = tipo === 'sel' && th.classList.contains('nt-oro'), rosso = tipo === 'sel' && th.classList.contains('nt-rosso');
-      const c = oro ? '#fbbf24' : rosso ? 'rgba(251,113,133,.55)' : '#2dd4bf', tinta = oro ? 'rgba(251,191,36,.16)' : rosso ? 'rgba(251,113,133,.12)' : tipo === 'sel' ? 'rgba(45,212,191,.12)' : 'rgba(45,212,191,.07)';
-      const riga = tipo === 'sel' ? `linear-gradient(${c},${c})` : `repeating-linear-gradient(to bottom,rgba(45,212,191,.8) 0 6px,transparent 6px 10px)`;
-      return [`${riga} ${o}px 0/2px 100% no-repeat`, `${riga} ${o + w - 2}px 0/2px 100% no-repeat`, `linear-gradient(${tinta},${tinta}) ${o}px 0/${w}px 100% no-repeat`];
-    };
-    document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => {
-      const l = [...strati(td, selTh, 'sel'), ...(selTh === oggiTh ? [] : strati(td, oggiTh, 'oggi'))];
-      td.style.setProperty('background', l.length ? l.join(',') : 'transparent', 'important');
-    });
+    cornice('sel', selTh);
+    cornice('oggi', selTh && selTh === oggiTh ? null : oggiTh);
   }
-  // righe «A residenza» (una cella unica su più giorni): la colonna di oggi (tratteggiata) e quella scelta
-  // (piena, dorata nel giorno di paga) si disegnano dentro la cella alla posizione delle loro date
-  function colonneAltrove() {
-    const oggiTh = document.querySelector('.date-header th.nt-oggi'), selTh = document.querySelector('.date-header th.nt-selcol');
-    const strati = (td, th, tipo) => {
-      if (!th) return [];
-      const r = td.getBoundingClientRect(), t = th.getBoundingClientRect();
-      if (t.left < r.left - 1 || t.left >= r.right - 1) return [];
-      const o = Math.round(t.left - r.left), w = Math.round(t.width);
-      const oro = tipo === 'sel' && th.classList.contains('nt-oro');
-      const c = oro ? '#fbbf24' : '#2dd4bf', tinta = oro ? 'rgba(251,191,36,.16)' : tipo === 'sel' ? 'rgba(45,212,191,.12)' : 'rgba(45,212,191,.07)';
-      const riga = tipo === 'sel' ? `linear-gradient(${c},${c})` : `repeating-linear-gradient(to bottom,rgba(45,212,191,.8) 0 6px,transparent 6px 10px)`;
-      return [`${riga} ${o}px 0/2px 100% no-repeat`, `${riga} ${o + w - 2}px 0/2px 100% no-repeat`, `linear-gradient(${tinta},${tinta}) ${o}px 0/${w}px 100% no-repeat`];
-    };
-    document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => {
-      const l = [...strati(td, selTh, 'sel'), ...(selTh === oggiTh ? [] : strati(td, oggiTh, 'oggi'))];
-      td.style.setProperty('background', l.length ? l.join(',') : 'transparent', 'important');
-    });
-  }
+  addEventListener('resize', () => colonneAltrove());
   function segnaOggi() {
     altezze();
     adatta();
