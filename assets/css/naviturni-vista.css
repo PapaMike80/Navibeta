@@ -59,3 +59,7 @@ body.nt-stile #nt-vista{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 14
 /* cognomi lunghi: carattere un po' più piccolo e a capo invece dei puntini */
 body.nt-stile #tbody tr td.td-name,body.nt-stile #tbody tr td.td-name .agent-name-text{white-space:normal!important;text-overflow:clip!important;overflow-wrap:anywhere;hyphens:auto;line-height:1.1!important}
 body.nt-stile #tbody tr td.td-name{font-size:11.5px!important}
+/* nomi sempre su una riga */
+body.nt-stile #tbody tr td.td-name,body.nt-stile #tbody tr td.td-name .agent-name-text{white-space:nowrap!important;overflow-wrap:normal;letter-spacing:-.01em}
+/* testo delle bolle centrato: se è lungo si taglia uguale ai due lati */
+body.nt-stile #tbody .cell-pill:not(.c-rip){display:inline-flex;justify-content:center;align-items:center;text-align:center;letter-spacing:-.02em}
