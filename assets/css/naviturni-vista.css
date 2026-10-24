@@ -178,3 +178,7 @@ body.nt-stile .date-header th[data-col] .nt-mt:not(.rip){width:30px;min-width:30
 body.nt-stile .date-header th[data-col] .nt-mt.rip{width:30px;min-width:30px;max-width:30px}
 /* la bolla «A RIVA» resta larga quanto serve */
 body.nt-stile #tbody td.elsewhere-span .cell-pill{width:auto!important;min-width:0!important;max-width:none!important;padding:4px 10px!important}
+/* domenica scelta: tutta la colonna nel rosso trasparente della domenica */
+body.nt-stile .date-header th.nt-selcol.nt-rosso::before{border-color:rgba(251,113,133,.55);background:color-mix(in srgb,#fb7185 12%,#102733);box-shadow:none}
+body.nt-stile #tbody td.nt-selcol.nt-rosso{background:color-mix(in srgb,#fb7185 12%,transparent)!important}
+body.nt-stile #tbody td.nt-selcol.nt-rosso::after{border-color:rgba(251,113,133,.55)}
