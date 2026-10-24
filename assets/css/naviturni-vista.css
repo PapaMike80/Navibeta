@@ -81,3 +81,7 @@ body.nt-stile>footer{position:sticky!important;left:0!important;width:100vw;max-
 }
 /* bolle come nel Mio turno: fondo scuro del colore del turno, bordo e scritta colorati */
 body.nt-stile #tbody .cell-pill:not(.c-rip){background:color-mix(in srgb,var(--t,#94a3b8) 22%,#0b1c26)!important;border:1.5px solid color-mix(in srgb,var(--t,#94a3b8) 70%,transparent)!important;color:color-mix(in srgb,var(--t,#94a3b8) 40%,#ffffff)!important;font-weight:800}
+#nt-vista .nt-dist{display:inline-grid;place-items:center;flex:none;width:34px;height:34px;box-sizing:border-box;border:3px solid var(--g);border-radius:50%;background:color-mix(in srgb,var(--g) 18%,transparent);color:var(--g);font-size:11px;font-weight:900;line-height:1}
+#nt-vista .nt-cw{padding-top:7px;padding-bottom:7px}
+/* codice del turno come il badge del Mio turno */
+#nt-vista .nt-code:not(.rip){background:color-mix(in srgb,var(--t) 22%,#0b1c26)!important;border:2px solid color-mix(in srgb,var(--t) 70%,transparent);color:color-mix(in srgb,var(--t) 40%,#ffffff)!important;border-radius:999px}

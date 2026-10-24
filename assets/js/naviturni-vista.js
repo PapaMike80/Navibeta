@@ -44,9 +44,11 @@
     const mioId = String(profilo()?.id || '');
     const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
-    // righe come nel Mio turno: nome nel colore del grado, ruolo a destra, la mia riga bordata
+    // righe come nel Mio turno: nome nel colore del grado, distintivo del grado a destra, la mia riga bordata
+    // a destra il distintivo del grado, come nel menu e in Movimento
     const RUOLO = { Applicato: 'Bigliettaio' };
-    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><b style="color:${m.grado[0] === 'Marinaio' || !m.grado[0] ? '#eaf2f4' : m.grado[1]}">${esc(m.name)}${m.id && m.id === mioId ? ' <em>(tu)</em>' : ''}</b><small class="nt-ruolo">${esc(RUOLO[m.grado[0]] || m.grado[0] || '')}</small></div>`).join('');
+    const DIST = { Capitano: '#facc15', 'Capo timoniere': '#fb923c', 'Aiuto motorista': '#3b82f6', Motorista: '#a855f7', Timoniere: '#22c55e', Marinaio: '#e8f3f6', Applicato: '#a3e635' };
+    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><b style="color:${m.grado[0] === 'Marinaio' || !m.grado[0] ? '#eaf2f4' : m.grado[1]}">${esc(m.name)}${m.id && m.id === mioId ? ' <em>(tu)</em>' : ''}</b>${m.grado[0] ? `<span class="nt-dist" style="--g:${DIST[m.grado[0]] || m.grado[1]}" title="${esc(RUOLO[m.grado[0]] || m.grado[0])}">${esc(SIGLA[m.grado[0]] || '·')}</span>` : ''}</div>`).join('');
     return `<div class="nt-sez"><div class="nt-mio"><span class="nt-code" style="--t:${G.coloreTurno(code)};color:${G.testoSu(G.coloreTurno(code))}">${esc(code)}</span><div><b>${nave ? 'Equipaggio' : 'Servizio a terra'}</b><small>${dettagli || '&nbsp;'}</small></div></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
