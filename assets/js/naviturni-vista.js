@@ -37,13 +37,16 @@
   // Riquadro in alto: il turno scelto (di default il mio di oggi) e chi c'e' a bordo
   // Testata come il Mio turno: etichetta, codice + nave, giorno e ore, poi l'equipaggio in bolle (due righe).
   // Righe ad altezza fissa: cambiando corsa o servizio la tabella sotto non si sposta.
+  // ore del servizio, anche per i codici a terra scritti in modo diverso (AGM/AgM, L.D./LD...)
+  const pulito = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const oreTurno = (code, day) => { try { const s = (C?.shiftsFor?.(day) || []).find(x => pulito(x.code) === pulito(code)); return Number(s?.hours) || 0; } catch { return 0; } };
   function scheda() {
     const mio = io();
     const day = scelta?.day || oggi, code = scelta?.code || (mio ? turno(mio.a, oggi) : '');
     const giorno = giornoLungo(day);
     const testa = (titolo, contesto, nomi) => `<p class="terra-label">NAVITURNI</p><h1 class="terra-title nt-titolo">${titolo}</h1><p class="terra-context nt-contesto">${contesto}</p><div class="nt-eq-nomi">${nomi}</div>`;
     if (!code || RIPOSO.test(code)) return testa('Riposo', `${giorno} · tocca un turno per vedere l'equipaggio`, '');
-    const nave = G.naveCode(code), ore = Number(C?.shiftForCode?.(nave || code, day)?.hours) || 0;
+    const nave = G.naveCode(code), ore = oreTurno(nave || code, day);
     const riga = (schedule?.turni_navi || []).filter(r => String(r?.data || '').slice(0, 10) === day && G.naveCode(r?.corsa) === nave && r?.attiva !== false).pop();
     const durata = ore ? `${Math.floor(ore)} h${Math.round((ore % 1) * 60) ? ` ${String(Math.round((ore % 1) * 60)).padStart(2, '0')}'` : ''}` : '';
     let crew = [];
@@ -52,7 +55,7 @@
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
     const nomi = crew.map(m => `<span style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
     const chip = `<span class="chip" style="--c:${G.coloreTurno(code)}">${esc(code)}</span>`;
-    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : 'Servizio a terra'))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
+    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : 'A terra'))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
   }
 
 
@@ -96,6 +99,9 @@
   }
   function segnaOggi() {
     altezze();
+    // righe «A residenza»: una cella unica su più giorni; la colonna di oggi si disegna col gradiente
+    const th = document.querySelector('.date-header th.nt-oggi');
+    if (th) { const t = th.getBoundingClientRect(); document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => { const r = td.getBoundingClientRect(); const dentro = t.left >= r.left - 1 && t.left < r.right - 1; td.classList.toggle('nt-oggi-in', dentro); if (dentro) { td.style.setProperty('--o', `${Math.round(t.left - r.left)}px`); td.style.setProperty('--w', `${Math.round(t.width)}px`); } }); }
     if (typeof dateCalendario === 'undefined') return;
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
