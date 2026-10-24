@@ -148,6 +148,12 @@
       while (td.scrollWidth > td.clientWidth + 0.5 && f > 10) { f -= 0.5; td.style.setProperty('font-size', `${f}px`, 'important'); }
     });
   }
+  // giorno di paga (come nel Mio turno): il 27; di sabato si anticipa al 26, di domenica si posticipa al lunedì 28
+  function giornoPaga(day) {
+    const d = parse(day); const p = new Date(d.getFullYear(), d.getMonth(), 27, 12);
+    if (p.getDay() === 6) p.setDate(26); else if (p.getDay() === 0) p.setDate(28);
+    return iso(p);
+  }
   function segnaOggi() {
     altezze();
     adatta();
@@ -155,6 +161,13 @@
     const th = document.querySelector('.date-header th.nt-oggi');
     if (th) { const t = th.getBoundingClientRect(); document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => { const r = td.getBoundingClientRect(); const dentro = t.left >= r.left - 1 && t.left < r.right - 1; td.classList.toggle('nt-oggi-in', dentro); if (dentro) { td.style.setProperty('--o', `${Math.round(t.left - r.left)}px`); td.style.setProperty('--w', `${Math.round(t.width)}px`); } }); }
     if (typeof dateCalendario === 'undefined') return;
+    // domeniche e giorno di paga, per le tessere della riga delle date
+    document.querySelectorAll('.date-header th[data-col]:not([data-nt])').forEach(th => {
+      const c = dateCalendario.find(x => x.col === Number(th.dataset.col)); if (!c) return;
+      th.dataset.nt = '1';
+      if (parse(c.iso).getDay() === 0) th.classList.add('nt-dom');
+      if (c.iso === giornoPaga(c.iso)) th.classList.add('nt-paga');
+    });
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
   }
