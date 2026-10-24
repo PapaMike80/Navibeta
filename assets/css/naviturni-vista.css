@@ -40,3 +40,7 @@ body.nt-stile .date-header th.nt-oggi::after{content:'OGGI';position:absolute;le
 body.nt-stile #tbody td.nt-oggi{background:color-mix(in srgb,#2dd4bf 22%,#102733)!important;box-shadow:inset 2px 0 0 #2dd4bf,inset -2px 0 0 #2dd4bf!important}
 /* bolla toccata */
 body.nt-stile #tbody td.nt-sel .cell-pill{outline:2px solid #eaf2f4;outline-offset:1px}
+/* niente pulsanti OGGI e menu sopra la tabella: resta solo il mese, in una riga bassa */
+body.nt-stile #matrix-scroll-wrap .month-header th.turni-header-actions>*{display:none!important}
+body.nt-stile #matrix-scroll-wrap .month-header th{height:auto!important;padding-top:6px!important;padding-bottom:6px!important}
+.nt-crew{margin-top:10px}
