@@ -36,3 +36,4 @@ table.nt-g{border-collapse:separate;border-spacing:0;font-size:11px}
 .nt-rip{color:#4f6b77}
 .nt-g tr.mia .nm{background:color-mix(in srgb,var(--teal) 22%,var(--card));color:var(--teal)}.nt-g tr.mia td{background:color-mix(in srgb,var(--teal) 9%,transparent)}
 .nt-hint{text-align:center;font-size:11px;color:var(--muted);margin:6px 0 0}
+.nt-altrove{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;border:1px dashed var(--line);border-radius:999px;padding:2px 4px}

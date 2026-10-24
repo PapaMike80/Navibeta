@@ -63,15 +63,22 @@
   // Nascosti: chi da oggi in avanti ha solo congedo (CON...) o nessun turno (servizio terminato)
   const FUTURI = GG.filter(d => d >= oggi);
   const inServizio = a => FUTURI.some(day => { const t = turno(a, day); return t && !/^CON/i.test(t); });
+  // Cambio di residenza (import turni: residenzaDal, residenzaPrecedente, residenzaNuova): ogni giorno l'agente sta
+  // nella residenza in cui e' davvero; nelle altre quei giorni compaiono come «A <residenza>»
+  const RES = r => String(r || '').toUpperCase();
+  const resDi = ({ a, res }, day) => a.residenzaDal && a.residenzaNuova ? (day >= a.residenzaDal ? RES(a.residenzaNuova) : RES(a.residenzaPrecedente || res)) : RES(res);
+  const nomeRes = r => r.charAt(0) + r.slice(1).toLowerCase();
   function griglia() {
     const mio = io(), mioId = String(mio?.a?.id || '');
-    const altri = tuttiAgenti().filter(({ a, res }) => res === residenza && String(a.id) !== mioId && inServizio(a))
+    const visti = new Set();
+    const altri = tuttiAgenti().filter(x => { const k = String(x.a.id || x.a.agente); if (visti.has(k)) return false; visti.add(k); return true; })
+      .filter(x => String(x.a.id) !== mioId && inServizio(x.a) && GG.some(day => resDi(x, day) === RES(residenza)))
       .sort((x, y) => grado(x.a)[2] - grado(y.a)[2] || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
     const righe = [...(mio ? [mio] : []), ...altri];
     const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun' : ''}">${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
-    const corpo = righe.map(({ a }) => {
-      const me = String(a.id) === mioId, cognome = String(a.agente || '').replace(/\s+\S{1,3}\.?$/, '');
-      return `<tr class="${me ? 'mia' : ''}"><th class="nm"><span class="nt-dot" style="--g:${grado(a)[1]}"></span>${esc(cognome)}</th>${GG.map(day => `<td class="${day === oggi ? 'oggi ' : ''}${parse(day).getDay() === 1 ? 'lun' : ''}">${bolla(turno(a, day), day, me)}</td>`).join('')}</tr>`;
+    const corpo = righe.map(x => {
+      const { a } = x, me = String(a.id) === mioId, cognome = String(a.agente || '').replace(/\s+\S{1,3}\.?$/, '');
+      return `<tr class="${me ? 'mia' : ''}"><th class="nm"><span class="nt-dot" style="--g:${grado(a)[1]}"></span>${esc(cognome)}</th>${GG.map(day => { const r = resDi(x, day), altrove = !me && r !== RES(residenza); return `<td class="${day === oggi ? 'oggi ' : ''}${parse(day).getDay() === 1 ? 'lun' : ''}">${altrove ? `<span class="nt-altrove" title="In servizio a ${esc(nomeRes(r))}">A ${esc(r.slice(0, 3))}</span>` : bolla(turno(a, day), day, me)}</td>`; }).join('')}</tr>`;
     }).join('');
     return `<div class="nt-strip" id="nt-strip"><table class="nt-g"><thead><tr><th class="nm"></th>${testa}</tr></thead><tbody>${corpo}</tbody></table></div>`;
   }
@@ -123,7 +130,7 @@
 
   function carica(data) {
     schedule = data || { residenze: {} }; cache.clear();
-    if (!residenza) residenza = io()?.res || Object.keys(schedule.residenze || {})[0] || '';
+    if (!residenza) { const mio = io(); residenza = mio ? Object.keys(schedule.residenze || {}).find(k => RES(k) === resDi(mio, oggi)) || mio.res : Object.keys(schedule.residenze || {})[0] || ''; }
     render();
   }
   document.fonts?.ready?.then(() => allinea());
