@@ -40,6 +40,19 @@
   // ore del servizio, anche per i codici a terra scritti in modo diverso (AGM/AgM, L.D./LD...)
   const pulito = c => String(c || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   const oreTurno = (code, day) => { try { const s = (C?.shiftsFor?.(day) || []).find(x => pulito(x.code) === pulito(code)); return Number(s?.hours) || 0; } catch { return 0; } };
+  // Lavori e L.D.: stesso orario del Mio turno (O.d.S. 39/2026), per residenza; il venerdì feriale finisce prima
+  const ORARIO_LAVORI = {
+    DESENZANO: { mattina: ['8.00', '12.30'], pomeriggio: ['14.00', '17.30'], venerdi: '16.30' },
+    MADERNO: { mattina: ['8.00', '12.30'], pomeriggio: ['14.00', '17.30'], venerdi: '16.30' },
+    PESCHIERA: { mattina: ['7.30', '12.00'], pomeriggio: ['13.30', '17.00'], venerdi: '16.00' },
+    RIVA: { mattina: ['7.30', '12.00'], pomeriggio: ['13.30', '17.00'], venerdi: '16.00' }
+  };
+  const lavoro = c => /^(LAV[.;]?|L\.?D[.;]?)$/i.test(String(c || '').trim());
+  function orarioLavori(res, day) {
+    const o = ORARIO_LAVORI[String(res || '').toUpperCase()] || ORARIO_LAVORI.DESENZANO;
+    const venerdi = parse(day).getDay() === 5 && !window.NaviDistintaTotals?.isHoliday?.(parse(day));
+    return `${o.mattina[0]}–${o.mattina[1]} · ${o.pomeriggio[0]}–${venerdi ? o.venerdi : o.pomeriggio[1]}`;
+  }
   function scheda() {
     const mio = io();
     const day = scelta?.day || oggi, code = scelta?.code || (mio ? turno(mio.a, oggi) : '');
@@ -55,7 +68,9 @@
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
     const nomi = crew.map(m => `<span style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
     const chip = `<span class="chip" style="--c:${G.coloreTurno(code)}">${esc(code)}</span>`;
-    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : ''))}`, [giorno, durata].filter(Boolean).join(' · '), nomi);
+    const res = scelta?.res || mio?.res || (typeof currentResidence !== 'undefined' ? currentResidence : '');
+    const quando = lavoro(code) ? orarioLavori(res, day) : durata;
+    return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : ''))}`, [giorno, quando].filter(Boolean).join(' · '), nomi);
   }
 
 
@@ -77,7 +92,7 @@
     if (!code) { try { code = String(getAgentShiftOnDate(agente, cal.iso) || '').trim(); } catch { code = ''; } }
     if (!code || RIPOSO.test(code)) return;
     e.stopPropagation(); e.preventDefault();
-    scelta = { day: cal.iso, code };
+    scelta = { day: cal.iso, code, res: typeof currentResidence !== 'undefined' ? currentResidence : '' };
     document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel'));
     td.classList.add('nt-sel');
     disegnaScheda();
