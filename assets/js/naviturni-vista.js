@@ -53,12 +53,22 @@
   function orarioLavori(res, day) {
     const o = ORARIO_LAVORI[String(res || '').toUpperCase()] || ORARIO_LAVORI.DESENZANO;
     const venerdi = parse(day).getDay() === 5 && !window.NaviDistintaTotals?.isHoliday?.(parse(day));
-    return `${o.mattina[0]}–${o.mattina[1]} · ${o.pomeriggio[0]}–${venerdi ? o.venerdi : o.pomeriggio[1]}`;
+    return [o.mattina[0], venerdi ? o.venerdi : o.pomeriggio[1]];
+  }
+  // inizio e fine del servizio come nel Mio turno: presentazione e ultimo arrivo per le navi,
+  // orario dell'O.d.S. per i servizi a terra (AgB, AgM, AgT, PonD) e per LAV / L.D.
+  const ora = v => String(v || '').replace(':', '.').replace(/^0(\d)/, '$1');
+  function orarioServizio(code, nave, res, day, riga) {
+    if (lavoro(code)) return orarioLavori(res, day);
+    if (nave) { const i = window.NaviCourseInfo?.info?.(nave, day, { refuel: !!riga?.rif }) || {}; return [i.presentation, i.lastArrival]; }
+    const T = window.NaviServiziTerra?.DATA?.SERVIZI || {};
+    const r = Object.values(T).flat().find(x => pulito(x[0]) === pulito(code));
+    return r ? [r[1].split(' – ')[0], r[2].split(' – ')[1]] : [];
   }
   function scheda() {
     const mio = io();
     const day = scelta?.day || oggi, code = scelta?.code || (mio ? turno(mio.a, oggi) : '');
-    const giorno = giornoLungo(day);
+    const giorno = giornoLungo(day).replace(/ (\S{3})\S*$/, ' $1');
     const testa = (titolo, contesto, nomi) => `<p class="terra-label">NAVITURNI</p><h1 class="terra-title nt-titolo">${titolo}</h1><p class="terra-context nt-contesto">${contesto}</p><div class="nt-eq-nomi">${nomi}</div>`;
     if (!code || RIPOSO.test(code)) return testa('Riposo', `${giorno} · tocca un turno per vedere l'equipaggio`, '');
     const nave = G.naveCode(code), ore = oreTurno(nave || code, day);
@@ -71,7 +81,8 @@
     const nomi = crew.map(m => `<span style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
     const chip = `<span class="chip" style="--c:${G.coloreTurno(code)}">${esc(code)}</span>`;
     const res = scelta?.res || mio?.res || (typeof currentResidence !== 'undefined' ? currentResidence : '');
-    const quando = lavoro(code) ? orarioLavori(res, day) : durata;
+    const [inizio, fine] = orarioServizio(code, nave, res, day, riga);
+    const quando = inizio && fine ? `${ora(inizio)} – ${ora(fine)}${durata ? ` (${durata})` : ''}` : durata;
     return testa(`${chip} ${esc(riga?.nave || (nave ? 'Nave non indicata' : ''))}`, [giorno, quando].filter(Boolean).join(' · '), nomi);
   }
 
