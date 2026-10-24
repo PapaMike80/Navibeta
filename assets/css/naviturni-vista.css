@@ -45,9 +45,9 @@ body.nt-stile #matrix-scroll-wrap .month-header th.turni-header-actions>*{displa
 /* righe fisse una attaccata all'altra: mese, date e la mia riga (le altezze vere le misura naviturni-page.js) */
 body.nt-stile #matrix-scroll-wrap .month-header th{height:26px!important;min-height:26px!important;max-height:26px!important;padding:0!important}
 body.nt-stile #matrix-scroll-wrap .month-visible-label{height:26px!important;line-height:26px}
-body.nt-stile #matrix-scroll-wrap .date-header th{top:calc(env(safe-area-inset-top,0px) + var(--nt-mese,26px))!important}
-body.nt-stile #matrix-scroll-wrap .month-header th{top:env(safe-area-inset-top,0px)!important}
-body.nt-stile #matrix-scroll-wrap #tbody tr.logged-agent-row td{position:sticky!important;top:calc(env(safe-area-inset-top,0px) + var(--nt-mia,70px))!important}
+body.nt-stile #matrix-scroll-wrap .date-header th{top:calc(env(safe-area-inset-top,0px) + var(--nt-testa,0px) + var(--nt-mese,26px))!important}
+body.nt-stile #matrix-scroll-wrap .month-header th{top:calc(env(safe-area-inset-top,0px) + var(--nt-testa,0px))!important}
+body.nt-stile #matrix-scroll-wrap #tbody tr.logged-agent-row td{position:sticky!important;top:calc(env(safe-area-inset-top,0px) + var(--nt-testa,0px) + var(--nt-mia,70px))!important}
 .nt-crew{margin-top:10px}
 /* bolle più piccole, sempre dentro la loro cella */
 body.nt-stile #tbody .cell-pill:not(.c-rip){box-sizing:border-box;min-width:0;max-width:calc(100% - 2px);padding:4px 4px;font-size:10.5px;overflow:hidden;white-space:nowrap;text-overflow:clip;vertical-align:middle}
@@ -121,3 +121,5 @@ body.nt-stile #nt-vista:empty{display:none}
 #nt-testata .nt-eq-nomi span{display:inline-flex;align-items:center;gap:5px;height:25px;box-sizing:border-box;padding:0 9px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid #244653;color:#eaf2f4;font-size:12px;font-weight:900;white-space:nowrap}
 #nt-testata .nt-eq-nomi span::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--g)}
 body.nt-stile>header.page-header .turni-header-copy[hidden]{display:none!important}
+/* testata sempre ferma in alto, anche scorrendo la tabella in giù; la tabella si incolla sotto */
+body.nt-stile>header.page-header{top:env(safe-area-inset-top,0px)!important;z-index:200!important;background:#091c25!important}
