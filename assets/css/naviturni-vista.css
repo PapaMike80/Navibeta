@@ -119,8 +119,6 @@ body.nt-stile>header.page-header .turni-header-copy[hidden]{display:none!importa
 body.nt-stile>header.page-header{top:env(safe-area-inset-top,0px)!important;z-index:200!important;background:#091c25!important}
 /* colonna di oggi anche dentro le celle «A residenza» */
 body.nt-stile #tbody td.elsewhere-span{box-shadow:none!important}
-body.nt-stile #tbody td.elsewhere-span:not(.nt-oggi-in){background:transparent!important}
-body.nt-stile #tbody td.elsewhere-span.nt-oggi-in{background:linear-gradient(to right,transparent var(--o),#2dd4bf var(--o),#2dd4bf calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w)),transparent calc(var(--o) + var(--w)))!important}
 #nt-testata .terra-title .chip{flex:none}
 /* caratteri della tabella più grandi e colonne un po' più larghe per starci */
 body.nt-stile #tbody .cell-pill:not(.c-rip){font-size:12.5px;padding:5px 4px}
@@ -178,3 +176,5 @@ body.nt-stile #tbody td.nt-selcol.nt-oro::after{border-color:#fbbf24}
 body.nt-stile #tbody .cell-pill:not(.c-rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--t,#94a3b8) 14%,transparent)!important;border:1px solid color-mix(in srgb,var(--t,#94a3b8) 55%,transparent)!important;color:color-mix(in srgb,var(--t,#94a3b8) 78%,#ffffff)!important}
 body.nt-stile .date-header th[data-col] .nt-mt:not(.rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);color:color-mix(in srgb,var(--c) 78%,#ffffff)}
 body.nt-stile .date-header th[data-col] .nt-mt.rip{width:30px;min-width:30px;max-width:30px}
+/* la bolla «A RIVA» resta larga quanto serve */
+body.nt-stile #tbody td.elsewhere-span .cell-pill{width:auto!important;min-width:0!important;max-width:none!important;padding:4px 10px!important}
