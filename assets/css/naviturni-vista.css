@@ -84,7 +84,6 @@ body.nt-stile #tbody .cell-pill:not(.c-rip){background:color-mix(in srgb,var(--t
 #nt-vista .nt-cw{padding-top:7px;padding-bottom:7px}
 /* codice del turno come il badge del Mio turno */
 #nt-vista .nt-code:not(.rip){background:color-mix(in srgb,var(--t) 22%,#0b1c26)!important;border:2px solid color-mix(in srgb,var(--t) 70%,transparent);color:color-mix(in srgb,var(--t) 40%,#ffffff)!important;border-radius:999px}
-body.nt-stile #tbody td.elsewhere-span.nt-oggi{background:transparent!important;box-shadow:none!important;border-left-color:transparent!important;border-right-color:transparent!important}
 /* riquadro equipaggio = sezione Equipaggio del Mio turno */
 #nt-vista .terra-card{min-width:0;border:1px solid #244653;border-radius:16px;background:linear-gradient(160deg,#0d2530,#0a1d26);box-shadow:0 12px 30px rgba(0,0,0,.22);overflow:hidden}
 #nt-vista .terra-card-head{display:flex;align-items:center;gap:10px;padding:13px 16px 10px;border-bottom:1px solid rgba(124,173,189,.16);cursor:pointer;list-style:none}
@@ -123,3 +122,8 @@ body.nt-stile #nt-vista:empty{display:none}
 body.nt-stile>header.page-header .turni-header-copy[hidden]{display:none!important}
 /* testata sempre ferma in alto, anche scorrendo la tabella in giù; la tabella si incolla sotto */
 body.nt-stile>header.page-header{top:env(safe-area-inset-top,0px)!important;z-index:200!important;background:#091c25!important}
+/* colonna di oggi anche dentro le celle «A residenza» */
+body.nt-stile #tbody td.elsewhere-span{box-shadow:none!important}
+body.nt-stile #tbody td.elsewhere-span:not(.nt-oggi-in){background:transparent!important}
+body.nt-stile #tbody td.elsewhere-span.nt-oggi-in{background:linear-gradient(to right,transparent var(--o),#2dd4bf var(--o),#2dd4bf calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + 2px),color-mix(in srgb,#2dd4bf 22%,#102733) calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w) - 2px),#2dd4bf calc(var(--o) + var(--w)),transparent calc(var(--o) + var(--w)))!important}
+#nt-testata .terra-title .chip{flex:none}
