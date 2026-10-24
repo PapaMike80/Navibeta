@@ -153,7 +153,7 @@ body.nt-stile #tbody .cell-pill:not(.c-rip){background:var(--t,#94a3b8)!importan
 body.nt-stile .date-header th.nt-bozza::before{border:1.5px dashed #f59e0b}
 /* prima casella: bolle delle residenze sopra, il mio nome in basso in linea con le bolle dei turni */
 body.nt-stile .date-header th.nt-primo{vertical-align:bottom!important;padding:0 0 12px 8px!important;text-align:left!important}
-body.nt-stile .date-header th.nt-primo>*:not(.nt-mionome){transform:scale(.72);transform-origin:left bottom;margin-bottom:-6px}
+body.nt-stile .date-header th.nt-primo>*:not(.nt-mionome){transform:scale(.88);transform-origin:left bottom;margin-bottom:-3px}
 body.nt-stile .date-header th.nt-primo .nt-mionome{display:block;margin-top:6px;color:#2dd4bf;font:900 14px Manrope,system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* bolle dei turni: stessa misura nelle date e nella tabella, centrate */
 body.nt-stile #tbody .cell-pill:not(.c-rip),body.nt-stile .date-header th[data-col] .nt-mt{display:inline-flex;justify-content:center;align-items:center;width:34px;min-width:34px;max-width:34px;box-sizing:border-box;padding:4px 0!important;font-size:12px;font-weight:900;border-radius:999px}
