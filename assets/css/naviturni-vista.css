@@ -185,3 +185,6 @@ body.nt-stile .date-header th.nt-oggi:not(.nt-selcol)::before{left:2px}
 /* testo delle bolle centrato al pixel: altezza fissa e lettere centrate sull'altezza delle maiuscole */
 body.nt-stile #tbody .cell-pill:not(.c-rip),body.nt-stile .date-header th[data-col] .nt-mt{height:24px;padding-top:0!important;padding-bottom:0!important;line-height:1!important;text-box:trim-both cap alphabetic;align-items:center;justify-content:center;text-align:center}
 body.nt-stile #tbody td.elsewhere-span .cell-pill{height:26px}
+/* turni in comune con me: niente bordo giallo, bolla piena con un leggero bagliore del suo colore */
+body.nt-stile #tbody td.shared-crew-day::before,body.nt-stile #tbody td.shared-crew-day::after,body.nt-stile #tbody td.pinned-shared-crew-day::before,body.nt-stile #tbody td.pinned-shared-crew-day::after{display:none!important}
+body.nt-stile #tbody td.shared-crew-day .cell-pill:not(.c-rip),body.nt-stile #tbody td.pinned-shared-crew-day .cell-pill:not(.c-rip),body.nt-stile #tbody td.selected-shared-crew-day .cell-pill:not(.c-rip){background:var(--t,#94a3b8)!important;border-color:var(--t,#94a3b8)!important;color:#fff!important;outline:0!important;box-shadow:0 0 6px var(--t,#94a3b8)!important}
