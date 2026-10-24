@@ -197,6 +197,7 @@ body.nt-stile .date-header th[data-col] .nt-mt:not(.rip){background:var(--c)!imp
 /* riposo: la linea come in tabella */
 body.nt-stile .date-header th[data-col] .nt-mt.rip{background:transparent!important;border:0!important;color:#4f6b77!important;font-size:12px}
 /* corsa scelta: la bolla pulsa con un leggerissimo bagliore del suo colore */
-@keyframes nt-pulsa{0%,100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--t,#2dd4bf) 0%,transparent)}50%{box-shadow:0 0 7px 1px color-mix(in srgb,var(--t,#2dd4bf) 70%,transparent)}}
+/* (le bolle hanno box-shadow bloccato con !important: il bagliore animato usa filter) */
+@keyframes nt-pulsa{0%,100%{filter:drop-shadow(0 0 0 transparent)}50%{filter:drop-shadow(0 0 5px var(--t,#2dd4bf))}}
 body.nt-stile #tbody .cell-pill.nt-pulsa{animation:nt-pulsa 1.8s ease-in-out infinite!important}
-@media (prefers-reduced-motion:reduce){body.nt-stile #tbody .cell-pill.nt-pulsa{animation:none!important;box-shadow:0 0 6px var(--t,#2dd4bf)!important}}
+@media (prefers-reduced-motion:reduce){body.nt-stile #tbody .cell-pill.nt-pulsa{animation:none!important;filter:drop-shadow(0 0 4px var(--t,#2dd4bf))}}
