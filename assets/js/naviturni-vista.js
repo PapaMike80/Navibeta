@@ -77,7 +77,9 @@
     window.scrollTo({ top: Math.max(0, box.getBoundingClientRect().top + scrollY - alto), behavior: 'smooth' });
   }, true);
   // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
-  ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col]')) e.stopPropagation(); }, true));
+  ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col], .date-header th[data-col]')) e.stopPropagation(); }, true));
+  // anche toccando una data si apriva la vecchia scheda del giorno
+  document.addEventListener('click', e => { if (e.target.closest('.date-header th[data-col]')) { e.stopPropagation(); e.preventDefault(); } }, true);
   box.addEventListener('click', e => { if (e.target.closest('[data-oggi]')) { scelta = null; document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel')); disegnaScheda(); } });
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
