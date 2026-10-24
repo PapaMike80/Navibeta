@@ -56,7 +56,7 @@
     const mioId = String(profilo()?.id || '');
     const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
-    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><span class="nt-gr" style="--g:${m.grado[1]}">${esc(SIGLA[m.grado[0]] || '·')}</span><b>${esc(m.name)}</b>${m.id && m.id === mioId ? '<em>tu</em>' : ''}</div>`).join('');
+    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><span class="nt-gr" style="--g:${m.grado[1]}">${esc(SIGLA[m.grado[0]] || '·')}</span><b>${esc(m.name)}</b>${m.grado[0] === 'Applicato' ? '<small class="nt-ruolo">bigliettaio</small>' : ''}${m.id && m.id === mioId ? '<em>tu</em>' : ''}</div>`).join('');
     return `<div class="nt-sez"><h2>${titolo}${scelta ? ' <button type="button" class="nt-x" data-oggi>il mio oggi</button>' : ''}</h2>
       <div class="nt-mio"><span class="nt-code" style="--t:${G.coloreTurno(code)};color:${G.testoSu(G.coloreTurno(code))}">${esc(code)}</span><div><b>${nave ? 'Equipaggio' : 'Servizio a terra'}</b><small>${dettagli || '&nbsp;'}</small></div></div>
       <div class="nt-nave"><span>${nave ? 'CON CHI NAVIGHI' : 'IN SERVIZIO'}</span><span><b>${crew.length}</b> ${nave ? 'a bordo' : ''}</span></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
@@ -72,7 +72,7 @@
   const resDi = ({ a, res }, day) => a.residenzaDal && a.residenzaNuova ? (day >= a.residenzaDal ? RES(a.residenzaNuova) : RES(a.residenzaPrecedente || res)) : RES(res);
   const nomeRes = r => r.charAt(0) + r.slice(1).toLowerCase();
   // ordine: per grado (come in Movimento) e poi per anzianita' (graduatoria di NaviSuite)
-  const ORDINE_GRADI = ['Capitano', 'Capo timoniere', 'Motorista', 'Timoniere', 'Aiuto motorista', 'Marinaio', 'Applicato'];
+  const ORDINE_GRADI = ['Capitano', 'Capo timoniere', 'Motorista', 'Timoniere', 'Aiuto motorista', 'Applicato', 'Marinaio']; // l'applicato e' sopra il marinaio
   const ordineGrado = a => { const i = ORDINE_GRADI.indexOf(grado(a)[0]); return i < 0 ? 99 : i; };
   const anzianita = a => { const r = Number(window.NaviSharedData?.seniorityRank?.(a.agente)); return Number.isFinite(r) ? r : 1e9; };
   function griglia() {
