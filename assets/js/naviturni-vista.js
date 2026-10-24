@@ -108,8 +108,7 @@
     if (!code || RIPOSO.test(code)) return;
     e.stopPropagation(); e.preventDefault();
     scelta = { day: cal.iso, code, res: typeof currentResidence !== 'undefined' ? currentResidence : '' };
-    document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel'));
-    td.classList.add('nt-sel');
+    segnaScelta();
     disegnaScheda();
     // la testata resta sempre ferma in alto: niente da scorrere
   }, true);
@@ -159,7 +158,8 @@
   function mieiTurni() {
     const mio = io(); if (!mio) return;
     const primo = document.querySelector('.date-header th:not([data-col])');
-    if (primo && !primo.querySelector('.nt-mionome')) primo.innerHTML = `<span class="nt-mionome">${esc(mio.a.agente)}</span>`;
+    // le bolle delle residenze restano, il mio nome sotto (in linea con le bolle dei turni)
+    if (primo && !primo.querySelector('.nt-mionome')) { primo.classList.add('nt-primo'); primo.insertAdjacentHTML('beforeend', `<span class="nt-mionome">${esc(mio.a.agente)}</span>`); }
     document.querySelectorAll('.date-header th[data-col]').forEach(th => {
       const c = dateCalendario.find(x => x.col === Number(th.dataset.col)); if (!c) return;
       th.classList.toggle('nt-bozza', !!th.querySelector('.week-draft-label:not(.is-empty)'));
@@ -172,6 +172,14 @@
       b.style.setProperty('--c', rip ? 'transparent' : G.coloreTurno(t));
     });
     document.body.classList.add('nt-mia-in-date');
+  }
+  // colonna del giorno toccato: tessera e celle evidenziate tutte insieme (dorata se è il giorno di paga)
+  function segnaScelta() {
+    const cal = scelta && typeof dateCalendario !== 'undefined' ? dateCalendario.find(c => c.iso === scelta.day) : null;
+    document.querySelectorAll('.nt-selcol').forEach(x => { if (!cal || Number(x.dataset.col) !== cal.col) x.classList.remove('nt-selcol', 'nt-oro'); });
+    if (!cal) return;
+    const oro = cal.iso === giornoPaga(cal.iso);
+    document.querySelectorAll(`.date-header th[data-col="${cal.col}"], #tbody td[data-col="${cal.col}"]:not(.elsewhere-span)`).forEach(x => { x.classList.add('nt-selcol'); x.classList.toggle('nt-oro', oro); });
   }
   function segnaOggi() {
     altezze();
@@ -188,6 +196,7 @@
       if (c.iso === giornoPaga(c.iso)) th.classList.add('nt-paga');
     });
     mieiTurni();
+    segnaScelta();
     const cal = dateCalendario.find(c => c.iso === oggi); if (!cal) return;
     document.querySelectorAll(`.date-header th[data-col="${cal.col}"]:not(.nt-oggi), #tbody td[data-col="${cal.col}"]:not(.nt-oggi)`).forEach(x => x.classList.add('nt-oggi'));
   }
