@@ -13,7 +13,7 @@ body.nt-nuova .ops-bar,body.nt-nuova #welcome-notice,body.nt-nuova #day-panel,bo
 .nt-vuoto{margin:0;font-size:12px;color:var(--muted)}
 .nt-res{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}.nt-res button{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:7px 12px;font:800 12.5px Manrope,system-ui,sans-serif}.nt-res button.on{background:var(--cyan);border-color:var(--cyan);color:var(--on)}
 .nt-tab{--c:var(--cyan);padding:6px}
-.nt-strip{overflow:auto;max-height:calc(100vh - 110px);max-height:calc(100dvh - 110px);overscroll-behavior:contain;border-radius:12px;border:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:none}.nt-strip::-webkit-scrollbar{display:none}
+.nt-strip{overflow:auto;max-height:calc(100vh - 58px);max-height:calc(100dvh - 58px);overscroll-behavior-x:contain;border-radius:12px;border:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:none}.nt-strip::-webkit-scrollbar{display:none}
 table.nt-g{border-collapse:separate;border-spacing:0;font-size:11px}
 .nt-g th,.nt-g td{border-bottom:1px solid var(--line);height:32px;text-align:center;padding:0;width:calc((min(100vw,900px) - 150px) / 7);min-width:36px;max-width:64px}
 

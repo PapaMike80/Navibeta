@@ -63,10 +63,11 @@
       <div class="nt-nave"><span>${nave ? 'CON CHI NAVIGHI' : 'IN SERVIZIO'}</span><span><b>${crew.length}</b> ${nave ? 'a bordo' : ''}</span></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
-  // Nascosti: chi da oggi in avanti ha solo congedo (CON...), riposi o nessun turno (servizio terminato)
-  const FUTURI = GG.filter(d => d >= oggi);
-  // in servizio: almeno un giorno di lavoro da oggi in avanti (non riposo, non congedo)
-  const inServizio = a => FUTURI.some(day => { const t = turno(a, day); return t && !RIPOSO.test(t) && !/^CON/i.test(t); });
+  // Nascosti: chi dal primo giorno in vista in avanti ha solo congedo (CON...), riposi o nessun turno (servizio terminato):
+  // tornando nel passato ricompaiono
+  const daVista = () => GG.slice(Math.max(0, GG.indexOf(primoGiorno)));
+  const finestra = () => { const i = Math.max(0, GG.indexOf(primoGiorno)); return GG.slice(i, i + 7); };
+  const inServizio = a => daVista().some(day => { const t = turno(a, day); return t && !RIPOSO.test(t) && !/^CON/i.test(t); });
   // Cambio di residenza (import turni: residenzaDal, residenzaPrecedente, residenzaNuova): ogni giorno l'agente sta
   // nella residenza in cui e' davvero; nelle altre quei giorni compaiono come «A <residenza>»
   const RES = r => String(r || '').toUpperCase();
@@ -80,7 +81,7 @@
     const mio = io(), mioId = String(mio?.a?.id || '');
     const visti = new Set();
     const altri = tuttiAgenti().filter(x => { const k = String(x.a.id || x.a.agente); if (visti.has(k)) return false; visti.add(k); return true; })
-      .filter(x => String(x.a.id) !== mioId && inServizio(x.a) && GG.some(day => resDi(x, day) === RES(residenza)))
+      .filter(x => String(x.a.id) !== mioId && inServizio(x.a) && finestra().some(day => resDi(x, day) === RES(residenza))) // nella residenza in cui e' nei giorni in vista
       .sort((x, y) => ordineGrado(x.a) - ordineGrado(y.a) || anzianita(x.a) - anzianita(y.a) || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
     const righe = [...(mio ? [mio] : []), ...altri];
     const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1, primo = d.getDate() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun ' : ''}${primo ? 'mese' : ''}">${primo ? `<i class="nt-mese">${MESE3[d.getMonth()]}</i>` : ''}${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
@@ -106,11 +107,21 @@
     const { ths, nm } = misure(s), k = Math.max(0, ths.findIndex(th => th.offsetLeft - nm >= s.scrollLeft - 3)), d = parse(GG[Math.min(GG.length - 1, k + 3)]);
     el.textContent = `${MESI[d.getMonth()].charAt(0).toUpperCase()}${MESI[d.getMonth()].slice(1)} ${d.getFullYear()}`;
   }
+  // righe da rifare quando cambiano i giorni in vista (agenti tornati in servizio, cambi di residenza)
+  let righeChiave = '';
+  function aggiornaRighe() {
+    const t = document.createElement('div'); t.innerHTML = griglia();
+    const nuovo = t.querySelector('tbody'), chiave = [...nuovo.querySelectorAll('th.nm')].map(th => th.textContent).join('|');
+    if (chiave === righeChiave) return;
+    righeChiave = chiave;
+    const tb = document.querySelector('#nt-strip tbody'); if (tb) tb.innerHTML = nuovo.innerHTML;
+  }
   function render() {
     const residenze = Object.keys(schedule?.residenze || {});
     box.innerHTML = `<div id="nt-scheda">${scheda()}</div>
       <div class="nt-res">${residenze.map(r => `<button type="button" class="${r === residenza ? 'on' : ''}" data-res="${esc(r)}">${esc(r.charAt(0) + r.slice(1).toLowerCase())}</button>`).join('')}</div>
       <div class="nt-sez nt-tab"><p class="nt-mese-vista" id="nt-mese-vista"></p>${griglia()}<p class="nt-hint">← scorri i giorni →</p></div>`;
+    righeChiave = [...box.querySelectorAll('.nt-g tbody th.nm')].map(th => th.textContent).join('|');
     allinea(); requestAnimationFrame(allinea); setTimeout(allinea, 300); // dopo che la tabella ha preso le misure definitive
     // Scatto: lasciato lo scorrimento, la tabella si ferma allineata a un giorno. Verso il futuro si scorre libero;
     // verso il passato ci si ferma su oggi; da oggi, con un nuovo gesto, uno «scalino»: tirando meno di due giorni si torna su oggi.
@@ -122,6 +133,17 @@
     s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true });
     s.addEventListener('wheel', () => { if (bloccato) { clearTimeout(sblocco); sblocco = setTimeout(sblocca, 350); return; } if (!utente) tocca(); }, { passive: true });
     ['touchend', 'touchcancel', 'pointerup', 'pointercancel'].forEach(ev => s.addEventListener(ev, sblocca, { passive: true }));
+    // Scorrendo in basso sulla tabella prima scorre la pagina (il riquadro del turno sparisce), poi le righe
+    const tab = box.querySelector('.nt-tab');
+    const spazio = () => Math.max(0, tab.getBoundingClientRect().top - 4);
+    let ty = 0, tx = 0;
+    s.addEventListener('touchstart', e => { ty = e.touches[0].clientY; tx = e.touches[0].clientX; }, { passive: true });
+    s.addEventListener('touchmove', e => {
+      const y = e.touches[0].clientY, x = e.touches[0].clientX, dy = ty - y, dx = tx - x;
+      if (dy > 0 && Math.abs(dy) > Math.abs(dx) && spazio() > 0) { e.preventDefault(); window.scrollBy(0, Math.min(dy, spazio())); }
+      ty = y; tx = x;
+    }, { passive: false });
+    s.addEventListener('wheel', e => { if (e.deltaY > 0 && Math.abs(e.deltaY) > Math.abs(e.deltaX) && spazio() > 0) { e.preventDefault(); window.scrollBy(0, Math.min(e.deltaY, spazio())); } }, { passive: false });
     s.addEventListener('scroll', () => {
       meseInVista();
       if (!utente) return; // gli scorrimenti fatti dal programma non contano
@@ -141,6 +163,7 @@
         if (daOggi && k < iOggi && (pos(iOggi) - s.scrollLeft) / w < SCALINO) k = iOggi; // scalino da oggi: non abbastanza forte
         primoGiorno = GG[k]; utente = false;
         s.scrollTo({ left: pos(k), behavior: 'smooth' });
+        aggiornaRighe();
       }, 140);
     }, { passive: true });
   }
