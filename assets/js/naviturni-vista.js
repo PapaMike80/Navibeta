@@ -121,7 +121,8 @@
     e.stopPropagation(); e.preventDefault();
     if (typeof dateCalendario === 'undefined') return;
     const cal = dateCalendario.find(c => c.col === Number(th.dataset.col)); const mio = io(); if (!cal) return;
-    const code = mio ? turno(mio.a, cal.iso) : '';
+    // il mio turno come scritto nella mia bolla della data (stessa fonte della tabella, anche in bozza)
+    const code = (th.querySelector('.nt-mt:not(.rip)')?.textContent || '').trim() || (mio ? turno(mio.a, cal.iso) : '');
     scelta = { day: cal.iso, code: code && !RIPOSO.test(code) ? code : '', res: mio?.res || '' };
     disegnaScheda(); segnaScelta(); colonneAltrove();
   }, true);
