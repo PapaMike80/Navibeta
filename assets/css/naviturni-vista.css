@@ -101,3 +101,12 @@ body.nt-stile #tbody td.elsewhere-span.nt-oggi{background:transparent!important;
 #nt-vista .mt-crew li small{color:#86a5af;font-size:12px;font-weight:700}
 #nt-vista .mt-crew li.me{outline:1.5px solid #2dd4bf;background:rgba(45,212,191,.10)}
 #nt-vista .mt-crew li.me b::after{content:" (tu)";color:#2dd4bf;font-weight:700}
+/* equipaggio compatto: nomi in bolle col pallino del grado */
+#nt-vista .nt-eq{border:1px solid #244653;border-radius:14px;background:linear-gradient(160deg,#0d2530,#0a1d26);padding:8px 10px}
+#nt-vista .nt-eq-hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+#nt-vista .nt-eq-hd .nt-code{font-size:12px;min-width:0;padding:1px 9px;border-width:1.5px}
+#nt-vista .nt-eq-hd small{margin-left:auto;color:#86a5af;font-size:11px;font-weight:700}
+#nt-vista .nt-eq-nomi{display:flex;flex-wrap:wrap;gap:5px}
+#nt-vista .nt-eq-nomi span{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;background:rgba(255,255,255,.04);border:1px solid #244653;color:#eaf2f4;font-size:12.5px;font-weight:900}
+#nt-vista .nt-eq-nomi span::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--g)}
+#nt-vista .nt-eq-nomi span.me{outline:2px solid #2dd4bf;outline-offset:1px}

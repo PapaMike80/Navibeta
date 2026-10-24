@@ -44,11 +44,9 @@
     const mioId = String(profilo()?.id || '');
     const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
-    // come la sezione Equipaggio del Mio turno: riga nel colore del grado, ruolo a destra, «(tu)» sulla mia
-    const RUOLO = { Applicato: 'Bigliettaio' };
-    const righe = crew.map(m => `<li class="${m.id && m.id === mioId ? 'me' : ''}" style="color:${m.grado[1]}"><b>${esc(m.name)}</b><small>${esc(RUOLO[m.grado[0]] || m.grado[0] || '')}</small></li>`).join('');
-    const testa = `<span class="nt-code" style="--t:${G.coloreTurno(code)}">${esc(code)}</span><h2>${nave ? 'Equipaggio' : 'In servizio'}</h2><small>${dettagli}</small>`;
-    return `<details class="terra-card" open><summary class="terra-card-head">${testa}</summary><div class="terra-card-body">${righe ? `<ul class="mt-crew">${righe}</ul>` : '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></details>`;
+    // compatto: in alto codice del turno e ore, sotto i nomi in bolle col pallino del colore del grado
+    const righe = crew.map(m => `<span class="${m.id && m.id === mioId ? 'me' : ''}" style="--g:${m.grado[1]}" title="${esc(m.grado[0] === 'Applicato' ? 'Bigliettaio' : m.grado[0] || '')}">${esc(m.name)}</span>`).join('');
+    return `<div class="nt-eq"><div class="nt-eq-hd"><span class="nt-code" style="--t:${G.coloreTurno(code)}">${esc(code)}</span><small>${dettagli}</small></div><div class="nt-eq-nomi">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
   // ordine dell'equipaggio: per grado (l'applicato sopra il marinaio) e poi per anzianita'
