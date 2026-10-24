@@ -54,26 +54,33 @@
     let crew = [];
     try { const eq = G.equipaggi(schedule, day); crew = nave ? (eq.navi[nave] || []) : (eq.terra[G.terraCode(code)] || []).map(name => ({ name, grado: ['', '#94a3b8', 9] })); } catch { crew = []; }
     const mioId = String(profilo()?.id || '');
+    const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
+    crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
     const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><span class="nt-gr" style="--g:${m.grado[1]}">${esc(SIGLA[m.grado[0]] || '·')}</span><b>${esc(m.name)}</b>${m.id && m.id === mioId ? '<em>tu</em>' : ''}</div>`).join('');
     return `<div class="nt-sez"><h2>${titolo}${scelta ? ' <button type="button" class="nt-x" data-oggi>il mio oggi</button>' : ''}</h2>
       <div class="nt-mio"><span class="nt-code" style="--t:${G.coloreTurno(code)};color:${G.testoSu(G.coloreTurno(code))}">${esc(code)}</span><div><b>${nave ? 'Equipaggio' : 'Servizio a terra'}</b><small>${dettagli || '&nbsp;'}</small></div></div>
       <div class="nt-nave"><span>${nave ? 'CON CHI NAVIGHI' : 'IN SERVIZIO'}</span><span><b>${crew.length}</b> ${nave ? 'a bordo' : ''}</span></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
-  // Nascosti: chi da oggi in avanti ha solo congedo (CON...) o nessun turno (servizio terminato)
+  // Nascosti: chi da oggi in avanti ha solo congedo (CON...), riposi o nessun turno (servizio terminato)
   const FUTURI = GG.filter(d => d >= oggi);
-  const inServizio = a => FUTURI.some(day => { const t = turno(a, day); return t && !/^CON/i.test(t); });
+  // in servizio: almeno un giorno di lavoro da oggi in avanti (non riposo, non congedo)
+  const inServizio = a => FUTURI.some(day => { const t = turno(a, day); return t && !RIPOSO.test(t) && !/^CON/i.test(t); });
   // Cambio di residenza (import turni: residenzaDal, residenzaPrecedente, residenzaNuova): ogni giorno l'agente sta
   // nella residenza in cui e' davvero; nelle altre quei giorni compaiono come «A <residenza>»
   const RES = r => String(r || '').toUpperCase();
   const resDi = ({ a, res }, day) => a.residenzaDal && a.residenzaNuova ? (day >= a.residenzaDal ? RES(a.residenzaNuova) : RES(a.residenzaPrecedente || res)) : RES(res);
   const nomeRes = r => r.charAt(0) + r.slice(1).toLowerCase();
+  // ordine: per grado (come in Movimento) e poi per anzianita' (graduatoria di NaviSuite)
+  const ORDINE_GRADI = ['Capitano', 'Capo timoniere', 'Motorista', 'Timoniere', 'Aiuto motorista', 'Marinaio', 'Applicato'];
+  const ordineGrado = a => { const i = ORDINE_GRADI.indexOf(grado(a)[0]); return i < 0 ? 99 : i; };
+  const anzianita = a => { const r = Number(window.NaviSharedData?.seniorityRank?.(a.agente)); return Number.isFinite(r) ? r : 1e9; };
   function griglia() {
     const mio = io(), mioId = String(mio?.a?.id || '');
     const visti = new Set();
     const altri = tuttiAgenti().filter(x => { const k = String(x.a.id || x.a.agente); if (visti.has(k)) return false; visti.add(k); return true; })
       .filter(x => String(x.a.id) !== mioId && inServizio(x.a) && GG.some(day => resDi(x, day) === RES(residenza)))
-      .sort((x, y) => grado(x.a)[2] - grado(y.a)[2] || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
+      .sort((x, y) => ordineGrado(x.a) - ordineGrado(y.a) || anzianita(x.a) - anzianita(y.a) || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
     const righe = [...(mio ? [mio] : []), ...altri];
     const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun' : ''}">${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
     const corpo = righe.map(x => {
