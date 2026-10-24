@@ -173,7 +173,7 @@
       const c = dateCalendario.find(x => x.col === Number(th.dataset.col)); if (!c) return;
       th.classList.toggle('nt-bozza', !!th.querySelector('.week-draft-label:not(.is-empty)'));
       const t = turno(mio.a, c.iso), rip = !t || RIPOSO.test(t);
-      const testo = rip ? 'rip' : t;
+      const testo = rip ? '—' : t;
       let b = th.querySelector('.nt-mt');
       if (b && b.dataset.t === testo) return;
       if (!b) { b = document.createElement('span'); b.className = 'nt-mt'; th.appendChild(b); }
