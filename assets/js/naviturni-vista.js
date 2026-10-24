@@ -115,14 +115,23 @@
     // Scatto: lasciato lo scorrimento, la tabella si ferma allineata a un giorno. Verso il futuro si scorre libero;
     // verso il passato ci si ferma su oggi; da oggi, con un nuovo gesto, uno «scalino»: tirando meno di due giorni si torna su oggi.
     const s = document.getElementById('nt-strip'), iOggi = GG.indexOf(oggi), SCALINO = 2;
-    let fermo = null, utente = false, eraFuturo = false, daOggi = true;
-    const tocca = () => { utente = true; eraFuturo = GG.indexOf(primoGiorno) > iOggi; daOggi = GG.indexOf(primoGiorno) === iOggi; };
-    s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true }); s.addEventListener('wheel', tocca, { passive: true });
+    let fermo = null, utente = false, eraFuturo = false, daOggi = true, bloccato = false, sblocco = null;
+    // a fine gesto (dito alzato, o rotella ferma) lo scorrimento torna libero, fermo su oggi: per il passato serve un nuovo gesto
+    const sblocca = () => { if (!bloccato) return; clearTimeout(sblocco); sblocco = setTimeout(() => { s.style.overflowX = ''; bloccato = false; utente = false; primoGiorno = oggi; s.scrollLeft = misure(s).pos(iOggi); }, 80); };
+    const tocca = () => { if (bloccato) return; utente = true; eraFuturo = GG.indexOf(primoGiorno) > iOggi; daOggi = GG.indexOf(primoGiorno) === iOggi; };
+    s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true });
+    s.addEventListener('wheel', () => { if (bloccato) { clearTimeout(sblocco); sblocco = setTimeout(sblocca, 350); return; } if (!utente) tocca(); }, { passive: true });
+    ['touchend', 'touchcancel', 'pointerup', 'pointercancel'].forEach(ev => s.addEventListener(ev, sblocca, { passive: true }));
     s.addEventListener('scroll', () => {
       meseInVista();
       if (!utente) return; // gli scorrimenti fatti dal programma non contano
       // arrivando dal futuro ci si ferma su oggi (anche con l'abbrivio del dito): per il passato serve un nuovo gesto da oggi
-      if (eraFuturo) { const p0 = misure(s).pos(iOggi); if (s.scrollLeft < p0) s.scrollLeft = p0; }
+      // blocco deciso: lo scorrimento orizzontale si spegne (anche lo slancio del dito su iPhone) fino a fine gesto
+      if (eraFuturo) {
+        const p0 = misure(s).pos(iOggi);
+        if (s.scrollLeft < p0) { if (!bloccato) { bloccato = true; s.style.overflowX = 'hidden'; } s.scrollLeft = p0; primoGiorno = oggi; }
+      }
+      if (bloccato) return;
       clearTimeout(fermo);
       fermo = setTimeout(() => {
         const { ths, pos } = misure(s), w = ths[1].offsetLeft - ths[0].offsetLeft;
