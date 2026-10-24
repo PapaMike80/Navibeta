@@ -210,6 +210,25 @@
       td.style.setProperty('background', l.length ? l.join(',') : 'transparent', 'important');
     });
   }
+  // righe «A residenza» (una cella unica su più giorni): la colonna di oggi (tratteggiata) e quella scelta
+  // (piena, dorata nel giorno di paga) si disegnano dentro la cella alla posizione delle loro date
+  function colonneAltrove() {
+    const oggiTh = document.querySelector('.date-header th.nt-oggi'), selTh = document.querySelector('.date-header th.nt-selcol');
+    const strati = (td, th, tipo) => {
+      if (!th) return [];
+      const r = td.getBoundingClientRect(), t = th.getBoundingClientRect();
+      if (t.left < r.left - 1 || t.left >= r.right - 1) return [];
+      const o = Math.round(t.left - r.left), w = Math.round(t.width);
+      const oro = tipo === 'sel' && th.classList.contains('nt-oro');
+      const c = oro ? '#fbbf24' : '#2dd4bf', tinta = oro ? 'rgba(251,191,36,.16)' : tipo === 'sel' ? 'rgba(45,212,191,.12)' : 'rgba(45,212,191,.07)';
+      const riga = tipo === 'sel' ? `linear-gradient(${c},${c})` : `repeating-linear-gradient(to bottom,rgba(45,212,191,.8) 0 6px,transparent 6px 10px)`;
+      return [`${riga} ${o}px 0/2px 100% no-repeat`, `${riga} ${o + w - 2}px 0/2px 100% no-repeat`, `linear-gradient(${tinta},${tinta}) ${o}px 0/${w}px 100% no-repeat`];
+    };
+    document.querySelectorAll('#tbody td.elsewhere-span').forEach(td => {
+      const l = [...strati(td, selTh, 'sel'), ...(selTh === oggiTh ? [] : strati(td, oggiTh, 'oggi'))];
+      td.style.setProperty('background', l.length ? l.join(',') : 'transparent', 'important');
+    });
+  }
   function segnaOggi() {
     altezze();
     adatta();
