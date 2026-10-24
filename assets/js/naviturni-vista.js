@@ -60,9 +60,12 @@
       <div class="nt-nave"><span>${nave ? 'CON CHI NAVIGHI' : 'IN SERVIZIO'}</span><span><b>${crew.length}</b> ${nave ? 'a bordo' : ''}</span></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
+  // Nascosti: chi da oggi in avanti ha solo congedo (CON...) o nessun turno (servizio terminato)
+  const FUTURI = GG.filter(d => d >= oggi);
+  const inServizio = a => FUTURI.some(day => { const t = turno(a, day); return t && !/^CON/i.test(t); });
   function griglia() {
     const mio = io(), mioId = String(mio?.a?.id || '');
-    const altri = tuttiAgenti().filter(({ a, res }) => res === residenza && String(a.id) !== mioId)
+    const altri = tuttiAgenti().filter(({ a, res }) => res === residenza && String(a.id) !== mioId && inServizio(a))
       .sort((x, y) => grado(x.a)[2] - grado(y.a)[2] || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
     const righe = [...(mio ? [mio] : []), ...altri];
     const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun' : ''}">${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
