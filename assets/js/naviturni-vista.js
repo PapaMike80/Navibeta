@@ -88,19 +88,22 @@
       <div class="nt-sez nt-tab">${griglia()}<p class="nt-hint">← scorri i giorni →</p></div>`;
     allinea(); requestAnimationFrame(allinea); setTimeout(allinea, 300); // dopo che la tabella ha preso le misure definitive
     // Scatto: lasciato lo scorrimento, la tabella si ferma allineata a un giorno. Verso il futuro si scorre libero;
-    // verso il passato c'e' uno «scalino» su oggi: tirando meno di due giorni oltre oggi si torna su oggi.
+    // verso il passato ci si ferma su oggi; da oggi, con un nuovo gesto, uno «scalino»: tirando meno di due giorni si torna su oggi.
     const s = document.getElementById('nt-strip'), iOggi = GG.indexOf(oggi), SCALINO = 2;
-    let fermo = null, utente = false, eraFuturo = true;
-    const tocca = () => { utente = true; eraFuturo = GG.indexOf(primoGiorno) >= iOggi; };
+    let fermo = null, utente = false, eraFuturo = false, daOggi = true;
+    const tocca = () => { utente = true; eraFuturo = GG.indexOf(primoGiorno) > iOggi; daOggi = GG.indexOf(primoGiorno) === iOggi; };
     s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true }); s.addEventListener('wheel', tocca, { passive: true });
     s.addEventListener('scroll', () => {
       if (!utente) return; // gli scorrimenti fatti dal programma non contano
+      // arrivando dal futuro ci si ferma su oggi (anche con l'abbrivio del dito): per il passato serve un nuovo gesto da oggi
+      if (eraFuturo) { const p0 = misure(s).pos(iOggi); if (s.scrollLeft < p0) s.scrollLeft = p0; }
       clearTimeout(fermo);
       fermo = setTimeout(() => {
         const { ths, pos } = misure(s), w = ths[1].offsetLeft - ths[0].offsetLeft;
         let k = Math.max(0, Math.min(GG.length - 1, Math.round(s.scrollLeft / w)));
         k = ths.reduce((best, _, i) => Math.abs(pos(i) - s.scrollLeft) < Math.abs(pos(best) - s.scrollLeft) ? i : best, k);
-        if (eraFuturo && k < iOggi && (pos(iOggi) - s.scrollLeft) / w < SCALINO) k = iOggi; // scalino: non abbastanza forte
+        if (eraFuturo && k < iOggi) k = iOggi;
+        if (daOggi && k < iOggi && (pos(iOggi) - s.scrollLeft) / w < SCALINO) k = iOggi; // scalino da oggi: non abbastanza forte
         primoGiorno = GG[k]; utente = false;
         s.scrollTo({ left: pos(k), behavior: 'smooth' });
       }, 140);
