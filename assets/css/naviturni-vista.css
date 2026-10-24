@@ -34,9 +34,6 @@ body.nt-stile #tbody tr{border-left:0!important}
 body.nt-stile #tbody tr.logged-agent-row td.td-name,body.nt-stile #tbody tr.cross-residence-logged-row td.td-name{background:color-mix(in srgb,#2dd4bf 24%,#102733)!important;color:#2dd4bf!important}
 body.nt-stile #tbody tr.logged-agent-row td,body.nt-stile #tbody tr.logged-agent-row td.nt-oggi{background:color-mix(in srgb,#2dd4bf 12%,#0f2129)!important}
 /* oggi: intestazione verde acqua piena con OGGI, colonna bordata e piu' accesa */
-body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi,body.nt-stile .date-header th.nt-oggi{background:#2dd4bf!important;color:#06231f!important;position:relative}
-body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi span,body.nt-stile .date-header th.nt-oggi span{color:#06231f!important}
-body.nt-stile .date-header th.nt-oggi::after{content:'OGGI';position:absolute;left:0;right:0;bottom:1px;font-size:8px;font-weight:900;letter-spacing:.08em;color:#06231f}
 body.nt-stile #tbody td.nt-oggi{background:color-mix(in srgb,#2dd4bf 22%,#102733)!important;box-shadow:inset 2px 0 0 #2dd4bf,inset -2px 0 0 #2dd4bf!important}
 /* bolla toccata */
 body.nt-stile #tbody td.nt-sel .cell-pill{outline:2px solid #eaf2f4;outline-offset:1px}
@@ -135,3 +132,16 @@ body.nt-stile #tbody td[data-col]:not(.elsewhere-span){min-width:40px!important;
 /* riquadro «Caricamento turni» dentro lo schermo */
 body.nt-stile #welcome-notice{position:sticky;left:16px;width:calc(100vw - 32px);max-width:900px;box-sizing:border-box;margin-left:0!important;margin-right:0!important}
 #nt-testata{flex:1 1 auto;width:100%;min-width:0}
+/* riga delle date a tessere, come la striscia del Mio turno */
+body.nt-stile #matrix-scroll-wrap .date-header th[data-col]{height:56px!important;min-height:56px!important;max-height:56px!important;padding:0!important;background:#0b1c26!important;vertical-align:middle!important;box-shadow:none!important;border:0!important}
+body.nt-stile .date-header th[data-col]::before{content:'';position:absolute;inset:4px 2px;border-radius:11px;border:1px solid #1f4250;background:#102733;z-index:0}
+body.nt-stile .date-header th[data-col]>span{position:relative;z-index:1;display:block;line-height:1.1}
+body.nt-stile .date-header th[data-col] .date-head-day{font:800 9px Manrope,system-ui,sans-serif!important;letter-spacing:.06em;text-transform:uppercase;color:#9fb8c2!important}
+body.nt-stile .date-header th[data-col] .date-head-num{font:500 18px 'DM Mono',ui-monospace,monospace!important;color:#eaf2f4!important}
+body.nt-stile .date-header th.nt-dom::before{border-color:rgba(251,113,133,.55);background:color-mix(in srgb,#fb7185 12%,#102733)}
+body.nt-stile .date-header th.nt-dom .date-head-day,body.nt-stile .date-header th.nt-dom .date-head-num{color:#fb7185!important}
+body.nt-stile .date-header th.nt-paga::before{background:linear-gradient(160deg,color-mix(in srgb,#fbbf24 55%,#102733),color-mix(in srgb,#f59e0b 30%,#102733));border-color:#fbbf24}
+body.nt-stile .date-header th.nt-paga .date-head-day{color:#fde68a!important}
+body.nt-stile .date-header th.nt-oggi::before{border:2px dashed rgba(45,212,191,.8);box-shadow:0 0 10px rgba(45,212,191,.3)}
+body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day{font-size:0!important;letter-spacing:0!important}
+body.nt-stile #matrix-scroll-wrap thead tr.date-header th.nt-oggi span.date-head-day::after{content:'OGGI';font:900 8px Manrope,system-ui,sans-serif;letter-spacing:.12em;color:#06231f;background:#2dd4bf;border-radius:99px;padding:1px 5px}
