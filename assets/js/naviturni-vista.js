@@ -44,7 +44,9 @@
     const mioId = String(profilo()?.id || '');
     const ord = m => { const i = ORDINE_GRADI.indexOf(m.grado[0]); return i < 0 ? 99 : i; };
     crew = crew.slice().sort((x, y) => ord(x) - ord(y) || anzianita({ agente: x.name }) - anzianita({ agente: y.name }) || x.name.localeCompare(y.name, 'it'));
-    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><span class="nt-gr" style="--g:${m.grado[1]}">${esc(SIGLA[m.grado[0]] || '·')}</span><b>${esc(m.name)}</b>${m.grado[0] === 'Applicato' ? '<small class="nt-ruolo">bigliettaio</small>' : ''}${m.id && m.id === mioId ? '<em>tu</em>' : ''}</div>`).join('');
+    // righe come nel Mio turno: nome nel colore del grado, ruolo a destra, la mia riga bordata
+    const RUOLO = { Applicato: 'Bigliettaio' };
+    const righe = crew.map(m => `<div class="nt-cw${m.id && m.id === mioId ? ' io' : ''}"><b style="color:${m.grado[0] === 'Marinaio' || !m.grado[0] ? '#eaf2f4' : m.grado[1]}">${esc(m.name)}${m.id && m.id === mioId ? ' <em>(tu)</em>' : ''}</b><small class="nt-ruolo">${esc(RUOLO[m.grado[0]] || m.grado[0] || '')}</small></div>`).join('');
     return `<div class="nt-sez"><div class="nt-mio"><span class="nt-code" style="--t:${G.coloreTurno(code)};color:${G.testoSu(G.coloreTurno(code))}">${esc(code)}</span><div><b>${nave ? 'Equipaggio' : 'Servizio a terra'}</b><small>${dettagli || '&nbsp;'}</small></div></div><div class="nt-crew">${righe || '<p class="nt-vuoto">Nessuno trovato.</p>'}</div></div>`;
   }
 
