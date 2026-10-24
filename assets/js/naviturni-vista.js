@@ -18,9 +18,10 @@
   const RIPOSO = /^(R|RIP\.?|RIPOSO|-{1,}|—|=+)$/i;
   const profilo = () => { try { return JSON.parse(localStorage.getItem('naviturni_logged_agent') || localStorage.getItem('navidiaria.activeAgent') || 'null'); } catch { return null; } };
   const oggi = iso(new Date());
-  // giorni: dal lunedi' di due settimane fa a cinque settimane avanti
-  const lun = (() => { const d = parse(oggi); d.setDate(d.getDate() - ((d.getDay() + 6) % 7) - 14); return iso(d); })();
-  const GG = Array.from({ length: 49 }, (_, i) => addDays(lun, i));
+  // giorni: tutto l'anno, dal 1 gennaio al 31 dicembre
+  const ANNO = oggi.slice(0, 4), GG = [];
+  for (let d = `${ANNO}-01-01`; d <= `${ANNO}-12-31`; d = addDays(d, 1)) GG.push(d);
+  const MESE3 = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
   let schedule = null, residenza = '', scelta = null;
   const cache = new Map();
 
@@ -82,10 +83,10 @@
       .filter(x => String(x.a.id) !== mioId && inServizio(x.a) && GG.some(day => resDi(x, day) === RES(residenza)))
       .sort((x, y) => ordineGrado(x.a) - ordineGrado(y.a) || anzianita(x.a) - anzianita(y.a) || String(x.a.agente).localeCompare(String(y.a.agente), 'it'));
     const righe = [...(mio ? [mio] : []), ...altri];
-    const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun' : ''}">${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
+    const testa = GG.map(day => { const d = parse(day), lunedi = d.getDay() === 1, primo = d.getDate() === 1; return `<th class="${day === oggi ? 'oggi ' : ''}${d.getDay() === 0 ? 'dom ' : ''}${lunedi ? 'lun ' : ''}${primo ? 'mese' : ''}">${primo ? `<i class="nt-mese">${MESE3[d.getMonth()]}</i>` : ''}${lunedi ? `<i class="nt-sw">${settimana(day)}</i>` : ''}<small>${GIORNI[d.getDay()].charAt(0).toUpperCase()}</small><b>${d.getDate()}</b></th>`; }).join('');
     const corpo = righe.map(x => {
       const { a } = x, me = String(a.id) === mioId, cognome = String(a.agente || '').replace(/\s+\S{1,3}\.?$/, '');
-      return `<tr class="${me ? 'mia' : ''}"><th class="nm"><span class="nt-dot" style="--g:${grado(a)[1]}"></span>${esc(cognome)}</th>${GG.map(day => { const r = resDi(x, day), altrove = !me && r !== RES(residenza); return `<td class="${day === oggi ? 'oggi ' : ''}${parse(day).getDay() === 1 ? 'lun' : ''}">${altrove ? `<span class="nt-altrove" title="In servizio a ${esc(nomeRes(r))}">A ${esc(r.slice(0, 3))}</span>` : bolla(turno(a, day), day, me)}</td>`; }).join('')}</tr>`;
+      return `<tr class="${me ? 'mia' : ''}"><th class="nm"><span class="nt-dot" style="--g:${grado(a)[1]}"></span>${esc(cognome)}</th>${GG.map(day => { const r = resDi(x, day), altrove = !me && r !== RES(residenza); return `<td class="${day === oggi ? 'oggi ' : ''}${parse(day).getDay() === 1 ? 'lun ' : ''}${day.endsWith('-01') ? 'mese' : ''}">${altrove ? `<span class="nt-altrove" title="In servizio a ${esc(nomeRes(r))}">A ${esc(r.slice(0, 3))}</span>` : bolla(turno(a, day), day, me)}</td>`; }).join('')}</tr>`;
     }).join('');
     return `<div class="nt-strip" id="nt-strip"><table class="nt-g"><thead><tr><th class="nm"></th>${testa}</tr></thead><tbody>${corpo}</tbody></table></div>`;
   }
@@ -97,12 +98,19 @@
     const s = document.getElementById('nt-strip'); if (!s) return;
     const { pos } = misure(s), i = GG.indexOf(primoGiorno);
     if (i >= 0) s.scrollLeft = pos(i);
+    meseInVista();
+  }
+  // il mese dei giorni in vista, sopra la tabella
+  function meseInVista() {
+    const s = document.getElementById('nt-strip'), el = document.getElementById('nt-mese-vista'); if (!s || !el) return;
+    const { ths, nm } = misure(s), k = Math.max(0, ths.findIndex(th => th.offsetLeft - nm >= s.scrollLeft - 3)), d = parse(GG[Math.min(GG.length - 1, k + 3)]);
+    el.textContent = `${MESI[d.getMonth()].charAt(0).toUpperCase()}${MESI[d.getMonth()].slice(1)} ${d.getFullYear()}`;
   }
   function render() {
     const residenze = Object.keys(schedule?.residenze || {});
     box.innerHTML = `<div id="nt-scheda">${scheda()}</div>
       <div class="nt-res">${residenze.map(r => `<button type="button" class="${r === residenza ? 'on' : ''}" data-res="${esc(r)}">${esc(r.charAt(0) + r.slice(1).toLowerCase())}</button>`).join('')}</div>
-      <div class="nt-sez nt-tab">${griglia()}<p class="nt-hint">← scorri i giorni →</p></div>`;
+      <div class="nt-sez nt-tab"><p class="nt-mese-vista" id="nt-mese-vista"></p>${griglia()}<p class="nt-hint">← scorri i giorni →</p></div>`;
     allinea(); requestAnimationFrame(allinea); setTimeout(allinea, 300); // dopo che la tabella ha preso le misure definitive
     // Scatto: lasciato lo scorrimento, la tabella si ferma allineata a un giorno. Verso il futuro si scorre libero;
     // verso il passato ci si ferma su oggi; da oggi, con un nuovo gesto, uno «scalino»: tirando meno di due giorni si torna su oggi.
@@ -111,6 +119,7 @@
     const tocca = () => { utente = true; eraFuturo = GG.indexOf(primoGiorno) > iOggi; daOggi = GG.indexOf(primoGiorno) === iOggi; };
     s.addEventListener('pointerdown', tocca, { passive: true }); s.addEventListener('touchstart', tocca, { passive: true }); s.addEventListener('wheel', tocca, { passive: true });
     s.addEventListener('scroll', () => {
+      meseInVista();
       if (!utente) return; // gli scorrimenti fatti dal programma non contano
       // arrivando dal futuro ci si ferma su oggi (anche con l'abbrivio del dito): per il passato serve un nuovo gesto da oggi
       if (eraFuturo) { const p0 = misure(s).pos(iOggi); if (s.scrollLeft < p0) s.scrollLeft = p0; }
