@@ -174,3 +174,7 @@ body.nt-stile #tbody tr:last-child td.nt-selcol::after{border-bottom:2px solid #
 body.nt-stile .date-header th.nt-selcol.nt-oro::before{border-color:#fbbf24;box-shadow:0 0 14px rgba(251,191,36,.5)}
 body.nt-stile #tbody td.nt-selcol.nt-oro{background:color-mix(in srgb,#fbbf24 16%,transparent)!important}
 body.nt-stile #tbody td.nt-selcol.nt-oro::after{border-color:#fbbf24}
+/* bolle come il codice in testata: fondo trasparente tinto, bordo e scritta del colore del turno; più strette perché il bordo della colonna le contenga */
+body.nt-stile #tbody .cell-pill:not(.c-rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--t,#94a3b8) 14%,transparent)!important;border:1px solid color-mix(in srgb,var(--t,#94a3b8) 55%,transparent)!important;color:color-mix(in srgb,var(--t,#94a3b8) 78%,#ffffff)!important}
+body.nt-stile .date-header th[data-col] .nt-mt:not(.rip){width:30px;min-width:30px;max-width:30px;background:color-mix(in srgb,var(--c) 14%,transparent);border:1px solid color-mix(in srgb,var(--c) 55%,transparent);color:color-mix(in srgb,var(--c) 78%,#ffffff)}
+body.nt-stile .date-header th[data-col] .nt-mt.rip{width:30px;min-width:30px;max-width:30px}

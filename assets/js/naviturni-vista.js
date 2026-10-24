@@ -114,8 +114,16 @@
   }, true);
   // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
   ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col], .date-header th[data-col]')) e.stopPropagation(); }, true));
-  // anche toccando una data si apriva la vecchia scheda del giorno
-  document.addEventListener('click', e => { if (e.target.closest('.date-header th[data-col]')) { e.stopPropagation(); e.preventDefault(); } }, true);
+  // toccando una data (o la mia bolla in quella data) si sceglie quella colonna con il mio turno; niente vecchia scheda del giorno
+  document.addEventListener('click', e => {
+    const th = e.target.closest('.date-header th[data-col]'); if (!th) return;
+    e.stopPropagation(); e.preventDefault();
+    if (typeof dateCalendario === 'undefined') return;
+    const cal = dateCalendario.find(c => c.col === Number(th.dataset.col)); const mio = io(); if (!cal) return;
+    const code = mio ? turno(mio.a, cal.iso) : '';
+    scelta = { day: cal.iso, code: code && !RIPOSO.test(code) ? code : '', res: mio?.res || '' };
+    disegnaScheda(); segnaScelta();
+  }, true);
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
   // altezze vere di mese e date: la mia riga si incolla subito sotto, senza spazi
