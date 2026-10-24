@@ -110,6 +110,9 @@
     scelta = { day: cal.iso, code, res: typeof currentResidence !== 'undefined' ? currentResidence : '' };
     segnaScelta();
     colonneAltrove();
+    // la bolla della corsa scelta pulsa con un leggerissimo bagliore
+    document.querySelectorAll('.nt-pulsa').forEach(x => x.classList.remove('nt-pulsa'));
+    td.querySelector('.cell-pill')?.classList.add('nt-pulsa');
     disegnaScheda();
     // la testata resta sempre ferma in alto: niente da scorrere
   }, true);
