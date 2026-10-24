@@ -32,7 +32,8 @@ body.nt-stile #tbody tr.grado-capitano{--g:#facc15}body.nt-stile #tbody tr.grado
 body.nt-stile #tbody tr.grado-aiuto{--g:#3b82f6}body.nt-stile #tbody tr.grado-timoniere{--g:#22c55e}body.nt-stile #tbody tr.grado-applicato{--g:#a3e635}body.nt-stile #tbody tr.grado-marinaio{--g:#e8f3f6}
 body.nt-stile #tbody tr{border-left:0!important}
 body.nt-stile #tbody tr.pinned-row td.td-name,body.nt-stile #tbody tr.cross-residence-logged-row td.td-name{background:color-mix(in srgb,#2dd4bf 24%,#102733)!important;color:#2dd4bf!important}
-body.nt-stile #tbody tr.pinned-row td{background:color-mix(in srgb,#2dd4bf 9%,transparent)!important}
+body.nt-stile #tbody tr.pinned-row td,body.nt-stile #tbody tr.pinned-row td.nt-oggi{background:color-mix(in srgb,#2dd4bf 12%,#0f2129)!important;z-index:6}
+body.nt-stile #tbody tr.pinned-row td.td-name{z-index:8}
 /* oggi: intestazione verde acqua piena con OGGI, colonna bordata e piu' accesa */
 body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi,body.nt-stile .date-header th.nt-oggi{background:#2dd4bf!important;color:#06231f!important;position:relative}
 body.nt-stile #matrix-scroll-wrap thead tr th.nt-oggi span,body.nt-stile .date-header th.nt-oggi span{color:#06231f!important}
