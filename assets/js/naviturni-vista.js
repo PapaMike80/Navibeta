@@ -59,7 +59,8 @@
   // ordine dell'equipaggio: per grado (l'applicato sopra il marinaio) e poi per anzianita'
   const ORDINE_GRADI = ['Capitano', 'Capo timoniere', 'Motorista', 'Timoniere', 'Aiuto motorista', 'Applicato', 'Marinaio'];
   const anzianita = a => { const r = Number(window.NaviSharedData?.seniorityRank?.(a.agente)); return Number.isFinite(r) ? r : 1e9; };
-  const disegnaScheda = () => { (header ? testata : box).innerHTML = scheda(); };
+  const disegnaScheda = () => { (header ? testata : box).innerHTML = scheda(); altezze(); };
+  addEventListener('resize', () => altezze());
 
   // Tocco su una bolla della tabella: l'equipaggio di quel turno in quel giorno (date e turni dalla tabella stessa)
   document.addEventListener('click', e => {
@@ -75,10 +76,7 @@
     document.querySelectorAll('#tbody td.nt-sel').forEach(x => x.classList.remove('nt-sel'));
     td.classList.add('nt-sel');
     disegnaScheda();
-    // la testata in vista, sotto la tacca dell'iPhone
-    const tacca = document.createElement('div'); tacca.style.cssText = 'position:fixed;top:0;height:env(safe-area-inset-top,0px)';
-    document.body.appendChild(tacca); const alto = tacca.offsetHeight + 16; tacca.remove();
-    window.scrollTo({ top: Math.max(0, (header || box).getBoundingClientRect().top + scrollY - alto), behavior: 'smooth' });
+    // la testata resta sempre ferma in alto: niente da scorrere
   }, true);
   // la vecchia scheda equipaggio della tabella si apriva al rilascio del dito: non le arriva piu' nulla
   ['pointerdown', 'pointerup'].forEach(t => document.addEventListener(t, e => { if (e.target.closest('#tbody td[data-col], .date-header th[data-col]')) e.stopPropagation(); }, true));
@@ -87,8 +85,11 @@
 
   // Oggi in evidenza nella tabella (che si ridisegna da sola: si rimette il segno ogni volta)
   // altezze vere di mese e date: la mia riga si incolla subito sotto, senza spazi
+  const r0 = () => document.documentElement.style;
   function altezze() {
     const m = document.querySelector('.month-header')?.offsetHeight || 0, d = document.querySelector('.date-header')?.offsetHeight || 0;
+    const t = header?.offsetHeight || 0;
+    if (r0().getPropertyValue('--nt-testa') !== `${t}px`) r0().setProperty('--nt-testa', `${t}px`);
     if (!d) return;
     const r = document.documentElement.style;
     if (r.getPropertyValue('--nt-mia') !== `${m + d}px` || r.getPropertyValue('--nt-mese') !== `${m}px`) { r.setProperty('--nt-mese', `${m}px`); r.setProperty('--nt-mia', `${m + d}px`); }
