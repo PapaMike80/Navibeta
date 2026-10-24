@@ -181,6 +181,14 @@
       b.style.setProperty('--c', rip ? 'transparent' : G.coloreTurno(t));
     });
     document.body.classList.add('nt-mia-in-date');
+    // il mio nome esattamente in linea con le bolle dei miei turni (stesso centro verticale)
+    const nome = primo?.querySelector('.nt-mionome'), bolla = [...document.querySelectorAll('.date-header th[data-col] .nt-mt')].find(b => b.offsetWidth);
+    if (nome && bolla) {
+      const attuale = parseFloat(nome.style.getPropertyValue('--sposta')) || 0;
+      const nr = nome.getBoundingClientRect(), br = bolla.getBoundingClientRect();
+      const d = Math.round((br.top + br.height / 2) - (nr.top + nr.height / 2)) + attuale;
+      if (d !== attuale) nome.style.setProperty('--sposta', `${d}px`);
+    }
   }
   // colonna del giorno toccato: tessera e celle evidenziate tutte insieme (dorata se è il giorno di paga)
   function segnaScelta() {
