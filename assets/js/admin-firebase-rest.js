@@ -976,6 +976,63 @@
     return { ...(value || {}), id:String(value?.id || id) };
   }
 
+  // Sondaggio anonimo: configurazione, segnalino "fatto" per agente e risposte senza alcun dato identificativo.
+  const SURVEY_VERSION_RE = /^[A-Za-z0-9_-]{1,40}$/;
+  const SURVEY_OPTIONS = {
+    frequency:["Ogni giorno", "Qualche volta a settimana", "Qualche volta al mese", "Quasi mai"],
+    ease:["Molto facile", "Abbastanza facile", "Un po' difficile", "Difficile"],
+    features:["Turni", "Oggi", "Cambio turno", "Diaria", "Documenti", "Orario", "Ponte Radio", "Segnalazioni"]
+  };
+  const surveyVersion = version => {
+    const v = String(version || "").trim();
+    if (!SURVEY_VERSION_RE.test(v)) throw new Error("Versione del sondaggio non valida");
+    return v;
+  };
+  async function getSurveyConfig() {
+    const data = (await databaseRequest("private/adminUpdates/surveyConfig")).data;
+    return data && typeof data === "object" ? data : null;
+  }
+  async function saveSurveyConfig(config = {}) {
+    const item = { enabled:Boolean(config.enabled), version:surveyVersion(config.version), updatedAt:new Date().toISOString() };
+    await databaseRequest("private/adminUpdates/surveyConfig", { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  async function hasSurveyDone(agentId, version) {
+    const key = safeUserKey(agentId);
+    if (!key) return false;
+    return Boolean((await databaseRequest(`private/adminUpdates/surveyDone/${surveyVersion(version)}/${key}`)).data);
+  }
+  function randomSurveyId() {
+    const bytes = new Uint8Array(12);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function submitSurvey(agentId, version, payload = {}) {
+    const v = surveyVersion(version), key = safeUserKey(agentId);
+    if (!key) throw new Error("Agente non valido");
+    const pick = (value, allowed) => allowed.includes(value) ? value : "";
+    const answer = {
+      day:new Date().toISOString().slice(0, 10),
+      frequency:pick(payload.frequency, SURVEY_OPTIONS.frequency),
+      ease:pick(payload.ease, SURVEY_OPTIONS.ease),
+      features:[...new Set((Array.isArray(payload.features) ? payload.features : []).filter(f => SURVEY_OPTIONS.features.includes(f)))],
+      comment:safeFeedbackText(payload.comment, 500)
+    };
+    const hasData = answer.frequency || answer.ease || answer.features.length || answer.comment;
+    // prima la risposta (anonima), poi il segnalino "fatto": nodi separati, nessun legame tra i due
+    if (hasData) await databaseRequest(`private/adminUpdates/surveyResponses/${v}/${randomSurveyId()}`, { method:"PUT", body:JSON.stringify(answer) });
+    await databaseRequest(`private/adminUpdates/surveyDone/${v}/${key}`, { method:"PUT", body:"true" });
+    return Boolean(hasData);
+  }
+  async function listSurveyResponses(version) {
+    const data = (await databaseRequest(`private/adminUpdates/surveyResponses/${surveyVersion(version)}`)).data || {};
+    return Object.values(data).filter(item => item && typeof item === "object");
+  }
+  async function countSurveyDone(version) {
+    const data = (await databaseRequest(`private/adminUpdates/surveyDone/${surveyVersion(version)}`, { query:"shallow=true" })).data || {};
+    return Object.keys(data).length;
+  }
+
   async function listFeedbackTickets(agentId = "") {
     const result = await databaseRequest("private/adminUpdates/feedbackTickets");
     const target = String(agentId || "").trim();
@@ -1271,6 +1328,12 @@
 
   window.NaviAdminFirebase = {
     ready,
+    getSurveyConfig,
+    saveSurveyConfig,
+    hasSurveyDone,
+    submitSurvey,
+    listSurveyResponses,
+    countSurveyDone,
     listChangeRequests,
     saveChangeRequest,
     deleteChangeRequest,
