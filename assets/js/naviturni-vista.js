@@ -256,7 +256,7 @@
   // Passato «a strappo»: con la tabella ferma su oggi (inizio) bisogna tirarla con decisione verso destra;
   // superata la soglia compaiono altri 30 giorni passati, e così via a ogni nuovo strappo.
   const PASSO = 30, SOGLIA = 150;
-  let giorniPassati = 0;
+  let giorniPassati = 0, storicoMio = false;
   const scorritori = () => [document.scrollingElement, document.body, document.getElementById('matrix-scroll-wrap')].filter(Boolean);
   const xScroll = () => Math.max(...scorritori().map(e => e.scrollLeft || 0));
   const spostaX = d => scorritori().forEach(e => { if (e.scrollWidth > e.clientWidth + 1) e.scrollLeft += d; });
@@ -268,6 +268,8 @@
     giorniPassati += PASSO;
     const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() - giorniPassati);
     try { if (typeof caricaStorico === 'function') caricaStorico(); } catch { /* niente */ }
+    // anche l'equipaggio dei giorni passati: i dati completi (lo storico) servono pure alla testata
+    if (!storicoMio && schedule?.__leggeroDal && window.NaviSharedData?.loadCompleto) { storicoMio = true; window.NaviSharedData.loadCompleto({ onLocale: d => { if (d && !d.__leggeroDal) carica(d); } }).then(d => { if (d && !d.__leggeroDal) carica(d); }).catch(() => { storicoMio = false; }); }
     automaticPastFromTime = d.getTime();
     refreshCurrentResidenceData(); renderTable(); hidePastColumns();
     // la colonna che si vedeva prima resta ferma sotto il dito: i giorni nuovi sono a sinistra
