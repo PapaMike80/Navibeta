@@ -1680,10 +1680,15 @@
       // parte che dovrebbe restare visibile di default.
       const todayIso = localIsoToday();
       const startIsPast = dateCalendario[calIdx].iso < todayIso;
+      // ne' il confine dei giorni passati mostrati: una cella unita a cavallo tra giorni nascosti e visibili sposterebbe le colonne
+      const mostraTutto = typeof showPastColumns !== 'undefined' && showPastColumns, daQuando = typeof automaticPastFromTime === 'undefined' ? null : automaticPastFromTime;
+      const nascosto = c => c.iso < todayIso && !mostraTutto && (daQuando === null || !c.realObj || c.realObj.getTime() < daQuando);
+      const startHidden = nascosto(dateCalendario[calIdx]);
       let span = 1;
       while (calIdx + span < dateCalendario.length) {
         const nextIso = dateCalendario[calIdx + span].iso;
         if ((nextIso < todayIso) !== startIsPast) break;
+        if (nascosto(dateCalendario[calIdx + span]) !== startHidden) break;
         if (getAgentShiftOnDate(agenteObj, nextIso) !== turnoVal) break;
         span++;
       }
