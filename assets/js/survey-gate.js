@@ -3,6 +3,7 @@
 // Le risposte non contengono nome, id o ora: solo il giorno. Se la rete non risponde l'app non si blocca.
 (function () {
   'use strict';
+  // Domande di riserva (le stesse di partenza): di solito arrivano dal sondaggio, modificabili dall'admin
   const QUESTIONS = [
     { key: 'frequency', icon: '🕒', title: 'Con quale frequenza usi NaviSuite?', color: '#67d7e6', type: 'single',
       options: ['Ogni giorno', 'Qualche volta a settimana', 'Qualche volta al mese', 'Quasi mai'] },
@@ -46,20 +47,21 @@
   }
 
   // Costruisce il popup; onSend(risposte) / onLater() / preview
-  function show({ preview = false, skipsLeft = MAX_SKIPS, onSend, onLater }) {
+  function show({ preview = false, skipsLeft = MAX_SKIPS, questions, onSend, onLater }) {
     injectStyle();
     document.querySelector('.navi-survey-overlay')?.remove();
-    const answers = { frequency: '', ease: '', features: [], comment: '' };
+    const list = Array.isArray(questions) && questions.length ? questions : QUESTIONS;
+    const answers = Object.fromEntries(list.map(q => [q.key, q.type === 'multi' ? [] : '']));
     const overlay = el('div', 'navi-survey-overlay'), card = el('div', 'navi-survey-card');
     overlay.setAttribute('role', 'dialog'); overlay.setAttribute('aria-modal', 'true');
     card.append(el('span', 'navi-survey-kicker', 'SONDAGGIO'), el('h2', 'navi-survey-title', 'Aiutaci a migliorare NaviSuite'), el('span', 'navi-survey-badge', 'Anonimo · non collegato al tuo nome'));
-    QUESTIONS.forEach(q => {
+    list.forEach(q => {
       const box = el('div', 'navi-survey-box'); box.style.setProperty('--c', q.color);
-      box.appendChild(el('h3', '', `${q.icon} ${q.title}`));
+      box.appendChild(el('h3', '', `${q.icon ? q.icon + ' ' : ''}${q.title}`));
       if (q.type === 'text') {
         const ta = el('textarea', 'navi-survey-text'); ta.maxLength = 500; ta.placeholder = 'Scrivi qui (facoltativo)';
         const count = el('span', 'navi-survey-count', '0/500');
-        ta.addEventListener('input', () => { answers.comment = ta.value; count.textContent = `${ta.value.length}/500`; });
+        ta.addEventListener('input', () => { answers[q.key] = ta.value; count.textContent = `${ta.value.length}/500`; });
         box.append(ta, count);
       } else {
         const opts = el('div', 'navi-survey-opts');
@@ -67,8 +69,8 @@
           const b = el('button', 'navi-survey-opt', option); b.type = 'button';
           b.addEventListener('click', () => {
             if (q.type === 'multi') {
-              const i = answers.features.indexOf(option);
-              if (i >= 0) answers.features.splice(i, 1); else answers.features.push(option);
+              const sel = answers[q.key], i = sel.indexOf(option);
+              if (i >= 0) sel.splice(i, 1); else sel.push(option);
               b.classList.toggle('on', i < 0);
             } else {
               // secondo tocco sulla stessa scelta: la toglie
@@ -122,6 +124,7 @@
       if (document.querySelector('.navi-news-overlay')) { setTimeout(run, 4000); return; }
       show({
         skipsLeft: MAX_SKIPS - state.skips,
+        questions: config.questions,
         onLater: () => writeState(version, id, { ...state, skips: state.skips + 1, snoozeUntil: Date.now() + SNOOZE_MS }),
         onSend: async answers => { await F.submitSurvey(id, version, answers); writeState(version, id, { ...state, done: true }); }
       });
@@ -129,7 +132,7 @@
     finally { running = false; }
   }
 
-  window.NaviSurvey = { run, preview: () => show({ preview: true }) };
+  window.NaviSurvey = { run, preview: questions => show({ preview: true, questions }) };
   setTimeout(run, 1800);
   document.addEventListener('navisuite-login-complete', () => setTimeout(run, 1800));
 })();
