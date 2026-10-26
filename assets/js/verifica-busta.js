@@ -163,7 +163,7 @@
     const b = item.busta;
     return {
       bustaMonth: item.bustaMonth, month: item.month, fileName: item.fileName, period: b.period || null,
-      totals: b.totals || {}, check: b.check || {},
+      totals: b.totals || {}, leave: { ferie: b.leave?.ferie ?? null, bancaOre: b.leave?.bancaOre ?? null }, check: b.check || {},
       voci: (b.voci || []).map(v => ({ flag: v.flag ?? null, code: v.code, description: v.description, quantity: v.quantity, base: v.base, figurative: v.figurative, amount: v.amount })),
       savedAt: new Date().toISOString()
     };
@@ -193,7 +193,7 @@
     } catch (error) { console.warn('Archivio buste non letto da Firebase', error); statoAnno('Riepilogo dalla copia su questo telefono (Firebase non raggiungibile)'); }
   }
   const chiave = item => letturaAttendibile(item.busta) && item.bustaMonth ? item.bustaMonth : `file:${item.fileName}`;
-  const itemDaArchivio = (mese, d) => ({ busta: { period: d.period, voci: d.voci || [], totals: d.totals || {}, check: { completa: false, headerFound: false, message: 'Controlli della lettura non disponibili: ricarica il PDF per verificare questa busta.', ...(d.check || {}) } }, fileName: d.fileName || `busta ${mese}`, bustaMonth: mese, month: d.month || (d.period ? window.NaviBustaParser.previousMonth(d.period) : '') });
+  const itemDaArchivio = (mese, d) => ({ busta: { period: d.period, voci: d.voci || [], totals: d.totals || {}, leave: { ferie: d.leave?.ferie ?? null, bancaOre: d.leave?.bancaOre ?? null }, check: { completa: false, headerFound: false, message: 'Controlli della lettura non disponibili: ricarica il PDF per verificare questa busta.', ...(d.check || {}) } }, fileName: d.fileName || `busta ${mese}`, bustaMonth: mese, month: d.month || (d.period ? window.NaviBustaParser.previousMonth(d.period) : '') });
   function dallArchivio() {
     Object.entries(state.archivio).forEach(([m, d]) => {
       const item = itemDaArchivio(m, d);
@@ -274,6 +274,13 @@
       + `<span class="det num"><span><small>Distinta</small>${unitValue(row.distinta, row.unit)}</span><span><small>Busta</small>${row.busta === null ? 'assente' : unitValue(row.busta, row.unit)}</span><span><small>Importo busta</small>${eurv(row.importo)}</span><span><small>${row.status === 'ok' ? 'Distinta in euro' : 'Differenza circa'}</small>${row.status === 'ok' ? eurv(row.importoDistinta) : row.euro ? eurv(Math.abs(row.euro)) : '—'}</span><span><small>Voci in busta</small>${escapeHtml(row.codes.join(' + '))}</span>${nota}</span></button>`;
   }
 
+  // Ferie e banca ore: valore letto (anche zero) oppure "non rilevato", mai stimato
+  function ferieBancaOreHtml(busta) {
+    const leave = busta.leave || {};
+    const valore = value => value === null || value === undefined || !Number.isFinite(Number(value)) ? '<span class="non-rilevato">non rilevato</span>' : `<b class="num">${escapeHtml(number(value, 2))}</b>`;
+    return `<div class="saldi"><span>Ferie ${valore(leave.ferie)}</span><span>Banca ore ${valore(leave.bancaOre)}</span></div>`;
+  }
+
   function vociEstratteHtml(busta) {
     const voci = busta.voci || [];
     const valore = value => value === null || value === undefined ? 'non letto' : number(value, 2);
@@ -318,7 +325,7 @@
         + mailHtml(item, c, calculator);
     }
     els.titolo.textContent = nome;
-    els.confronto.innerHTML = `<div class="sel">${pills}</div><div><p class="msub">Busta di ${escapeHtml(nome.toLowerCase())}${c ? ` → Distinta di ${escapeHtml(monthLabel(item.month).toLowerCase())} (${dateText(c.p.startIso)} – ${dateText(c.p.endIso)})` : ''}</p></div>${tilesHtml(item.busta.totals || {})}${vociEstratteHtml(item.busta)}${scartoStima(item, data, calculator)}${corpo}`;
+    els.confronto.innerHTML = `<div class="sel">${pills}</div><div><p class="msub">Busta di ${escapeHtml(nome.toLowerCase())}${c ? ` → Distinta di ${escapeHtml(monthLabel(item.month).toLowerCase())} (${dateText(c.p.startIso)} – ${dateText(c.p.endIso)})` : ''}</p></div>${tilesHtml(item.busta.totals || {})}${ferieBancaOreHtml(item.busta)}${vociEstratteHtml(item.busta)}${scartoStima(item, data, calculator)}${corpo}`;
   }
   // Busta arrivata: quanto avrebbe detto la stima
   function scartoStima(item, data, calculator) {
@@ -404,7 +411,9 @@
         state.buste[chiave(item)] = item; ultima = chiave(item);
         if (letturaAttendibile(busta)) {
           await salvaBusta(item);
-          esiti.push(`✓ ${file.name}: periodo ${monthLabel(bustaMonth)}, ${busta.voci.length} voci e totali coerenti; salvata.`);
+          const mancanti = [['Ferie', busta.leave?.ferie], ['Banca ore', busta.leave?.bancaOre]].filter(([, value]) => value === null || value === undefined).map(([label]) => label);
+          const nota = mancanti.length ? ` ${mancanti.join(' e ')}: non rilevat${mancanti.length > 1 ? 'e' : 'a'}.` : '';
+          esiti.push(`✓ ${file.name}: periodo ${monthLabel(bustaMonth)}, ${busta.voci.length} voci e totali coerenti; salvata.${nota}`);
         } else {
           esiti.push(`⚠ ${file.name}: ${busta.check.message || 'lettura incompleta'} Non confrontata né salvata.`);
         }

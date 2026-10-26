@@ -197,6 +197,58 @@
     return totals;
   }
 
+  // Ferie e banca ore: saldi stampati fuori dalla tabella delle voci (la voce
+  // "594 Banca ore maturata" non e' il saldo). Le etichette piu' specifiche
+  // vincono su quelle generiche; "Ferie godute/maturate" non e' il saldo.
+  const LEAVE_LABELS = [
+    { key: 'ferie', priority: 0, re: /^(?:residuo|saldo)\s+ferie\b/i },
+    { key: 'ferie', priority: 1, re: /^ferie\s+(?:residue|residuo|saldo)\b/i },
+    { key: 'ferie', priority: 2, re: /^ferie\b(?!\s+(?:godut|maturat|spettant|fruit))/i },
+    { key: 'bancaOre', priority: 0, re: /^saldo\s+banca\s*ore\b/i },
+    { key: 'bancaOre', priority: 1, re: /^banca\s*ore\s+(?:residua|residuo|saldo)\b/i },
+    { key: 'bancaOre', priority: 2, re: /^banca\s*ore\b(?!\s+(?:godut|maturat|fruit|liquidat))/i }
+  ];
+  const LEAVE_STOP_RE = /^(?:Totale|Netto|Residuo|Saldo|Ferie|Banca|BancaOre|Permessi|ROL)$/i;
+
+  // rows: righe di una sola pagina; skip: righe della tabella voci da ignorare.
+  // Il valore (con segno) e' l'unico numero a destra dell'etichetta sulla stessa
+  // riga oppure quello subito sotto; piu' numeri sulla riga = ambiguo = null.
+  function findLeave(rows, skip = new Set()) {
+    const leave = { ferie: null, bancaOre: null };
+    const usable = rows.filter(row => !skip.has(row));
+    const numbers = [];
+    usable.forEach(row => row.words.forEach(word => {
+      const value = parseAmount(word.text);
+      if (value !== null) numbers.push({ ...word, value, rowY: row.y });
+    }));
+    const matches = [];
+    usable.forEach(row => {
+      const words = row.words;
+      for (let start = 0; start < words.length; start += 1) {
+        const text = words.slice(start, start + 4).map(word => word.text).join(' ');
+        const label = LEAVE_LABELS.find(candidate => candidate.re.test(text));
+        if (!label) continue;
+        const labelWords = label.re.exec(text)[0].match(/\S+/g).length;
+        matches.push({ label, row, first: words[start], last: words[Math.min(words.length - 1, start + labelWords - 1)], next: words.slice(start + labelWords).find(word => LEAVE_STOP_RE.test(word.text)) });
+        start += labelWords - 1;
+      }
+    });
+    Object.keys(leave).forEach(key => {
+      const best = matches.filter(match => match.label.key === key).sort((a, b) => a.label.priority - b.label.priority)[0];
+      if (!best) return;
+      const sameRow = numbers.filter(number => Math.abs(number.rowY - best.row.y) < 0.01 && number.x > best.last.xMax && (!best.next || number.x < best.next.x));
+      if (sameRow.length) { if (sameRow.length === 1) leave[key] = sameRow[0].value; return; }
+      const center = (best.first.x + best.last.xMax) / 2;
+      const below = numbers
+        .filter(number => number.rowY < best.row.y && best.row.y - number.rowY <= 24)
+        .map(number => ({ number, distance: Math.abs((number.x + number.xMax) / 2 - center) + (best.row.y - number.rowY) }))
+        .filter(candidate => candidate.distance <= 90)
+        .sort((a, b) => a.distance - b.distance);
+      if (below.length) leave[key] = below[0].number.value;
+    });
+    return leave;
+  }
+
   function parsePeriodToken(text) {
     const match = PERIOD_TOKEN_RE.exec(String(text || '').trim());
     if (!match) return null;
@@ -227,10 +279,11 @@
   const isEndRow = row => /\*\*\*\s*SEGUE|Netto\s+a\s+pagare/i.test(rowText(row)) || /Totale\s+(?:Competenze|Ritenute)/.test(rowText(row));
 
   // pages: [{items:[...]}] (item pdf.js o normalizzati). Restituisce
-  // {period, voci, totals, check}.
+  // {period, voci, totals, leave, check}.
   function parseItems(pages) {
     const voci = [];
     const totals = { competenze: null, ritenute: null, netto: null };
+    const leave = { ferie: null, bancaOre: null };
     let period = null;
     let headerFound = false;
     let textFound = false;
@@ -244,15 +297,22 @@
         if (totals[key] === null && pageTotals[key] !== null) totals[key] = pageTotals[key];
       });
       const headerIndex = rows.findIndex(isHeaderRow);
-      if (headerIndex < 0) return;
-      headerFound = true;
-      const bounds = columnBounds(rows[headerIndex]);
-      for (let index = headerIndex + 1; index < rows.length; index += 1) {
-        const row = rows[index];
-        if (isEndRow(row)) break;
-        const voce = parseVoceRow(row, bounds);
-        if (voce) voci.push({ ...voce, page: pageIndex + 1 });
+      const tableRows = new Set();
+      if (headerIndex >= 0) {
+        headerFound = true;
+        const bounds = columnBounds(rows[headerIndex]);
+        for (let index = headerIndex + 1; index < rows.length; index += 1) {
+          const row = rows[index];
+          if (isEndRow(row)) break;
+          tableRows.add(row);
+          const voce = parseVoceRow(row, bounds);
+          if (voce) voci.push({ ...voce, page: pageIndex + 1 });
+        }
       }
+      const pageLeave = findLeave(rows, tableRows);
+      Object.keys(leave).forEach(key => {
+        if (leave[key] === null && pageLeave[key] !== null) leave[key] = pageLeave[key];
+      });
     });
     const sumCompetenze = round2(voci.reduce((sum, voce) => sum + (voce.amount > 0 ? voce.amount : 0), 0));
     const sumRitenute = round2(voci.reduce((sum, voce) => sum + (voce.amount < 0 ? -voce.amount : 0), 0));
@@ -268,6 +328,10 @@
       sumRitenute,
       competenzeOk,
       ritenuteOk,
+      // Ferie e banca ore non entrano nel confronto con la Distinta: se mancano
+      // restano null (mai 0) e la pagina lo segnala, senza bloccare la busta.
+      ferieFound: leave.ferie !== null,
+      bancaOreFound: leave.bancaOre !== null,
       completa: textFound && period !== null && headerFound && totalsFound && competenzeOk && ritenuteOk,
       message: ''
     };
@@ -276,7 +340,7 @@
     else if (!period) check.message = 'Non trovo un periodo paga valido nel PDF: la busta non può essere confrontata né salvata come attendibile.';
     else if (!totalsFound) check.message = 'Non trovo i totali stampati (Totale Competenze / Totale Ritenute): non posso verificare che tutte le righe siano state lette.';
     else if (!check.completa) check.message = 'Le somme delle voci lette non coincidono con i totali stampati: qualche riga potrebbe non essere stata letta.';
-    return { period, voci, totals, check };
+    return { period, voci, totals, leave, check };
   }
 
   // "09.26" o {month:9,year:2026} -> "2026-08" (i dati variabili della busta
@@ -320,5 +384,5 @@
     return parseItems(await readPdf(data, pdfjs));
   }
 
-  return { LAYOUT, COLUMNS, parseAmount, splitWords, groupRows, columnBounds, parseVoceRow, findTotals, findPeriod, parsePeriodToken, parseItems, previousMonth, readPdf, parsePdf };
+  return { LAYOUT, COLUMNS, parseAmount, splitWords, groupRows, columnBounds, parseVoceRow, findTotals, findLeave, findPeriod, parsePeriodToken, parseItems, previousMonth, readPdf, parsePdf };
 });
