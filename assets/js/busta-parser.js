@@ -21,8 +21,7 @@
     amountMaxX: 566,
     // Un numero che finisce prima di questa x fa parte della descrizione.
     numbersMinX: 230,
-    rowTolerance: 2.5,
-    periodMinY: 600
+    rowTolerance: 2.5
   };
   const COLUMNS = ['quantity', 'base', 'figurative', 'amount'];
   const CODE_RE = /^[A-Z0-9]{3,5}$/;
@@ -33,7 +32,7 @@
   // "1.695,95" -> 1695.95 ; "1021,19-" -> -1021.19 ; testo non numerico -> null
   function parseAmount(text) {
     const raw = String(text ?? '').trim();
-    if (!NUMBER_RE.test(raw)) return null;
+    if (!NUMBER_RE.test(raw) || (raw.startsWith('+') && raw.endsWith('-'))) return null;
     const negative = raw.startsWith('-') || raw.endsWith('-');
     const value = Number(raw.replace(/^[+-]/, '').replace(/-$/, '').replace(/\./g, '').replace(',', '.'));
     if (!Number.isFinite(value)) return null;
@@ -295,6 +294,7 @@
       month = Number(period.month);
       year = Number(period.year);
     } else return '';
+    if (!Number.isInteger(month) || month < 1 || month > 12 || !Number.isInteger(year) || year < 2000 || year > 2099) return '';
     month -= 1;
     if (month < 1) { month = 12; year -= 1; }
     return `${year}-${String(month).padStart(2, '0')}`;

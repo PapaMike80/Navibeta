@@ -27,6 +27,7 @@ assert.equal(parser.parseAmount('1.695,95'), 1695.95);
 assert.equal(parser.parseAmount('1021,19-'), -1021.19);
 assert.equal(parser.parseAmount('-1.021,19'), -1021.19);
 assert.equal(parser.parseAmount('+12,50'), 12.5);
+assert.equal(parser.parseAmount('+12,50-'), null);
 assert.equal(parser.parseAmount('12'), 12);
 assert.equal(parser.parseAmount('0,50'), 0.5);
 assert.equal(parser.parseAmount('(es.30,99)'), null);
@@ -191,6 +192,8 @@ assert.equal(parser.previousMonth('09.26'), '2026-08');
 assert.equal(parser.previousMonth('01.27'), '2026-12');
 assert.equal(parser.previousMonth({ month: 1, year: 2026 }), '2025-12');
 assert.equal(parser.previousMonth(busta.period), '2026-08');
+assert.equal(parser.previousMonth('13.26'), '');
+assert.equal(parser.previousMonth({ month: 13, year: 2026 }), '');
 assert.equal(parser.previousMonth('boh'), '');
 
 // --- Distinta: periodo di competenza ---

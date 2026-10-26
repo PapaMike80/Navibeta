@@ -193,9 +193,12 @@
     } catch (error) { console.warn('Archivio buste non letto da Firebase', error); statoAnno('Riepilogo dalla copia su questo telefono (Firebase non raggiungibile)'); }
   }
   const chiave = item => letturaAttendibile(item.busta) && item.bustaMonth ? item.bustaMonth : `file:${item.fileName}`;
-  const itemDaArchivio = (mese, d) => ({ busta: { period: d.period, voci: d.voci || [], totals: d.totals || {}, check: { completa: true, headerFound: true, message: '', ...(d.check || {}) } }, fileName: d.fileName || `busta ${mese}`, bustaMonth: mese, month: d.month || (d.period ? window.NaviBustaParser.previousMonth(d.period) : '') });
+  const itemDaArchivio = (mese, d) => ({ busta: { period: d.period, voci: d.voci || [], totals: d.totals || {}, check: { completa: false, headerFound: false, message: 'Controlli della lettura non disponibili: ricarica il PDF per verificare questa busta.', ...(d.check || {}) } }, fileName: d.fileName || `busta ${mese}`, bustaMonth: mese, month: d.month || (d.period ? window.NaviBustaParser.previousMonth(d.period) : '') });
   function dallArchivio() {
-    Object.entries(state.archivio).forEach(([m, d]) => { if (/^\d{4}-\d{2}$/.test(m) && !state.buste[m]) state.buste[m] = itemDaArchivio(m, d); });
+    Object.entries(state.archivio).forEach(([m, d]) => {
+      const item = itemDaArchivio(m, d);
+      if (/^\d{4}-\d{2}$/.test(m) && letturaAttendibile(item.busta) && !state.buste[m]) state.buste[m] = item;
+    });
     Object.keys(state.buste).forEach(k => { if (/^\d{4}-\d{2}$/.test(k) && !state.archivio[k]) delete state.buste[k]; });
   }
   const chiaviOrdinate = () => Object.keys(state.buste).sort((a, b) => String(state.buste[a].bustaMonth || '9999').localeCompare(String(state.buste[b].bustaMonth || '9999')));
@@ -327,7 +330,7 @@
   }
 
   function renderAnno(data, calculator) {
-    const mesi = Object.keys(state.archivio).filter(m => /^\d{4}-\d{2}$/.test(m)).sort();
+    const mesi = Object.keys(state.archivio).filter(m => /^\d{4}-\d{2}$/.test(m) && letturaAttendibile(state.archivio[m])).sort();
     if (!mesi.length) { els.anno.innerHTML = '<p class="msub">Nessuna busta salvata.</p>'; return; }
     const stime = data && calculator ? stimeSenzaBusta(data, calculator) : {};
     const anni = [...new Set([...mesi, ...Object.keys(stime)].map(m => m.slice(0, 4)))].sort().reverse();
