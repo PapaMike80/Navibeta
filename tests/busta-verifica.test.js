@@ -177,6 +177,54 @@ assert.equal(scanned.check.textFound, false);
 assert.equal(scanned.check.completa, false);
 assert.match(scanned.check.message, /scansione.*OCR/i);
 
+// --- Ferie e banca ore: saldi fuori dalla tabella voci, con segno; zero != non rilevato ---
+assert.deepEqual(busta.leave, { ferie: null, bancaOre: null }, 'la voce 594 "Banca ore maturata" non e\' il saldo');
+assert.equal(busta.check.ferieFound, false);
+assert.equal(busta.check.bancaOreFound, false);
+assert.equal(busta.check.completa, true, 'ferie e banca ore non rilevate non bloccano il confronto');
+{
+  const withLeave = extra => parser.parseItems([{ items: page1 }, { items: [...page2, ...extra] }]);
+  // Entrambi presenti: stessa riga dell'etichetta e valore sotto l'intestazione.
+  const both = withLeave([item('Residuo ferie', 40, 160), right('1.234,50', 200, 160), item('SALDO  BANCA ORE', 300, 160), right('12,00-', 470, 160)]);
+  assert.deepEqual(both.leave, { ferie: 1234.5, bancaOre: -12 });
+  assert.equal(both.check.ferieFound, true);
+  assert.equal(both.check.bancaOreFound, true);
+  assert.equal(both.check.completa, true);
+  const below = withLeave([item('Ferie', 60, 160), item('Banca ore', 200, 160), right('+3,50', 90, 148), right('-12,00', 240, 148)]);
+  assert.deepEqual(below.leave, { ferie: 3.5, bancaOre: -12 });
+  // Uno solo presente: l'altro resta null, nessun valore indovinato.
+  const onlyFerie = withLeave([item('Saldo ferie', 40, 160), right('12', 160, 160)]);
+  assert.deepEqual(onlyFerie.leave, { ferie: 12, bancaOre: null });
+  assert.equal(onlyFerie.check.bancaOreFound, false);
+  // Etichetta senza valore: resta non rilevato.
+  const labelOnly = withLeave([item('Banca ore', 40, 160)]);
+  assert.equal(labelOnly.leave.bancaOre, null);
+  // Zero letto e' un valore, non un dato mancante.
+  const zero = withLeave([item('ferie', 40, 160), right('0,00', 140, 160), item('Banca Ore', 300, 160), right('0', 400, 160)]);
+  assert.deepEqual(zero.leave, { ferie: 0, bancaOre: 0 });
+  assert.equal(zero.check.ferieFound, true);
+  // Piu' numeri a destra della stessa etichetta: ambiguo, non assegnato.
+  const ambiguous = withLeave([item('Ferie', 40, 160), right('20,00', 140, 160), right('15,00', 200, 160), right('5,00', 260, 160)]);
+  assert.equal(ambiguous.leave.ferie, null);
+  // "Ferie godute" non e' il saldo; l'etichetta specifica vince su quella generica.
+  const godute = withLeave([item('Ferie godute', 40, 170), right('8,00', 200, 170), item('Residuo ferie', 40, 150), right('4,00', 200, 150)]);
+  assert.equal(godute.leave.ferie, 4);
+  assert.equal(withLeave([item('Ferie godute', 40, 170), right('8,00', 200, 170)]).leave.ferie, null);
+}
+// Ferie e banca ore di pagine diverse non si associano ai numeri di un'altra pagina.
+{
+  const crossPageLeave = parser.parseItems([
+    { items: [item('Residuo ferie', 40, 200), item('Saldo banca ore', 300, 200)] },
+    { items: [right('10,00', 120, 188), right('5,00', 380, 188)] }
+  ]);
+  assert.deepEqual(crossPageLeave.leave, { ferie: null, bancaOre: null });
+}
+// PDF senza testo: ferie e banca ore restano null e il messaggio OCR resta quello di prima.
+assert.deepEqual(scanned.leave, { ferie: null, bancaOre: null });
+assert.equal(scanned.check.ferieFound, false);
+assert.equal(scanned.check.bancaOreFound, false);
+assert.match(scanned.check.message, /testo selezionabile/);
+
 // Totali sulla stessa riga dell'etichetta.
 const inline = parser.findTotals(parser.groupRows([item('Totale Competenze', 300, 200), right('1.000,00', 420, 200), item('Totale Ritenute', 440, 200), right('10,00-', 564, 200)].flatMap(entry => parser.splitWords({ ...entry, x: entry.transform[4], y: entry.transform[5] }))));
 assert.equal(inline.competenze, 1000);
@@ -451,8 +499,10 @@ assert.equal(wrong[1].ok, true);
   const ui = read('assets/js/verifica-busta.js');
   assert.doesNotMatch(ui, /previousOfToday/, 'un periodo mancante non usa il mese corrente');
   assert.match(ui, /Non confrontata né salvata/, 'letture incomplete non vengono archiviate');
-  assert.match(html, /busta-parser\.js\?v=3/);
-  assert.match(html, /verifica-busta\.js\?v=25/);
+  assert.match(ui, /non rilevato/, 'ferie e banca ore mancanti visibili in pagina');
+  assert.match(ui, /leave: \{ ferie: b\.leave\?\.ferie \?\? null/, 'ferie e banca ore salvate con la busta');
+  assert.match(html, /busta-parser\.js\?v=4/);
+  assert.match(html, /verifica-busta\.js\?v=26/);
 }
 
 console.log('Busta verifica test passed');
