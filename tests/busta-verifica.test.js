@@ -25,6 +25,8 @@ const overtime = overtimeContext.window.NaviOvertimeComponents;
 // --- parseAmount ---
 assert.equal(parser.parseAmount('1.695,95'), 1695.95);
 assert.equal(parser.parseAmount('1021,19-'), -1021.19);
+assert.equal(parser.parseAmount('-1.021,19'), -1021.19);
+assert.equal(parser.parseAmount('+12,50'), 12.5);
 assert.equal(parser.parseAmount('12'), 12);
 assert.equal(parser.parseAmount('0,50'), 0.5);
 assert.equal(parser.parseAmount('(es.30,99)'), null);
@@ -114,7 +116,7 @@ assert.equal(busta.check.sumCompetenze, 1977.54);
 assert.equal(busta.check.sumRitenute, 387.85);
 assert.equal(busta.check.completa, true);
 
-// Buste INAZ vere (giugno-settembre 2026): la voce "900 Totale ritenute sociali" non chiude la tabella
+// Variante sintetica INAZ: la voce "900 Totale ritenute sociali" non chiude la tabella
 // e non e' il Totale Ritenute; "NETTO" e "A PAGARE" stanno su due righe con l'importo a destra.
 const page2Inaz = [
   item('AZIENDA ESEMPIO S.P.A.', 40, 810),
@@ -130,6 +132,36 @@ assert.ok(inaz.voci.some(voce => voce.code === '49X'), 'le voci dopo la 900 si l
 assert.deepEqual(inaz.totals, { competenze: 1977.54, ritenute: 387.85, netto: 1589.69 });
 assert.equal(inaz.check.completa, true);
 
+// Periodo: solo una data valida vicina a un'etichetta pertinente e' attendibile.
+assert.deepEqual(parser.parsePeriodToken('09.26'), { month: 9, year: 2026, label: '09.26' });
+assert.deepEqual(parser.parsePeriodToken('9/2026'), { month: 9, year: 2026, label: '9/2026' });
+assert.deepEqual(parser.parsePeriodToken('2026-09'), { month: 9, year: 2026, label: '2026-09' });
+assert.equal(parser.parsePeriodToken('13.26'), null);
+const unlabelledDate = item('12.34', 520, 770);
+const unlabelledRows = parser.groupRows(parser.splitWords({ ...unlabelledDate, x: unlabelledDate.transform[4], y: unlabelledDate.transform[5] }));
+assert.equal(parser.findPeriod(unlabelledRows), null, 'una data senza etichetta non è il periodo');
+const invalidPeriod = parser.parseItems([{ items: [item('Periodo paga', 470, 770), item('13.26', 520, 760)] }]);
+assert.equal(invalidPeriod.period, null, 'mese fuori intervallo non valido');
+
+// Zero e dato mancante restano distinti nelle voci estratte.
+const zeroWords = parser.groupRows(voceRow(620, { code: '000', description: 'Voce zero', quantity: '0,00', base: '0,00', amount: '0,00' })
+  .flatMap(entry => parser.splitWords({ ...entry, x: entry.transform[4], y: entry.transform[5] })));
+const zeroVoce = parser.parseVoceRow(zeroWords[0], parser.columnBounds(null));
+assert.equal(zeroVoce.quantity, 0);
+assert.equal(zeroVoce.base, 0);
+assert.equal(zeroVoce.amount, 0);
+const missingVoce = byCode('594');
+assert.equal(missingVoce.quantity, 3);
+assert.equal(missingVoce.amount, null, 'importo assente resta distinto da zero');
+
+// Totali di pagine diverse non possono essere associati tra loro.
+const crossPageTotals = parser.parseItems([
+  { items: [item('Totale Competenze', 300, 200)] },
+  { items: [right('1.000,00', 376, 188)] }
+]);
+assert.equal(crossPageTotals.totals.competenze, null);
+assert.equal(crossPageTotals.check.totalsFound, false);
+
 // Una riga persa: la lettura non e' completa e lo si dice.
 const partial = parser.parseItems([{ items: page1 }, { items: page2.filter(entry => entry.str !== '49X') }]);
 assert.equal(partial.check.completa, false);
@@ -139,6 +171,10 @@ assert.equal(noTotals.check.completa, false);
 assert.equal(noTotals.check.totalsFound, false);
 assert.match(noTotals.check.message, /Non trovo i totali/);
 assert.equal(parser.parseItems([{ items: [item('Documento qualsiasi', 40, 700)] }]).check.headerFound, false);
+const scanned = parser.parseItems([{ items: [] }]);
+assert.equal(scanned.check.textFound, false);
+assert.equal(scanned.check.completa, false);
+assert.match(scanned.check.message, /scansione.*OCR/i);
 
 // Totali sulla stessa riga dell'etichetta.
 const inline = parser.findTotals(parser.groupRows([item('Totale Competenze', 300, 200), right('1.000,00', 420, 200), item('Totale Ritenute', 440, 200), right('10,00-', 564, 200)].flatMap(entry => parser.splitWords({ ...entry, x: entry.transform[4], y: entry.transform[5] }))));
@@ -409,6 +445,11 @@ assert.equal(wrong[1].ok, true);
   assert.match(read('navidiaria.html'), /<button id="monthlyVerifyPayslip" class="monthly-today-button"[^>]*verifica-busta\.html[^>]*>Verifica busta<\/button>/);
   const sw = read('sw.js');
   ['./verifica-busta.html', './assets/js/busta-parser.js', './assets/js/distinta-totals.js', './assets/js/busta-compare.js', './assets/js/verifica-busta.js'].forEach(asset => assert.ok(sw.includes(`'${asset}'`), `sw.js: ${asset}`));
+  const ui = read('assets/js/verifica-busta.js');
+  assert.doesNotMatch(ui, /previousOfToday/, 'un periodo mancante non usa il mese corrente');
+  assert.match(ui, /Non confrontata né salvata/, 'letture incomplete non vengono archiviate');
+  assert.match(html, /busta-parser\.js\?v=3/);
+  assert.match(html, /verifica-busta\.js\?v=25/);
 }
 
 console.log('Busta verifica test passed');

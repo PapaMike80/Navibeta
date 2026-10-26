@@ -27,15 +27,15 @@
   const COLUMNS = ['quantity', 'base', 'figurative', 'amount'];
   const CODE_RE = /^[A-Z0-9]{3,5}$/;
   const FLAG_RE = /^[ABC]$/;
-  const NUMBER_RE = /^(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?-?$/;
-  const PERIOD_RE = /^(0[1-9]|1[0-2])\.(\d{2})$/;
+  const NUMBER_RE = /^[+-]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d+)?-?$/;
+  const PERIOD_TOKEN_RE = /^(?:(0?[1-9]|1[0-2])[./-](\d{2}|\d{4})|(\d{4})[./-](0?[1-9]|1[0-2]))$/;
 
   // "1.695,95" -> 1695.95 ; "1021,19-" -> -1021.19 ; testo non numerico -> null
   function parseAmount(text) {
     const raw = String(text ?? '').trim();
     if (!NUMBER_RE.test(raw)) return null;
-    const negative = raw.endsWith('-');
-    const value = Number(raw.replace(/-$/, '').replace(/\./g, '').replace(',', '.'));
+    const negative = raw.startsWith('-') || raw.endsWith('-');
+    const value = Number(raw.replace(/^[+-]/, '').replace(/-$/, '').replace(/\./g, '').replace(',', '.'));
     if (!Number.isFinite(value)) return null;
     return negative ? -value : value;
   }
@@ -198,12 +198,27 @@
     return totals;
   }
 
+  function parsePeriodToken(text) {
+    const match = PERIOD_TOKEN_RE.exec(String(text || '').trim());
+    if (!match) return null;
+    const month = Number(match[1] || match[4]);
+    const yearText = match[2] || match[3] || match[4];
+    const year = yearText.length === 2 ? 2000 + Number(yearText) : Number(yearText);
+    if (month < 1 || month > 12 || year < 2000 || year > 2099) return null;
+    return { month, year, label: String(text).trim() };
+  }
+
   function findPeriod(rows) {
-    for (const row of rows) {
-      if (row.y <= LAYOUT.periodMinY) continue;
-      for (const word of row.words) {
-        const match = PERIOD_RE.exec(word.text);
-        if (match) return { month: Number(match[1]), year: 2000 + Number(match[2]), label: word.text };
+    const labels = rows.map((row, index) => ({ row, index }))
+      .filter(({ row }) => /\b(?:periodo|period|competenza|mese\s+(?:di\s+)?(?:riferimento|paga|retribuzione))\b/i.test(rowText(row)));
+    for (const { row, index } of labels) {
+      const nearby = [rows[index], rows[index + 1], rows[index - 1]]
+        .filter(candidate => candidate && Math.abs(candidate.y - row.y) <= 24);
+      for (const candidate of nearby) {
+        for (const word of candidate.words) {
+          const period = parsePeriodToken(word.text);
+          if (period) return period;
+        }
       }
     }
     return null;
@@ -216,14 +231,19 @@
   // {period, voci, totals, check}.
   function parseItems(pages) {
     const voci = [];
-    const allRows = [];
+    const totals = { competenze: null, ritenute: null, netto: null };
     let period = null;
     let headerFound = false;
+    let textFound = false;
     (pages || []).forEach((page, pageIndex) => {
       const words = (page.items || []).map(normalizeItem).filter(Boolean).flatMap(splitWords);
       const rows = groupRows(words);
-      allRows.push(...rows);
+      if (words.length) textFound = true;
       if (!period) period = findPeriod(rows);
+      const pageTotals = findTotals(rows);
+      Object.keys(totals).forEach(key => {
+        if (totals[key] === null && pageTotals[key] !== null) totals[key] = pageTotals[key];
+      });
       const headerIndex = rows.findIndex(isHeaderRow);
       if (headerIndex < 0) return;
       headerFound = true;
@@ -235,23 +255,26 @@
         if (voce) voci.push({ ...voce, page: pageIndex + 1 });
       }
     });
-    const totals = findTotals(allRows);
     const sumCompetenze = round2(voci.reduce((sum, voce) => sum + (voce.amount > 0 ? voce.amount : 0), 0));
     const sumRitenute = round2(voci.reduce((sum, voce) => sum + (voce.amount < 0 ? -voce.amount : 0), 0));
     const totalsFound = totals.competenze !== null && totals.ritenute !== null;
     const competenzeOk = totals.competenze !== null && Math.round(sumCompetenze * 100) === Math.round(totals.competenze * 100);
     const ritenuteOk = totals.ritenute !== null && Math.round(sumRitenute * 100) === Math.round(totals.ritenute * 100);
     const check = {
+      textFound,
+      periodFound: period !== null,
       headerFound,
       totalsFound,
       sumCompetenze,
       sumRitenute,
       competenzeOk,
       ritenuteOk,
-      completa: headerFound && totalsFound && competenzeOk && ritenuteOk,
+      completa: textFound && period !== null && headerFound && totalsFound && competenzeOk && ritenuteOk,
       message: ''
     };
-    if (!headerFound) check.message = 'Non trovo la tabella delle voci: il file non sembra una busta paga INAZ.';
+    if (!textFound) check.message = 'Il PDF non contiene testo selezionabile: potrebbe essere una scansione. La lettura automatica non supporta l’OCR.';
+    else if (!headerFound) check.message = 'Non trovo la tabella delle voci: il file non sembra una busta paga INAZ.';
+    else if (!period) check.message = 'Non trovo un periodo paga valido nel PDF: la busta non può essere confrontata né salvata come attendibile.';
     else if (!totalsFound) check.message = 'Non trovo i totali stampati (Totale Competenze / Totale Ritenute): non posso verificare che tutte le righe siano state lette.';
     else if (!check.completa) check.message = 'Le somme delle voci lette non coincidono con i totali stampati: qualche riga potrebbe non essere stata letta.';
     return { period, voci, totals, check };
@@ -263,10 +286,11 @@
     let month;
     let year;
     if (typeof period === 'string') {
-      const match = PERIOD_RE.exec(period.trim()) || /^(\d{4})-(\d{2})$/.exec(period.trim());
-      if (!match) return '';
-      if (match[0].includes('-')) { year = Number(match[1]); month = Number(match[2]); }
-      else { month = Number(match[1]); year = 2000 + Number(match[2]); }
+      const normalized = parsePeriodToken(period);
+      const iso = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(period.trim());
+      if (normalized) ({ month, year } = normalized);
+      else if (iso) { year = Number(iso[1]); month = Number(iso[2]); }
+      else return '';
     } else if (period && period.month && period.year) {
       month = Number(period.month);
       year = Number(period.year);
@@ -296,5 +320,5 @@
     return parseItems(await readPdf(data, pdfjs));
   }
 
-  return { LAYOUT, COLUMNS, parseAmount, splitWords, groupRows, columnBounds, parseVoceRow, findTotals, findPeriod, parseItems, previousMonth, readPdf, parsePdf };
+  return { LAYOUT, COLUMNS, parseAmount, splitWords, groupRows, columnBounds, parseVoceRow, findTotals, findPeriod, parsePeriodToken, parseItems, previousMonth, readPdf, parsePdf };
 });

@@ -34,12 +34,6 @@
     els.alerts.innerHTML = list.map(alert => `<p class="vb-alert ${alert.kind || 'warn'}">${escapeHtml(alert.text)}</p>`).join('');
   }
 
-  function previousOfToday() {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), now.getMonth() - 1, 1, 12);
-    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-  }
-
   function readLocalEntries(id) {
     try {
       const parsed = JSON.parse(localStorage.getItem(`navidiaria.entries.v1.${id}`) || '[]');
@@ -90,6 +84,9 @@
   };
 
   const monthOf = busta => (busta.period ? `${busta.period.year}-${String(busta.period.month).padStart(2, '0')}` : '');
+  const periodoValido = period => Number.isInteger(Number(period?.month)) && Number(period.month) >= 1 && Number(period.month) <= 12
+    && Number.isInteger(Number(period?.year)) && Number(period.year) >= 2000 && Number(period.year) <= 2099;
+  const letturaAttendibile = busta => Boolean(busta?.check?.completa && periodoValido(busta.period));
 
   // Tolleranza scelta (0, 5 o 10%), ricordata sul dispositivo
   const TOLL_KEY = 'navisuite.verificaBusta.tolleranza';
@@ -172,7 +169,7 @@
     };
   }
   async function salvaBusta(item) {
-    if (!item.bustaMonth) return;
+    if (!item.bustaMonth || !letturaAttendibile(item.busta)) return;
     const dati = datiBusta(item);
     state.archivio[item.bustaMonth] = dati; scriviLocale();
     // Firebase (archivio unico) e copia sul telefono
@@ -195,20 +192,21 @@
       state.archivio = unione; scriviLocale(); dallArchivio(); ridisegna(); statoAnno('Buste: Firebase ✓');
     } catch (error) { console.warn('Archivio buste non letto da Firebase', error); statoAnno('Riepilogo dalla copia su questo telefono (Firebase non raggiungibile)'); }
   }
-  const chiave = item => item.bustaMonth || `file:${item.fileName}`;
+  const chiave = item => letturaAttendibile(item.busta) && item.bustaMonth ? item.bustaMonth : `file:${item.fileName}`;
   const itemDaArchivio = (mese, d) => ({ busta: { period: d.period, voci: d.voci || [], totals: d.totals || {}, check: { completa: true, headerFound: true, message: '', ...(d.check || {}) } }, fileName: d.fileName || `busta ${mese}`, bustaMonth: mese, month: d.month || (d.period ? window.NaviBustaParser.previousMonth(d.period) : '') });
   function dallArchivio() {
     Object.entries(state.archivio).forEach(([m, d]) => { if (/^\d{4}-\d{2}$/.test(m) && !state.buste[m]) state.buste[m] = itemDaArchivio(m, d); });
     Object.keys(state.buste).forEach(k => { if (/^\d{4}-\d{2}$/.test(k) && !state.archivio[k]) delete state.buste[k]; });
   }
   const chiaviOrdinate = () => Object.keys(state.buste).sort((a, b) => String(state.buste[a].bustaMonth || '9999').localeCompare(String(state.buste[b].bustaMonth || '9999')));
-  const nomeBusta = item => item.bustaMonth ? monthLabel(item.bustaMonth) : item.fileName;
+  const nomeBusta = item => letturaAttendibile(item.busta) && item.bustaMonth ? monthLabel(item.bustaMonth) : item.fileName;
   const meseCorto = m => new Intl.DateTimeFormat('it-IT', { month: 'short' }).format(new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)) - 1, 1, 12)).replace('.', '');
   const eurv = v => v === null || v === undefined || v === '' ? '—' : `<span class="eurv">${escapeHtml(euro(v))}</span>`;
   const COLORE = { ok: 'var(--green)', diff: 'var(--rose)', check: 'var(--amber)' };
 
   // Confronto di una busta con la Distinta del mese prima (null se il mese manca)
   function confronta(item, data, calculator) {
+    if (!item.month || !letturaAttendibile(item.busta)) return null;
     const p = window.NaviDistintaTotals.competencePeriod(item.month);
     if (!p.startIso) return null;
     const distinta = calculator.compute(data.entries, item.month);
@@ -218,7 +216,7 @@
   const meseDopo = m => { const d = new Date(Number(m.slice(0, 4)), Number(m.slice(5, 7)), 1, 12); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`; };
   // Busta di riferimento per i prezzi: l'ultima salvata prima della busta da stimare (o la prima, se non ce ne sono prima)
   function bustaRiferimento(bustaMonth) {
-    const mesi = Object.keys(state.archivio).filter(m => /^\d{4}-\d{2}$/.test(m)).sort();
+    const mesi = Object.keys(state.archivio).filter(m => /^\d{4}-\d{2}$/.test(m) && letturaAttendibile(state.archivio[m])).sort();
     const prima = mesi.filter(m => m < bustaMonth);
     const m = prima[prima.length - 1] || mesi[0];
     return m ? { mese: m, ...state.archivio[m] } : null;
@@ -239,7 +237,7 @@
     const mesi = new Set();
     (data?.entries || []).forEach(e => { const m = String(e?.date || '').slice(0, 7); if (/^\d{4}-\d{2}$/.test(m)) { mesi.add(meseDopo(m)); } });
     const out = {};
-    [...mesi].sort().forEach(b => { if (state.archivio[b]) return; const st = stimaBusta(b, data, calculator); if (st) out[b] = st; });
+    [...mesi].sort().forEach(b => { if (state.archivio[b] && letturaAttendibile(state.archivio[b])) return; const st = stimaBusta(b, data, calculator); if (st) out[b] = st; });
     return out;
   }
   const oggiIso = () => window.NaviDistintaTotals.iso(new Date());
@@ -273,12 +271,19 @@
       + `<span class="det num"><span><small>Distinta</small>${unitValue(row.distinta, row.unit)}</span><span><small>Busta</small>${row.busta === null ? 'assente' : unitValue(row.busta, row.unit)}</span><span><small>Importo busta</small>${eurv(row.importo)}</span><span><small>${row.status === 'ok' ? 'Distinta in euro' : 'Differenza circa'}</small>${row.status === 'ok' ? eurv(row.importoDistinta) : row.euro ? eurv(Math.abs(row.euro)) : '—'}</span><span><small>Voci in busta</small>${escapeHtml(row.codes.join(' + '))}</span>${nota}</span></button>`;
   }
 
+  function vociEstratteHtml(busta) {
+    const voci = busta.voci || [];
+    const valore = value => value === null || value === undefined ? 'non letto' : number(value, 2);
+    const righe = voci.map(voce => `<div class="estrazione-riga"><b>${escapeHtml(voce.code || '—')}</b><span>${escapeHtml(voce.description || 'Descrizione non letta')}</span><small>Quantità: ${valore(voce.quantity)} · Base/tariffa: ${valore(voce.base)} · Figurativo: ${valore(voce.figurative)} · Importo: ${valore(voce.amount)} €</small></div>`).join('');
+    return `<details class="estrazione"><summary>Voci lette automaticamente (${voci.length})</summary>${righe || '<p class="msub">Nessuna voce leggibile.</p>'}<p class="msub">“non letto” indica un dato assente nel testo estratto; non equivale a zero.</p></details>`;
+  }
+
   function renderConfronto(data, calculator, alerts) {
     const chiavi = chiaviOrdinate();
     const stime = stimeSenzaBusta(data, calculator);
     const chiaviStima = Object.keys(stime).map(m => `stima:${m}`);
     if (!chiavi.includes(state.corrente) && !chiaviStima.includes(state.corrente)) state.corrente = chiavi[chiavi.length - 1] || '';
-    const pills = chiavi.map(k => { const it = state.buste[k]; const c = confronta(it, data, calculator); return `<button type="button" class="chip${k === state.corrente ? ' on' : ''}" data-mese="${escapeHtml(k)}"><i class="dot" style="--c:${COLORE[statoMese(c)]}"></i>${escapeHtml(it.bustaMonth ? `${meseCorto(it.bustaMonth)} ${it.bustaMonth.slice(2, 4)}` : it.fileName)}</button>`; }).join('')
+    const pills = chiavi.map(k => { const it = state.buste[k]; const c = confronta(it, data, calculator); const label = letturaAttendibile(it.busta) && it.bustaMonth ? `${meseCorto(it.bustaMonth)} ${it.bustaMonth.slice(2, 4)}` : it.fileName; return `<button type="button" class="chip${k === state.corrente ? ' on' : ''}" data-mese="${escapeHtml(k)}"><i class="dot" style="--c:${COLORE[statoMese(c)]}"></i>${escapeHtml(label)}</button>`; }).join('')
       + Object.keys(stime).map(m => `<button type="button" class="chip chip-stima${`stima:${m}` === state.corrente ? ' on' : ''}" data-mese="stima:${m}">≈ ${escapeHtml(`${meseCorto(m)} ${m.slice(2, 4)}`)}</button>`).join('');
     if (state.corrente.startsWith('stima:')) {
       const st = stime[state.corrente.slice(6)];
@@ -292,7 +297,9 @@
     if (!item.busta.check.completa) alerts.push({ kind: item.busta.check.headerFound ? 'warn' : 'error', text: `${nome}: ${item.busta.check.message}` });
     const c = confronta(item, data, calculator);
     let corpo;
-    if (!c) corpo = '<p class="msub">Non trovo il mese di questa busta: non posso confrontarla con la Distinta.</p>';
+    if (!c) corpo = !periodoValido(item.busta.period)
+      ? '<p class="msub">Periodo non riconosciuto o non valido: confronto e stima disattivati.</p>'
+      : '<p class="msub">Lettura incompleta o non verificata: confronto e stima disattivati.</p>';
     else {
       if (!c.distinta.entryCount) alerts.push({ kind: 'warn', text: `Nessuna giornata nella Distinta dal ${dateText(c.p.startIso)} al ${dateText(c.p.endIso)}.` });
       // Ordine per valore economico: prima le voci che pesano di piu' in euro
@@ -308,11 +315,11 @@
         + mailHtml(item, c, calculator);
     }
     els.titolo.textContent = nome;
-    els.confronto.innerHTML = `<div class="sel">${pills}</div><div><p class="msub">Busta di ${escapeHtml(nome.toLowerCase())}${c ? ` → Distinta di ${escapeHtml(monthLabel(item.month).toLowerCase())} (${dateText(c.p.startIso)} – ${dateText(c.p.endIso)})` : ''}</p></div>${tilesHtml(item.busta.totals || {})}${scartoStima(item, data, calculator)}${corpo}`;
+    els.confronto.innerHTML = `<div class="sel">${pills}</div><div><p class="msub">Busta di ${escapeHtml(nome.toLowerCase())}${c ? ` → Distinta di ${escapeHtml(monthLabel(item.month).toLowerCase())} (${dateText(c.p.startIso)} – ${dateText(c.p.endIso)})` : ''}</p></div>${tilesHtml(item.busta.totals || {})}${vociEstratteHtml(item.busta)}${scartoStima(item, data, calculator)}${corpo}`;
   }
   // Busta arrivata: quanto avrebbe detto la stima
   function scartoStima(item, data, calculator) {
-    if (!item.bustaMonth) return '';
+    if (!item.bustaMonth || !letturaAttendibile(item.busta)) return '';
     const st = stimaBusta(item.bustaMonth, data, calculator), netto = Number(item.busta.totals?.netto);
     if (!st || !Number.isFinite(netto)) return '';
     const d = netto - st.netto;
@@ -383,23 +390,27 @@
     const files = [...(els.fileInput.files || [])];
     if (!files.length) return;
     els.fileLabel.classList.add('is-busy');
-    const errori = [];
+    const esiti = [];
     let ultima = '';
     for (const file of files) {
       els.fileInfo.textContent = `Leggo ${file.name}…`;
       try {
         const busta = await window.NaviBustaParser.parsePdf(file);
         const bustaMonth = monthOf(busta);
-        const item = { busta, fileName: file.name, bustaMonth, month: busta.period ? window.NaviBustaParser.previousMonth(busta.period) : previousOfToday() };
+        const item = { busta, fileName: file.name, bustaMonth, month: busta.period ? window.NaviBustaParser.previousMonth(busta.period) : '' };
         state.buste[chiave(item)] = item; ultima = chiave(item);
-        await salvaBusta(item);
+        if (letturaAttendibile(busta)) {
+          await salvaBusta(item);
+          esiti.push(`✓ ${file.name}: periodo ${monthLabel(bustaMonth)}, ${busta.voci.length} voci e totali coerenti; salvata.`);
+        } else {
+          esiti.push(`⚠ ${file.name}: ${busta.check.message || 'lettura incompleta'} Non confrontata né salvata.`);
+        }
       } catch (error) {
-        console.error('Verifica busta: lettura PDF non riuscita', error);
-        errori.push(`${file.name} (${error.message || error})`);
+        esiti.push(`✕ ${file.name}: PDF non leggibile; nessun dato salvato.`);
       }
     }
     if (ultima) { state.corrente = ultima; state.tab = 'confronto'; }
-    els.fileInfo.textContent = errori.length ? `Non riesco a leggere: ${errori.join(', ')}.` : '';
+    els.fileInfo.textContent = esiti.join('\n');
     els.fileLabel.classList.remove('is-busy');
     els.fileInput.value = '';
     await render();
