@@ -39,7 +39,7 @@
     .chip:focus-visible,.vb-tabs button:focus-visible,.voce:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
     .chip select{border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
     .chip.is-busy{opacity:.6;cursor:progress}
-    .vb-info{margin:0;color:var(--muted);font-size:13px}.vb-info:empty{display:none}
+    .vb-info{margin:0;color:var(--muted);font-size:13px;white-space:pre-line}.vb-info:empty{display:none}
     .vb-meta{margin:0;color:var(--muted);font-size:12px}.vb-meta:empty{display:none}
     #vbAlerts{display:grid;gap:8px}#vbAlerts:empty{display:none}
     .vb-alert{margin:0;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--amber) 50%,transparent);background:color-mix(in srgb,var(--amber) 14%,var(--card));font-size:13px}
@@ -95,6 +95,7 @@
     .grp{margin:6px 0 0;font:800 10px Manrope,system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}.voce.st{cursor:default;--c:var(--cyan)}
     .chip-stima{border-style:dashed;border-color:var(--amber);color:var(--amber)}.chip-stima.on{background:var(--amber);border-color:var(--amber);color:#2a1d00}
     .spark i.s{background:repeating-linear-gradient(135deg,var(--amber) 0 4px,color-mix(in srgb,var(--amber) 45%,transparent) 4px 8px)}.q-st{background:var(--amber);opacity:.6}
+    .estrazione{padding:10px 12px;border-radius:12px;background:var(--card);font-size:12px}.estrazione>summary{cursor:pointer;font-weight:800;color:var(--teal)}.estrazione-riga{display:grid;grid-template-columns:auto 1fr;gap:2px 8px;padding:8px 0;border-bottom:1px solid var(--line)}.estrazione-riga b{font-family:var(--mono)}.estrazione-riga small{grid-column:1/-1;color:var(--muted);font-size:11px}
     body.vb-blur .eurv{filter:blur(7px);user-select:none}
     @media(prefers-reduced-motion:no-preference){.voce,.chip{transition:background .15s,border-color .15s}}
   </style>
@@ -139,9 +140,9 @@
   <script src="assets/js/overtime-components.js?v=11"></script>
   <script src="assets/js/shift-competence.js?v=4"></script>
   <script src="vendor/pdfjs/pdf.min.js"></script>
-  <script src="assets/js/busta-parser.js?v=2"></script>
+  <script src="assets/js/busta-parser.js?v=3"></script>
   <script src="assets/js/distinta-totals.js?v=10"></script>
   <script src="assets/js/busta-compare.js?v=19"></script>
-  <script src="assets/js/verifica-busta.js?v=24"></script>
+  <script src="assets/js/verifica-busta.js?v=25"></script>
 </body>
 </html>
