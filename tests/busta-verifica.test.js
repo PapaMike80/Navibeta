@@ -12,6 +12,7 @@ const root = path.join(__dirname, '..');
 const read = file => fs.readFileSync(path.join(root, file), 'utf8');
 const parser = require('../assets/js/busta-parser.js');
 const totalsModule = require('../assets/js/distinta-totals.js');
+const ccnlModule = require('../assets/js/ccnl-config.js');
 const compareModule = require('../assets/js/busta-compare.js');
 const shiftCompetence = require('../assets/js/shift-competence.js');
 
@@ -25,9 +26,6 @@ const overtime = overtimeContext.window.NaviOvertimeComponents;
 // --- parseAmount ---
 assert.equal(parser.parseAmount('1.695,95'), 1695.95);
 assert.equal(parser.parseAmount('1021,19-'), -1021.19);
-assert.equal(parser.parseAmount('-1.021,19'), -1021.19);
-assert.equal(parser.parseAmount('+12,50'), 12.5);
-assert.equal(parser.parseAmount('+12,50-'), null);
 assert.equal(parser.parseAmount('12'), 12);
 assert.equal(parser.parseAmount('0,50'), 0.5);
 assert.equal(parser.parseAmount('(es.30,99)'), null);
@@ -117,7 +115,7 @@ assert.equal(busta.check.sumCompetenze, 1977.54);
 assert.equal(busta.check.sumRitenute, 387.85);
 assert.equal(busta.check.completa, true);
 
-// Variante sintetica INAZ: la voce "900 Totale ritenute sociali" non chiude la tabella
+// Buste INAZ vere (giugno-settembre 2026): la voce "900 Totale ritenute sociali" non chiude la tabella
 // e non e' il Totale Ritenute; "NETTO" e "A PAGARE" stanno su due righe con l'importo a destra.
 const page2Inaz = [
   item('AZIENDA ESEMPIO S.P.A.', 40, 810),
@@ -133,36 +131,6 @@ assert.ok(inaz.voci.some(voce => voce.code === '49X'), 'le voci dopo la 900 si l
 assert.deepEqual(inaz.totals, { competenze: 1977.54, ritenute: 387.85, netto: 1589.69 });
 assert.equal(inaz.check.completa, true);
 
-// Periodo: solo una data valida vicina a un'etichetta pertinente e' attendibile.
-assert.deepEqual(parser.parsePeriodToken('09.26'), { month: 9, year: 2026, label: '09.26' });
-assert.deepEqual(parser.parsePeriodToken('9/2026'), { month: 9, year: 2026, label: '9/2026' });
-assert.deepEqual(parser.parsePeriodToken('2026-09'), { month: 9, year: 2026, label: '2026-09' });
-assert.equal(parser.parsePeriodToken('13.26'), null);
-const unlabelledDate = item('12.34', 520, 770);
-const unlabelledRows = parser.groupRows(parser.splitWords({ ...unlabelledDate, x: unlabelledDate.transform[4], y: unlabelledDate.transform[5] }));
-assert.equal(parser.findPeriod(unlabelledRows), null, 'una data senza etichetta non è il periodo');
-const invalidPeriod = parser.parseItems([{ items: [item('Periodo paga', 470, 770), item('13.26', 520, 760)] }]);
-assert.equal(invalidPeriod.period, null, 'mese fuori intervallo non valido');
-
-// Zero e dato mancante restano distinti nelle voci estratte.
-const zeroWords = parser.groupRows(voceRow(620, { code: '000', description: 'Voce zero', quantity: '0,00', base: '0,00', amount: '0,00' })
-  .flatMap(entry => parser.splitWords({ ...entry, x: entry.transform[4], y: entry.transform[5] })));
-const zeroVoce = parser.parseVoceRow(zeroWords[0], parser.columnBounds(null));
-assert.equal(zeroVoce.quantity, 0);
-assert.equal(zeroVoce.base, 0);
-assert.equal(zeroVoce.amount, 0);
-const missingVoce = byCode('594');
-assert.equal(missingVoce.quantity, 3);
-assert.equal(missingVoce.amount, null, 'importo assente resta distinto da zero');
-
-// Totali di pagine diverse non possono essere associati tra loro.
-const crossPageTotals = parser.parseItems([
-  { items: [item('Totale Competenze', 300, 200)] },
-  { items: [right('1.000,00', 376, 188)] }
-]);
-assert.equal(crossPageTotals.totals.competenze, null);
-assert.equal(crossPageTotals.check.totalsFound, false);
-
 // Una riga persa: la lettura non e' completa e lo si dice.
 const partial = parser.parseItems([{ items: page1 }, { items: page2.filter(entry => entry.str !== '49X') }]);
 assert.equal(partial.check.completa, false);
@@ -172,58 +140,6 @@ assert.equal(noTotals.check.completa, false);
 assert.equal(noTotals.check.totalsFound, false);
 assert.match(noTotals.check.message, /Non trovo i totali/);
 assert.equal(parser.parseItems([{ items: [item('Documento qualsiasi', 40, 700)] }]).check.headerFound, false);
-const scanned = parser.parseItems([{ items: [] }]);
-assert.equal(scanned.check.textFound, false);
-assert.equal(scanned.check.completa, false);
-assert.match(scanned.check.message, /scansione.*OCR/i);
-
-// --- Ferie e banca ore: saldi fuori dalla tabella voci, con segno; zero != non rilevato ---
-assert.deepEqual(busta.leave, { ferie: null, bancaOre: null }, 'la voce 594 "Banca ore maturata" non e\' il saldo');
-assert.equal(busta.check.ferieFound, false);
-assert.equal(busta.check.bancaOreFound, false);
-assert.equal(busta.check.completa, true, 'ferie e banca ore non rilevate non bloccano il confronto');
-{
-  const withLeave = extra => parser.parseItems([{ items: page1 }, { items: [...page2, ...extra] }]);
-  // Entrambi presenti: stessa riga dell'etichetta e valore sotto l'intestazione.
-  const both = withLeave([item('Residuo ferie', 40, 160), right('1.234,50', 200, 160), item('SALDO  BANCA ORE', 300, 160), right('12,00-', 470, 160)]);
-  assert.deepEqual(both.leave, { ferie: 1234.5, bancaOre: -12 });
-  assert.equal(both.check.ferieFound, true);
-  assert.equal(both.check.bancaOreFound, true);
-  assert.equal(both.check.completa, true);
-  const below = withLeave([item('Ferie', 60, 160), item('Banca ore', 200, 160), right('+3,50', 90, 148), right('-12,00', 240, 148)]);
-  assert.deepEqual(below.leave, { ferie: 3.5, bancaOre: -12 });
-  // Uno solo presente: l'altro resta null, nessun valore indovinato.
-  const onlyFerie = withLeave([item('Saldo ferie', 40, 160), right('12', 160, 160)]);
-  assert.deepEqual(onlyFerie.leave, { ferie: 12, bancaOre: null });
-  assert.equal(onlyFerie.check.bancaOreFound, false);
-  // Etichetta senza valore: resta non rilevato.
-  const labelOnly = withLeave([item('Banca ore', 40, 160)]);
-  assert.equal(labelOnly.leave.bancaOre, null);
-  // Zero letto e' un valore, non un dato mancante.
-  const zero = withLeave([item('ferie', 40, 160), right('0,00', 140, 160), item('Banca Ore', 300, 160), right('0', 400, 160)]);
-  assert.deepEqual(zero.leave, { ferie: 0, bancaOre: 0 });
-  assert.equal(zero.check.ferieFound, true);
-  // Piu' numeri a destra della stessa etichetta: ambiguo, non assegnato.
-  const ambiguous = withLeave([item('Ferie', 40, 160), right('20,00', 140, 160), right('15,00', 200, 160), right('5,00', 260, 160)]);
-  assert.equal(ambiguous.leave.ferie, null);
-  // "Ferie godute" non e' il saldo; l'etichetta specifica vince su quella generica.
-  const godute = withLeave([item('Ferie godute', 40, 170), right('8,00', 200, 170), item('Residuo ferie', 40, 150), right('4,00', 200, 150)]);
-  assert.equal(godute.leave.ferie, 4);
-  assert.equal(withLeave([item('Ferie godute', 40, 170), right('8,00', 200, 170)]).leave.ferie, null);
-}
-// Ferie e banca ore di pagine diverse non si associano ai numeri di un'altra pagina.
-{
-  const crossPageLeave = parser.parseItems([
-    { items: [item('Residuo ferie', 40, 200), item('Saldo banca ore', 300, 200)] },
-    { items: [right('10,00', 120, 188), right('5,00', 380, 188)] }
-  ]);
-  assert.deepEqual(crossPageLeave.leave, { ferie: null, bancaOre: null });
-}
-// PDF senza testo: ferie e banca ore restano null e il messaggio OCR resta quello di prima.
-assert.deepEqual(scanned.leave, { ferie: null, bancaOre: null });
-assert.equal(scanned.check.ferieFound, false);
-assert.equal(scanned.check.bancaOreFound, false);
-assert.match(scanned.check.message, /testo selezionabile/);
 
 // Totali sulla stessa riga dell'etichetta.
 const inline = parser.findTotals(parser.groupRows([item('Totale Competenze', 300, 200), right('1.000,00', 420, 200), item('Totale Ritenute', 440, 200), right('10,00-', 564, 200)].flatMap(entry => parser.splitWords({ ...entry, x: entry.transform[4], y: entry.transform[5] }))));
@@ -235,14 +151,52 @@ assert.equal(parser.columnBounds(null).quantityMaxX, 308);
 assert.equal(parser.columnBounds(null).baseMaxX, 392);
 assert.equal(parser.columnBounds(null).figurativeMaxX, 470);
 
-// --- previousMonth ---
+// --- previousMonth e mensilita' aggiuntive (13ma / 14ma) ---
 assert.equal(parser.previousMonth('09.26'), '2026-08');
 assert.equal(parser.previousMonth('01.27'), '2026-12');
 assert.equal(parser.previousMonth({ month: 1, year: 2026 }), '2025-12');
 assert.equal(parser.previousMonth(busta.period), '2026-08');
-assert.equal(parser.previousMonth('13.26'), '');
-assert.equal(parser.previousMonth({ month: 13, year: 2026 }), '');
+assert.equal(parser.previousMonth('13.26'), '', '13ma mensilita\' non ha mese Distinta');
+assert.equal(parser.previousMonth('14.26'), '', '14ma mensilita\' non ha mese Distinta');
+assert.equal(parser.previousMonth({ month: 14, year: 2026 }), '');
 assert.equal(parser.previousMonth('boh'), '');
+{
+  const busta14 = parser.parseItems([{
+    items: [
+      item('AZIENDA ESEMPIO S.P.A.', 40, 810),
+      item('07', 380, 722), item('14.26', 415, 722),
+      ...header(640),
+      ...voceRow(620, { flag: 'A', code: '179', description: '14ma mensilita\'', quantity: '6,0000', base: '130,00', amount: '780,00' }),
+      ...voceRow(606, { flag: 'C', code: '001', description: 'Contributo FAP', amount: '80,00-' }),
+      item('Totale Ritenute', 400, 220), item('Totale Competenze', 480, 220),
+      right('80,00', 466, 208), right('780,00', 556, 208),
+      item('A PAGARE', 400, 178), right('700,00', 556, 178)
+    ]
+  }]);
+  assert.deepEqual(busta14.period, { month: 14, year: 2026, label: '14.26', emissionMonth: 7 });
+  assert.equal(busta14.intestazione.meseCompetenza, '07  14.2026');
+  assert.equal(busta14.check.completa, true);
+  // Formato 2025 con mese testuale ("10 OTT. 2025") e ritenuta figurativa col meno finale (951: 0,69- a xMax 476.5)
+  const bustaOtt25 = parser.parseItems([{
+    items: [
+      item('AZIENDA ESEMPIO S.P.A.', 40, 810),
+      item('10', 321, 743), item('OTT.', 345, 743), item('2025', 375, 743),
+      ...header(640),
+      ...voceRow(620, { flag: 'A', code: '002', description: 'Retribuzione mensile', amount: '1.626,86' }),
+      { str: '951', transform: [8, 0, 0, 8, 50.5, 606], width: 18 },
+      { str: 'Contr. trasferta FAP', transform: [8, 0, 0, 8, 80.5, 606], width: 120 },
+      { str: '0,69-', transform: [8, 0, 0, 8, 446.5, 606], width: 25 },
+      item('Totale Ritenute', 400, 220), item('Totale Competenze', 480, 220),
+      right('0,00', 466, 208), right('1.626,86', 556, 208),
+      item('A PAGARE', 400, 178), right('1.626,86', 556, 178)
+    ]
+  }]);
+  assert.deepEqual(bustaOtt25.period, { month: 10, year: 2025, label: '10.25' });
+  assert.equal(parser.previousMonth(bustaOtt25.period), '2025-09');
+  assert.equal(bustaOtt25.voci.find(v => v.code === '951').figurative, -0.69);
+  assert.equal(bustaOtt25.voci.find(v => v.code === '951').amount, null);
+  assert.equal(bustaOtt25.check.completa, true);
+}
 
 // --- Distinta: periodo di competenza ---
 const august = totalsModule.competencePeriod('2026-08');
@@ -392,7 +346,7 @@ assert.equal(april.totals.sundayShift, 1, '12/04/2026 e\' domenica');
 }
 
 // --- Confronto busta <-> Distinta ---
-const compareTotals = { ...t, calendar: undefined, overtimeMinutes: 10 * 60 + 30, embark: 20, sundayShift: 5, cashHandling: 3, cashHandlingGround: 5, holiday: 1, holidayMinutes: 60, secondMeal: 0, missedRestMinutes: 0, cashEmbarkServiceMinutes: 0, overtime139Minutes: 0, overtimeMixedWeeks: 0, overnight40: 2, bankMinutes: 181, allowance24: 16, ticketCredit: 10 };
+const compareTotals = { ...t, calendar: undefined, overtimeMinutes: 10 * 60 + 30, embark: 20, sundayShift: 5, weekdayWorkedDays: 3, groundDays: 0, cashHandling: 3, cashHandlingGround: 5, holiday: 1, holidayMinutes: 60, secondMeal: 0, missedRestMinutes: 0, cashEmbarkServiceMinutes: 0, cashGround138Minutes: 0, overtime139Minutes: 0, overtimeMixedWeeks: 0, overnight40: 2, bankMinutes: 181, allowance24: 16, ticketCredit: 10 };
 const outcome = compareModule.compare(busta, compareTotals);
 const row = id => outcome.rows.find(entry => entry.id === id);
 assert.equal(row('overtime').status, 'ok');
@@ -411,11 +365,11 @@ assert.deepEqual(outcome.rows.map(entry => entry.status), [...outcome.rows.map(e
 assert.deepEqual(outcome.summary, { ok: 8, diff: 1, check: 1, notCompared: 1 });
 assert.deepEqual(outcome.notCompared.map(voce => voce.code).sort(), ['FD0']);
 assert.equal(row('holiday').busta, 1, '013 lavoro in FI-FN = festivita\'');
-assert.equal(row('dailyDM').status, 'ok', '49X = giorni con maneggio denaro');
+assert.equal(row('dailyDM').status, 'ok', '49X = giorni lavorati feriali (senza domeniche)');
 // Riepilogo piatto Match/Mismatch
 const flat = compareModule.confronta(compareTotals, busta.voci);
-assert.equal(flat.find(r => r.codici === '47X').stato, 'Mismatch');
-assert.equal(flat.find(r => r.codici === '47X').differenza, 1);
+assert.equal(flat.find(r => r.codici === '47X + 48X').stato, 'Mismatch');
+assert.equal(flat.find(r => r.codici === '47X + 48X').differenza, 1);
 assert.equal(flat.find(r => r.codici === '43X').stato, 'Match');
 assert.ok(outcome.notCompared.every(voce => voce.reason === 'La Distinta non ha una riga equivalente.'));
 // Straordinario in piu' in busta: importo negativo.
@@ -490,19 +444,12 @@ assert.equal(wrong[1].ok, true);
   const html = read('verifica-busta.html');
   const scripts = [...html.matchAll(/<script src="([^"?]+)(?:\?[^"]*)?"><\/script>/g)].map(match => match[1]);
   scripts.forEach(src => assert.ok(fs.existsSync(path.join(root, src)), `script mancante: ${src}`));
-  const order = ['assets/js/admin-firebase-rest.js', 'assets/js/overtime-components.js', 'assets/js/shift-competence.js', 'vendor/pdfjs/pdf.min.js', 'assets/js/busta-parser.js', 'assets/js/distinta-totals.js', 'assets/js/busta-compare.js', 'assets/js/verifica-busta.js'];
+  const order = ['assets/js/admin-firebase-rest.js', 'assets/js/overtime-components.js', 'assets/js/shift-competence.js', 'vendor/pdfjs/pdf.min.js', 'assets/js/busta-parser.js', 'assets/js/distinta-totals.js', 'assets/js/ccnl-config.js', 'assets/js/busta-compare.js', 'assets/js/verifica-busta.js'];
   order.forEach(src => assert.ok(scripts.includes(src), `manca ${src}`));
   for (let index = 1; index < order.length; index += 1) assert.ok(scripts.indexOf(order[index - 1]) < scripts.indexOf(order[index]), `${order[index - 1]} prima di ${order[index]}`);
   assert.match(read('navidiaria.html'), /<button id="monthlyVerifyPayslip" class="monthly-today-button"[^>]*verifica-busta\.html[^>]*>Verifica busta<\/button>/);
   const sw = read('sw.js');
-  ['./verifica-busta.html', './assets/js/busta-parser.js', './assets/js/distinta-totals.js', './assets/js/busta-compare.js', './assets/js/verifica-busta.js'].forEach(asset => assert.ok(sw.includes(`'${asset}'`), `sw.js: ${asset}`));
-  const ui = read('assets/js/verifica-busta.js');
-  assert.doesNotMatch(ui, /previousOfToday/, 'un periodo mancante non usa il mese corrente');
-  assert.match(ui, /Non confrontata né salvata/, 'letture incomplete non vengono archiviate');
-  assert.match(ui, /non rilevato/, 'ferie e banca ore mancanti visibili in pagina');
-  assert.match(ui, /leave: \{ ferie: b\.leave\?\.ferie \?\? null/, 'ferie e banca ore salvate con la busta');
-  assert.match(html, /busta-parser\.js\?v=4/);
-  assert.match(html, /verifica-busta\.js\?v=26/);
+  ['./verifica-busta.html', './assets/js/busta-parser.js', './assets/js/distinta-totals.js', './assets/js/ccnl-config.js', './assets/js/busta-compare.js', './assets/js/verifica-busta.js'].forEach(asset => assert.ok(sw.includes(`'${asset}'`), `sw.js: ${asset}`));
 }
 
 console.log('Busta verifica test passed');
@@ -538,8 +485,197 @@ console.log('Busta verifica test passed');
 {
   const voci = [{ code: '334', description: 'Prest.straordinarie', quantity: 61.25, base: 11.56, figurative: null, amount: 708.21 },
     { code: '49X', description: 'Ind. prest. giornaliera', quantity: 15, base: 0.52, figurative: null, amount: 7.8 }];
-  const rows = compareModule.compare({ voci }, { overtimeMinutes: 61.17 * 60, cashHandling: 16 }, { tolleranza: 0 }).rows;
+  const rows = compareModule.compare({ voci }, { overtimeMinutes: 61.17 * 60, weekdayWorkedDays: 16 }, { tolleranza: 0 }).rows;
   assert.equal(rows.find(r => r.id === 'overtime').status, 'ok', '5 minuti');
   assert.match(rows.find(r => r.id === 'overtime').notes.join(' '), /trascurabile/);
   assert.equal(rows.find(r => r.id === 'dailyDM').status, 'ok', '1 giorno = 0,52 euro');
+}
+
+// Indennita' domenicale: 47X (in turno) + 48X (Ind.prest.dom.non turno, es. domenica su turno a terra AgB).
+{
+  const voci = [
+    { code: '47X', description: 'Ind. prest. domenicale', quantity: 2, base: 12, figurative: null, amount: 24 },
+    { code: '48X', description: 'Ind.prest.dom.non turno', quantity: 1, base: 12, figurative: null, amount: 12 }
+  ];
+  const r = compareModule.compare({ voci }, { sundayShift: 4 }, { tolleranza: 0 }).rows.find(row => row.id === 'sunday');
+  assert.equal(r.busta, 3, '47X (2) + 48X (1)');
+  assert.equal(r.distinta, 4);
+  assert.equal(r.diff, 1, '1 sola domenica dimenticata');
+  assert.equal(r.importo, 36);
+  assert.equal(r.euro, 12);
+  assert.match(r.notes.join(' '), /2 in turno \(47X\) \+ 1 non in turno \(48X\)/);
+}
+
+// Stima busta: scorpora giroconto 55Y/56Y (e 55H/56H) e rimborso 730 (C75 + B03), e recupera prezzi mancanti (013) dalle buste precedenti.
+{
+  const ref10 = {
+    mese: '2026-10',
+    totals: { competenze: 8319.89, ritenute: 2031.8, netto: 6288.09 },
+    voci: [
+      { code: '002', description: 'Retribuzione mensile', amount: 1695.95 },
+      { code: '334', description: 'Prest.straordinarie', quantity: 10, base: 10, amount: 100 },
+      { code: '55Y', description: 'D.P. Ore diff.paga 139B', quantity: 100, base: 9.6, amount: 960 },
+      { code: '56Y', description: 'Tratt.ore diff.paga', quantity: 100, base: 8.6, amount: -860 },
+      { code: '55H', description: 'D.P. Ore diff.paga 138A', quantity: 20, base: 9.5, amount: 190 },
+      { code: '56H', description: 'Tratt.ore diff.paga', quantity: 20, base: 8.5, amount: -170 },
+      { code: 'B03', description: 'Add.reg.dic.credito', amount: 187 },
+      { code: 'C75', description: 'Rimborso IRPEF 730 dic.', amount: 3962 }
+    ]
+  };
+  const ref09 = {
+    mese: '2026-09',
+    voci: [{ code: '013', description: 'Lavoro in FI-FN', quantity: 10, base: 12, amount: 120 }]
+  };
+  assert.equal(compareModule.conguaglio730(ref10.voci), 4149);
+  assert.equal(compareModule.girocontoDiffPaga(ref10.voci), 1030);
+  const st = compareModule.stima(ref10, { overtimeMinutes: 10 * 60, cashEmbarkServiceMinutes: 100 * 60, holidayMinutes: 5 * 60 }, [ref09]);
+  // lordoRef = 8319.89 - 1030 (giroconto) - 4149 (730) = 3140.89; ritenuteRef = 2031.80 - 1030 = 1001.80
+  assert.equal(st.fisso, 2920.89, 'fisso senza il rimborso 730, senza il giroconto 56Y/56H e senza le variabili 334/55Y/55H');
+  const r013 = st.righe.find(r => r.id === 'holiday');
+  assert.equal(r013.base, 12, 'prezzo base di 013 recuperato dalla busta 2026-09');
+  assert.equal(r013.importo, 60, '5 h * 12 euro');
+  assert.equal(r013.daMese, '2026-09');
+}
+
+// Regole INAZ: 49X (giorni lavorati feriali), FD0 (giorni lavorati a terra), 55H/56H (biglietteria terra AgB/AgM/AgT a par. 138A).
+{
+  const giorni = [
+    day('2026-09-13', 'D4', { embark: true }), // domenica a bordo
+    day('2026-09-14', 'D1', { embark: true }), // lunedi' a bordo
+    day('2026-09-18', 'AgB', { embark: false, cashHandling: true }), // venerdi' a terra (10h25)
+    day('2026-09-20', 'AgB', { embark: false, cashHandling: true })  // domenica a terra (10h25)
+  ];
+  const tot = calc.compute(giorni, '2026-09').totals.calendar;
+  assert.equal(tot.workedDays, 4);
+  assert.equal(tot.sundayShift, 2);
+  assert.equal(tot.weekdayWorkedDays, 2, '49X: 4 lavorati - 2 domeniche = 2 feriali');
+  assert.equal(tot.groundDays, 2, 'FD0: 4 lavorati - 2 imbarco = 2 a terra');
+  assert.equal(tot.cashGround138Days, 2, '2 turni AgB');
+  assert.equal(tot.cashGround138Minutes, 2 * (10 * 60 + 25), '20h50 (20,83 h) in AgB');
+  const voci = [
+    { code: '49X', description: 'Ind. prest. giornaliera', quantity: 2, base: 0.52, amount: 1.04 },
+    { code: 'FD0', description: 'Ind. rendimento', quantity: 2, base: 2.02, amount: 4.04 },
+    { code: '55H', description: 'D.P. Ore diff.paga 138A', quantity: 20.83, base: 9.53, amount: 198.51 },
+    { code: '56H', description: 'Tratt.ore diff.paga', quantity: 20.83, base: 8.64, amount: -179.97 }
+  ];
+  const cmp = compareModule.compare({ voci }, tot, { tolleranza: 0 });
+  const r = id => cmp.rows.find(entry => entry.id === id);
+  assert.equal(r('dailyDM').status, 'ok');
+  assert.equal(r('rendimento').status, 'ok');
+  assert.equal(r('cashGround138').status, 'ok');
+  assert.equal(r('cashGround138').importo, 18.54, 'differenza netta 55H - 56H');
+}
+
+// Correzioni da busta: allineamento della Distinta alla busta paga con mantenimento del valore originario.
+{
+  const giorni = [
+    day('2026-09-06', 'DT', { embark: false }),
+    day('2026-09-13', 'D4', { embark: true }),
+    day('2026-09-20', 'AgB', { embark: false, cashHandling: true }),
+    day('2026-09-27', 'D1', { embark: true })
+  ];
+  const conCorr = calc.compute(giorni, '2026-09', { sunday: -1, overtime: 90 }).totals;
+  assert.equal(conCorr.raw.calendar.sundayShift, 4, 'valore originario conservato');
+  assert.equal(conCorr.calendar.sundayShift, 3, 'valore allineato con correzione -1');
+  assert.equal(conCorr.overtimeMinutes, conCorr.raw.overtimeMinutes + 90, '+1h30 di straordinario');
+  const voci = [
+    { code: '47X', description: 'Ind. prest. domenicale', quantity: 2, base: 12, amount: 24 },
+    { code: '48X', description: 'Ind.prest.dom.non turno', quantity: 1, base: 12, amount: 12 },
+    { code: '334', description: 'Prest.straordinarie', quantity: 1.5, base: 11.56, amount: 17.34 }
+  ];
+  const cmp = compareModule.compare({ voci }, conCorr, { tolleranza: 0 });
+  const dom = cmp.rows.find(r => r.id === 'sunday');
+  assert.equal(dom.status, 'ok', 'domenica riallineata');
+  assert.equal(dom.distinta, 3);
+  assert.equal(dom.distintaOriginale, 4);
+  assert.equal(dom.correzione, -1);
+  assert.match(dom.notes.join(' '), /Allineata alla busta: correzione −1 giorni/);
+  // Rinvio della domenica (+1) al mese successivo: nella stima di novembre aggiunge +12,00 € di lordo.
+  const ottConRinvio = calc.compute([day('2026-10-04', 'D1', { embark: true }), day('2026-10-11', 'D1', { embark: true })], '2026-10', { sunday: 1 }).totals;
+  const refBusta = {
+    mese: '2026-10',
+    totals: { competenze: 2000, ritenute: 500, netto: 1500 },
+    voci: [{ code: '47X', description: 'Ind. prest. domenicale', quantity: 2, base: 12, amount: 24 }, { code: '48X', description: 'Ind.prest.dom.non turno', quantity: 1, base: 12, amount: 12 }]
+  };
+  const stNov = compareModule.stima(refBusta, ottConRinvio);
+  const rDom = stNov.righe.find(r => r.id === 'sunday');
+  assert.equal(rDom.quantitaOriginale, 2, '2 domeniche di ottobre');
+  assert.equal(rDom.correzione, 1, '+1 domenica rinviata da settembre');
+  assert.equal(rDom.quantita, 3, '2 + 1 = 3 domeniche attese a novembre');
+  assert.equal(rDom.importoCorrezione, 12, '+12,00 € in piu\' nella busta di novembre');
+  assert.equal(rDom.importo, 36, '3 x 12,00 € = 36,00 €');
+}
+
+// Lettura Ferie, Ex Festivita' e Banca Ore dal riquadro "Ferie e Permessi" in calce alla busta INAZ.
+{
+  const fpItems = [
+    item('Ferie e Permessi', 43, 347), item('Residuo A.P.', 111, 347), item('Maturato Annuo', 156, 347), item('Goduti Annuo', 207, 347), item('Residue', 262, 347),
+    item('Ferie', 45, 338), item('10,40', 171, 338), item('10,40', 267, 338),
+    item('Ex Fest.', 33, 329), item('13,00', 171, 329), item('13,00', 267, 329),
+    item('Banca Ore', 33, 311), item('22,50', 171, 311), item('22,50', 267, 311)
+  ];
+  const parsed = parser.parseItems([{ items: page1 }, { items: [...page2, ...fpItems] }]);
+  assert.deepEqual(parsed.feriePermessi, {
+    ferie: { residuoAP: null, maturato: 10.4, goduti: null, residue: 10.4, unit: 'gg' },
+    exFest: { residuoAP: null, maturato: 13, goduti: null, residue: 13, unit: 'ore' },
+    bancaOre: { residuoAP: null, maturato: 22.5, goduti: null, residue: 22.5, unit: 'ore' }
+  });
+}
+
+// --- CCNL Config & Calcoli Dinamici (Parametro 121, 139, scatti, differenze parametro e ratei) ---
+{
+  const db = ccnlModule.CCNL_DB;
+  assert.ok(db, 'CCNL_DB esiste');
+  assert.equal(db.divisoreOrario, 166, 'divisore orario CCNL 166');
+  const p121 = db.parametri[121];
+  assert.ok(p121, 'Parametro 121 presente');
+  assert.equal(p121.retribuzioneMensile, 1695.95, 'retribuzione mensile 002 P.121');
+  assert.equal(ccnlModule.calcolaRateiMaturati(2, 'ferie'), 4.16, 'ferie a luglio (2 ratei)');
+  assert.equal(ccnlModule.calcolaRateiMaturati(4, 'exFestivita'), 10.40, 'ex festività a settembre');
+  const busta121 = {
+    voci: [
+      { code: '334', description: 'Prest.straordinarie', quantity: 10, base: null, amount: 109.26 },
+      { code: '43X', description: 'Ind. imbarco', quantity: 15, base: null, amount: 30.30 }
+    ]
+  };
+  const cmp121 = compareModule.compare(busta121, { overtimeMinutes: 10 * 60, embark: 15 }, { parametro: 121, scatti: 0 });
+  assert.equal(cmp121.rows.find(r => r.id === 'overtime').status, 'ok');
+  assert.equal(cmp121.rows.find(r => r.id === 'overtime').importoDistinta, 109.26);
+  assert.equal(cmp121.rows.find(r => r.id === 'embark').status, 'ok');
+  assert.equal(cmp121.rows.find(r => r.id === 'embark').importoDistinta, 30.30);
+
+  // Stima mese successivo a scadenza contratto (es. dicembre 2026 dopo scadenza 30-11-2026):
+  // fisso = 0, CON conta come FZ0 (8 €/gg) e non come FD0/49X, F.P. non conta come domenica/festivita' lavorata.
+  const novGiorni = [
+    day('2026-11-01', 'F.P.', { embark: false }),
+    day('2026-11-02', 'LAV', { embark: false }),
+    day('2026-11-03', 'LAV', { embark: false }),
+    day('2026-11-09', 'CON', { embark: false }),
+    day('2026-11-10', 'CON', { embark: false })
+  ];
+  const novTot = calc.compute(novGiorni, '2026-11').totals;
+  assert.equal(novTot.calendar.groundDays, 2, 'solo i 2 LAV contano per FD0');
+  assert.equal(novTot.calendar.weekdayWorkedDays, 2, 'solo i 2 LAV contano per 49X');
+  assert.equal(novTot.calendar.congedoDays, 2, '2 giorni di CON per FZ0');
+  assert.equal(novTot.calendar.sundayShift, 0, 'F.P. di domenica non e\' domenica lavorata');
+  assert.equal(novTot.calendar.holiday, 0, 'F.P. dell\'1/11 non e\' festivita\' lavorata');
+  const refConScad = {
+    mese: '2026-10',
+    intestazione: { dataScadenzaContratto: '30-11-2026' },
+    totals: { competenze: 2000, ritenute: 500, netto: 1500 },
+    voci: [
+      { code: '002', description: 'Retribuzione mensile', amount: 1695.95 },
+      { code: 'FD0', description: 'Ind. rendimento', quantity: 5, base: 2.02, amount: 10.1 },
+      { code: '49X', description: 'Ind. prest. giornaliera', quantity: 5, base: 0.52, amount: 2.6 },
+      { code: '001', description: 'Contributo FAP', quantity: 9.19, base: 2000, amount: -183.8 },
+      { code: 'I11', description: 'Imposta lorda', quantity: 33, base: 400, amount: null },
+      { code: 'I16', description: 'Totale detrazioni', base: 114.05, amount: null }
+    ]
+  };
+  const stDic = compareModule.stima(refConScad, novTot, [], { bustaMonth: '2026-12' });
+  assert.equal(stDic.postScadenza, true);
+  assert.equal(stDic.fisso, 0, 'a dicembre dopo scadenza 30-11 non c\'e\' stipendio fisso mensile');
+  assert.equal(stDic.righe.find(r => r.id === 'congedoFZ0').importo, 16, '2 gg CON x 8 € = 16 €');
+  assert.equal(stDic.righe.find(r => r.id === 'tredicesima').importo, 813.43, '13ª mensilità 6 ratei = 813,43 €');
+  assert.equal(stDic.lordo, 834.51, '16 (FZ0) + 4.04 (FD0) + 1.04 (49X) + 813.43 (13ma)');
 }

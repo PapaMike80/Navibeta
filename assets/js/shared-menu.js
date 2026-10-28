@@ -87,10 +87,7 @@
       ['navidiaria.html','≈','Distinta'],
       ['documenti.html','▤','Documenti'],
       ['cambi_turno.html','⇄','Cambio'],
-      ['ferie.html','☀','Ferie'],
-      ['battaglia-navale.html','⚓','Battaglia navale'],
       ['battaglia-garda.html','⛴','Battaglia sul Garda'],
-      ['pontile-perfetto.html','⚓','Pontile perfetto'],
       ['controllo_cassa.html','$','Cassa'],
       ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
       ['backup-dati.html','⤓','Backup'],
@@ -100,7 +97,6 @@
       ...(roles.puoAprire?.('agenti.html',agent)?[['agenti.html','♙','Agenti']]:[]),
       ...(isAdmin?[['aggiornamenti.html','↻','Aggiornamenti']]:[]),
       ...(roles.puoAprire?.('movimento.html',agent)?[['movimento.html','⚓','Movimento']]:[]),
-      ...(isAdmin?[['costruisci-turno.html','🧩','Costruisci turno']]:[]),
       ...(roles.puoAprire?.('collegamenti.html',agent)?[['collegamenti.html','⇆','Collegamenti']]:[])
     ];
     const escapeText=value=>String(value).replace(/[&<>"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[char]));
@@ -444,7 +440,7 @@
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }else if(page==='agenti'||page==='aggiornamenti'||page==='movimento'){
     const isAgenti=page==='agenti',isMovimento=page==='movimento';
-    specific=`<span class="sidebar-menu-label">AMMINISTRAZIONE</span>${item('aggiornamenti.html','↻','Aggiornamenti turni',page==='aggiornamenti','aggiornamentiNav')}${item('agenti.html','♙','Gestione agenti',isAgenti,'agentiNav')}${item('movimento.html','⚓','Movimento',isMovimento,'movimentoNav')}${item('costruisci-turno.html','🧩','Costruisci turno')}`;
+    specific=`<span class="sidebar-menu-label">AMMINISTRAZIONE</span>${item('aggiornamenti.html','↻','Aggiornamenti turni',page==='aggiornamenti','aggiornamentiNav')}${item('agenti.html','♙','Gestione agenti',isAgenti,'agentiNav')}${item('movimento.html','⚓','Movimento',isMovimento,'movimentoNav')}`;
     user=`<div class="sidebar-user-actions"><strong id="settingsSidebarAgent" class="sidebar-agent-name">AGENTE</strong><button id="settingsLogout" class="sidebar-action sidebar-exit" type="button">Esci</button><button id="settingsChangePin" class="sidebar-action" type="button">Cambia PIN</button></div>`;
   }else{
     specific=`<span class="sidebar-menu-label">DOCUMENTI</span>${item('#tutorial-docs','❓','Tutorial')}${item('#turni-docs','▦','Turni e bozze')}${item('#ods-docs','≡','ODS 2026')}${item('#terra-docs','⛴','Servizi a terra')}${item('#adminUploadPanel','＋','Carica documenti',false,'archiveAdminNav')}`;
@@ -749,4 +745,6 @@
     link.classList.add('ns-navigation-pending');
     link.setAttribute('aria-busy','true');
   },true);
+  // Sondaggio anonimo su tutte le pagine (il popup si mostra solo se l'admin lo ha attivato)
+  if(!window.NaviSurvey&&!document.querySelector('script[src*="survey-gate.js"]')){const sg=document.createElement('script');sg.src='assets/js/survey-gate.js?v=3';sg.defer=true;document.head.appendChild(sg);}
 })();

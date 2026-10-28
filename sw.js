@@ -8,14 +8,14 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v830-verifica-busta-ferie-banca-ore';
+const CACHE_VERSION = 'navibeta-v680-allinea-navisuite';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
 const PAGE_ASSETS = [
   './assets/css/naviturni-page.css?v=4',
   './assets/css/naviturni-page-fixes.css?v=1',
-  './assets/js/naviturni-page.js?v=16',
+  './assets/js/naviturni-page.js?v=22', './assets/js/naviturni-vista.js?v=48', './assets/css/naviturni-vista.css?v=51',
   './assets/js/naviturni-change-requests.js?v=1',
   './assets/css/cambi-turno-page.css?v=3',
   './assets/css/cambi-turno-page-fixes.css?v=1',
@@ -30,21 +30,17 @@ const CORE_ASSETS = [
   './index.html',
   './oggi.html',
   './naviturni.html',
-  './assets/js/naviturni-vista.js',
-  './assets/css/naviturni-vista.css',
   './cambi_turno.html',
   './navidiaria.html',
   // pagine principali: Scali e Il mio turno (e Documenti), disponibili anche senza rete
   './orario.html',
   './mio-turno.html',
-  './ferie.html',
-  './battaglia-navale.html',
+  './collegamenti.html',
+  './assets/css/collegamenti.css',
+  './assets/js/collegamenti-dati.js',
+  './assets/js/collegamenti.js',
   './battaglia-garda.html',
-  './pontile-perfetto.html',
-  './assets/js/pontile-perfetto.js',
   './assets/js/battaglia-garda.js',
-  './assets/js/battaglia-navale.js',
-  './assets/js/ferie.js',
   './documenti.html',
   './navidistinta.html',
   './verifica-busta.html',
@@ -83,6 +79,7 @@ const CORE_ASSETS = [
   './assets/js/push-summary.js',
   './assets/js/busta-parser.js',
   './assets/js/distinta-totals.js',
+  './assets/js/ccnl-config.js',
   './assets/js/busta-compare.js',
   './assets/js/verifica-busta.js',
   './assets/js/backup-dati.js',

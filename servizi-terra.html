@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NaviBeta Scali</title>
   <!-- Servizi a terra e' ora nella pagina Scali (orario.html): qui solo il rimando per link e segnalibri. -->
-  <script src="assets/js/beta-readonly.js?v=5"></script>
-<script>
+  <script>
     (function () {
       var res = (new URLSearchParams(location.search).get('res') || '').toLowerCase();
       location.replace('orario.html' + (res === 'maderno' ? '?scalo=Maderno' : res === 'desenzano' ? '?scalo=Desenzano' : ''));
     })();
   </script>
+<script src="assets/js/beta-readonly.js?v=2"></script>
 </head>
 <body style="background:#061821;color:#e8f7f7;font-family:sans-serif">
   <p>Servizi a terra è ora nella pagina <a href="orario.html" style="color:#5eead4">Scali</a>.</p>

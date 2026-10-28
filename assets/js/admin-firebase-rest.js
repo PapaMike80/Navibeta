@@ -655,6 +655,78 @@
     return id;
   }
 
+
+  async function saveDisposizioneConVariazioni(meta, dataUrl, variations = []) {
+    const auth = await ensureAuth();
+    const docId = String(meta?.id || ('DOC_DISP_' + Date.now() + '_' + String(meta?.protocollo || 'MOV').replace(/[^a-zA-Z0-9]/g, '_'))).replace(/[.#$\[\]/]/g, '_');
+
+    if (dataUrl) {
+      const docMetadata = {
+        id: docId,
+        tipo: 'ods',
+        titolo: meta.titolo || ('Disposizione ' + (meta.protocollo || 'Movimento')),
+        protocollo: meta.protocollo || '',
+        data: meta.data || new Date().toISOString().slice(0, 10),
+        inizio: variations[0]?.data || meta.data || new Date().toISOString().slice(0, 10),
+        fine: variations[variations.length - 1]?.data || meta.data || new Date().toISOString().slice(0, 10),
+        descrizione: meta.note || meta.titolo || 'Variazione turno Ufficio Movimento',
+        filename: meta.filename || ((meta.protocollo || 'disposizione') + (meta.mimeType?.startsWith('image/') ? '.png' : '.pdf')),
+        size: meta.size || 0,
+        mimeType: meta.mimeType || 'application/pdf',
+        tags: ['movimento', 'disposizione', 'variazione']
+      };
+      await databaseRequest('private/adminUpdates', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ownerUid: auth.uid,
+          updatedAt: new Date().toISOString(),
+          ['documentsMeta/' + docId]: { ...docMetadata, ownerUid: auth.uid, uploadedAt: new Date().toISOString() },
+          ['documentsFiles/' + docId]: { dataUrl: String(dataUrl || '') }
+        })
+      });
+    }
+
+    if (variations && variations.length > 0) {
+      const currentRes = await databaseRequest('private/adminUpdates/manualVariations');
+      const currentRows = (Array.isArray(currentRes.data) ? currentRes.data.filter(Boolean) : Object.values(currentRes.data || {})).filter(Boolean);
+
+      const newVarKeys = new Set(variations.map(v => String(v.data).slice(0, 10) + '|' + String(v.id_agente || '')));
+      const filtered = currentRows.filter(r => !newVarKeys.has(String(r?.data || '').slice(0, 10) + '|' + String(r?.id_agente || '')));
+
+      const toAdd = variations.map(v => ({
+        attiva: true,
+        data: String(v.data).slice(0, 10),
+        id_agente: String(v.id_agente || ''),
+        agente: String(v.agente || ''),
+        turno_originale: String(v.turno_originale || '').toUpperCase(),
+        turno_nuovo: String(v.turno_nuovo || '').toUpperCase(),
+        ods: String(v.ods || meta.protocollo || 'DISPOSIZIONE').trim(),
+        tipo: 'MANUALE',
+        note: String(v.note || meta.note || 'Disposizione Ufficio Movimento').trim(),
+        docId: docId,
+        protocollo: meta.protocollo || '',
+        inserita_il: new Date().toISOString()
+      }));
+
+      const merged = [...filtered, ...toAdd];
+      await databaseRequest('private/adminUpdates/manualVariations', {
+        method: 'PUT',
+        body: JSON.stringify(merged)
+      });
+      await databaseRequest('private/adminUpdates/updatedAt', {
+        method: 'PUT',
+        body: JSON.stringify(new Date().toISOString())
+      });
+      try {
+        await databaseRequest('private/adminUpdates/versione', {
+          method: 'PATCH',
+          body: JSON.stringify({ manualVariations: Date.now() })
+        });
+      } catch (_) {}
+    }
+    return { docId, variationsCount: variations.length };
+  }
+
   async function deleteAdminDocument(documentId) {
     const id = String(documentId).replace(/[.#$\[\]/]/g, "_");
     await databaseRequest("private/adminUpdates", {
@@ -976,6 +1048,83 @@
     return { ...(value || {}), id:String(value?.id || id) };
   }
 
+  // Sondaggio anonimo: configurazione (con le domande modificabili dall'admin), segnalino "fatto" per agente
+  // e risposte senza alcun dato identificativo.
+  const SURVEY_VERSION_RE = /^[A-Za-z0-9_-]{1,40}$/;
+  const SURVEY_TYPES = ["single", "multi", "text"];
+  const DEFAULT_SURVEY_QUESTIONS = [
+    { key:"frequency", icon:"🕒", title:"Con quale frequenza usi NaviSuite?", color:"#67d7e6", type:"single", options:["Ogni giorno", "Qualche volta a settimana", "Qualche volta al mese", "Quasi mai"] },
+    { key:"ease", icon:"🧭", title:"Quanto è facile trovare quello che ti serve?", color:"#fbbf24", type:"single", options:["Molto facile", "Abbastanza facile", "Un po' difficile", "Difficile"] },
+    { key:"features", icon:"⭐", title:"Quali sezioni usi di più?", color:"#a78bfa", type:"multi", options:["Turni", "Oggi", "Cambio turno", "Diaria", "Documenti", "Orario", "Ponte Radio", "Segnalazioni"] },
+    { key:"comment", icon:"💬", title:"Cosa ti manca o non funziona?", color:"#fb923c", type:"text", options:[] }
+  ];
+  const surveyVersion = version => {
+    const v = String(version || "").trim();
+    if (!SURVEY_VERSION_RE.test(v)) throw new Error("Versione del sondaggio non valida");
+    return v;
+  };
+  // Domande pulite: al massimo 10, testi brevi, colori solo #rrggbb, risposte (scelte) al massimo 12
+  function normalizeSurveyQuestions(list) {
+    const src = Array.isArray(list) && list.length ? list : DEFAULT_SURVEY_QUESTIONS;
+    const used = new Set();
+    return src.slice(0, 10).map((q, index) => {
+      const type = SURVEY_TYPES.includes(q?.type) ? q.type : "single";
+      let key = String(q?.key || "").replace(/[^A-Za-z0-9_]/g, "").slice(0, 30) || `q${index + 1}`;
+      while (used.has(key) || key === "day") key = `${key}_${index + 1}`;
+      used.add(key);
+      const options = type === "text" ? [] : [...new Set((Array.isArray(q?.options) ? q.options : []).map(o => safeFeedbackText(o, 60)).filter(Boolean))].slice(0, 12);
+      return { key, icon:safeFeedbackText(q?.icon, 4), title:safeFeedbackText(q?.title, 140) || `Domanda ${index + 1}`,
+        color:/^#[0-9a-fA-F]{6}$/.test(String(q?.color || "")) ? q.color : "#2dd4bf", type, options };
+    }).filter(q => q.type === "text" || q.options.length);
+  }
+  async function getSurveyConfig() {
+    const data = (await databaseRequest("private/adminUpdates/surveyConfig")).data;
+    return data && typeof data === "object" ? { ...data, questions:normalizeSurveyQuestions(data.questions) } : null;
+  }
+  async function saveSurveyConfig(config = {}) {
+    const item = { enabled:Boolean(config.enabled), version:surveyVersion(config.version), questions:normalizeSurveyQuestions(config.questions), updatedAt:new Date().toISOString() };
+    await databaseRequest("private/adminUpdates/surveyConfig", { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  async function hasSurveyDone(agentId, version) {
+    const key = safeUserKey(agentId);
+    if (!key) return false;
+    return Boolean((await databaseRequest(`private/adminUpdates/surveyDone/${surveyVersion(version)}/${key}`)).data);
+  }
+  function randomSurveyId() {
+    const bytes = new Uint8Array(12);
+    window.crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => b.toString(16).padStart(2, "0")).join("");
+  }
+  async function submitSurvey(agentId, version, payload = {}) {
+    const v = surveyVersion(version), key = safeUserKey(agentId);
+    if (!key) throw new Error("Agente non valido");
+    // si accettano solo le domande e le scelte della versione in corso
+    const config = await getSurveyConfig().catch(() => null);
+    const questions = config?.version === v ? config.questions : normalizeSurveyQuestions(null);
+    const d = new Date(), answer = { day:`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` };
+    let hasData = false;
+    questions.forEach(q => {
+      const value = payload[q.key];
+      if (q.type === "text") answer[q.key] = safeFeedbackText(value, 500);
+      else if (q.type === "multi") answer[q.key] = [...new Set((Array.isArray(value) ? value : []).filter(o => q.options.includes(o)))];
+      else answer[q.key] = q.options.includes(value) ? value : "";
+      if (Array.isArray(answer[q.key]) ? answer[q.key].length : answer[q.key]) hasData = true;
+    });
+    // prima la risposta (anonima), poi il segnalino "fatto": nodi separati, nessun legame tra i due
+    if (hasData) await databaseRequest(`private/adminUpdates/surveyResponses/${v}/${randomSurveyId()}`, { method:"PUT", body:JSON.stringify(answer) });
+    await databaseRequest(`private/adminUpdates/surveyDone/${v}/${key}`, { method:"PUT", body:"true" });
+    return hasData;
+  }
+  async function listSurveyResponses(version) {
+    const data = (await databaseRequest(`private/adminUpdates/surveyResponses/${surveyVersion(version)}`)).data || {};
+    return Object.values(data).filter(item => item && typeof item === "object");
+  }
+  async function countSurveyDone(version) {
+    const data = (await databaseRequest(`private/adminUpdates/surveyDone/${surveyVersion(version)}`, { query:"shallow=true" })).data || {};
+    return Object.keys(data).length;
+  }
+
   async function listFeedbackTickets(agentId = "") {
     const result = await databaseRequest("private/adminUpdates/feedbackTickets");
     const target = String(agentId || "").trim();
@@ -1121,8 +1270,18 @@
   }
   async function saveDiariaConversioni(agentId, value = {}) {
     await ensureAuth();
-    const item = { map:value.map || {}, updatedAt:String(value.updatedAt || new Date().toISOString()) };
+    const item = { map:value.map || {}, notes:value.notes || {}, updatedAt:String(value.updatedAt || new Date().toISOString()) };
     await databaseRequest(`private/adminUpdates/diariaConversioni/${safeUserKey(agentId)}`, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+  async function getDiariaCorrezioni(agentId) {
+    const result = await databaseRequest(`private/adminUpdates/diariaCorrezioni/${safeUserKey(agentId)}`);
+    return result.data || null;
+  }
+  async function saveDiariaCorrezioni(agentId, value = {}) {
+    await ensureAuth();
+    const item = { map:value.map || {}, notes:value.notes || {}, updatedAt:String(value.updatedAt || new Date().toISOString()) };
+    await databaseRequest(`private/adminUpdates/diariaCorrezioni/${safeUserKey(agentId)}`, { method:"PUT", body:JSON.stringify(item) });
     return item;
   }
 
@@ -1185,7 +1344,26 @@
     await databaseRequest(path, { method:"PUT", body:JSON.stringify(value) });
   }
 
-  // Classifica della Battaglia sul Garda: giochi/battagliaGarda/generale/<agente> = { colpi, nome, t }
+  // Controllo cassa: un salvataggio per agente e giorno (ogni agente puo' salvare il suo).
+  // controlliCassa/<giorno>/<agente> = { ...record, id, created, updated }
+  async function getControlliCassa(dal, al) {
+    const query = `orderBy=${encodeURIComponent('"$key"')}&startAt=${encodeURIComponent(JSON.stringify(String(dal)))}&endAt=${encodeURIComponent(JSON.stringify(String(al)))}`;
+    const result = await databaseRequest("private/adminUpdates/controlliCassa", { query });
+    return Object.values(result.data || {}).flatMap(giorno => Object.values(giorno || {})).filter(Boolean);
+  }
+  async function saveControlloCassa(record) {
+    const giorno = String(record?.data || "").slice(0, 10), agente = String(record?.agente_id || "").trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(giorno) || !agente) throw new Error("Data o agente mancanti");
+    const path = `private/adminUpdates/controlliCassa/${giorno}/${safeUserKey(agente)}`;
+    const prima = (await databaseRequest(path)).data || null;
+    const ora = new Date().toISOString();
+    const item = { ...record, id:`${giorno}|${safeUserKey(agente)}`, created:prima?.created || record.created || ora, updated:ora };
+    delete item._id;
+    await databaseRequest(path, { method:"PUT", body:JSON.stringify(item) });
+    return item;
+  }
+
+  // Classifica della Battaglia sul Garda: giochi/battagliaGarda/generale/<agente> = { colpi, affondate, nome, t }
   async function getClassificaGarda(day) {
     const result = await databaseRequest(`private/adminUpdates/giochi/battagliaGarda/${safeUserKey(day)}`);
     return result.data || {};
@@ -1271,6 +1449,16 @@
 
   window.NaviAdminFirebase = {
     ready,
+    getSurveyConfig,
+    saveSurveyConfig,
+    hasSurveyDone,
+    submitSurvey,
+    listSurveyResponses,
+    countSurveyDone,
+    defaultSurveyQuestions:() => normalizeSurveyQuestions(null),
+    normalizeSurveyQuestions,
+    getControlliCassa,
+    saveControlloCassa,
     listChangeRequests,
     saveChangeRequest,
     deleteChangeRequest,
@@ -1312,6 +1500,7 @@
     getAdminDocumentFile,
     saveAdminDocument,
     deleteAdminDocument,
+    saveDisposizioneConVariazioni,
     recordUserAccess,
     listRegisteredUsers,
     deleteRegisteredUser,
@@ -1365,6 +1554,8 @@
     getBackupCentrale,
     savePageAccess,
     saveDiariaConversioni,
+    getDiariaCorrezioni,
+    saveDiariaCorrezioni,
     provider:"Firebase REST"
   };
 })();

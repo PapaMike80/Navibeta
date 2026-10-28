@@ -1,6 +1,6 @@
 (function(){
-  const colors={D1:'#2563eb',D2:'#059669',D3:'#ea580c',D4:'#c026d3',BIS:'#0891b2',POND:'#dc2626',DT:'#d4a900',AGB:'#2563eb',LD:'#64748b',PT:'#64748b',AGM:'#64748b',AGT:'#64748b',PONM:'#dc2626',SR1:'#7c3aed',IE:'#64748b'};
-  const serviceResidences={D1:'DESENZANO',D2:'DESENZANO',D3:'DESENZANO',D4:'DESENZANO',BIS:'DESENZANO',AGB:'DESENZANO',DT:'DESENZANO',POND:'DESENZANO',PT:'DESENZANO',T1:'MADERNO',T2:'MADERNO',M1:'MADERNO',AGM:'MADERNO',AGT:'MADERNO',PONM:'MADERNO',R1:'RIVA',R2:'RIVA',R3:'RIVA',R4:'RIVA',CAR1:'RIVA',P1:'PESCHIERA',P2:'PESCHIERA',P3:'PESCHIERA',CAP:'PESCHIERA',CAP1:'PESCHIERA',SR1:'PESCHIERA',IE:'PESCHIERA'};
+  const colors={D1:'#2563eb',D2:'#059669',D3:'#ea580c',D4:'#c026d3',BIS:'#0891b2',POND:'#dc2626',DT:'#d4a900',AGB:'#2563eb',LD:'#64748b',PT:'#64748b',AGM:'#64748b',AGT:'#64748b',PONM:'#dc2626',SR1:'#7c3aed',IE:'#64748b','S.S.':'#0ea5e9',SS:'#0ea5e9'};
+  const serviceResidences={D1:'DESENZANO',D2:'DESENZANO',D3:'DESENZANO',D4:'DESENZANO',BIS:'DESENZANO',AGB:'DESENZANO',DT:'DESENZANO',POND:'DESENZANO',PT:'DESENZANO',T1:'MADERNO',T2:'MADERNO',M1:'MADERNO',AGM:'MADERNO',AGT:'MADERNO',PONM:'MADERNO',R1:'RIVA',R2:'RIVA',R3:'RIVA',R4:'RIVA',CAR1:'RIVA',P1:'PESCHIERA',P2:'PESCHIERA',P3:'PESCHIERA',CAP:'PESCHIERA',CAP1:'PESCHIERA',SR1:'PESCHIERA',IE:'PESCHIERA','S.S.':'PESCHIERA',SS:'PESCHIERA'};
   const shiftRow={key:'shift',label:'Servizio',kind:'shift'},changeRow={key:'change',label:'Cambio',kind:'change'},sentineRow={key:'sentine',label:'Sentine',kind:'sentine'},primary=[{key:'ticket',label:'Buono',kind:'ticket'},{key:'allowance',label:'Diaria',kind:'allowance'}],other=[{key:'overnight40',label:'Pernotto',kind:'toggle',field:'overnight40'},{key:'holiday',label:'Festività',kind:'holiday'},{key:'secondMeal',label:'2° ticket',kind:'toggle',field:'secondMeal'},{key:'embark',label:'Imbarco',kind:'toggle',field:'embark'},{key:'hydrofoil',label:'Aliscafo',kind:'hydrofoil'},{key:'rfTrial',label:'Recupero forfait',kind:'toggle',field:'rf',visibleWhen:e=>/^LAV\.?$/i.test(String(e?.shift||'').trim())}];
   const holidays=new Set(['01-01','01-06','04-25','05-01','06-02','08-15','11-01','12-08','12-25','12-26']);
   let opts=null,draft=null,day=null,label='',token=0,saveRevision=0,pendingSave=null,saveLoop=null,initialSnapshot='',isClosing=false;
@@ -39,13 +39,13 @@
   const suggestedChange=e=>{if(change(e)>0)return 0;if(typeof opts.changeSuggestionMinutes==='function')return Math.max(0,Math.round(Number(opts.changeSuggestionMinutes(e))||0));const home=String(e?.agentResidence||opts?.agentResidence||sessionResidence()).trim().toUpperCase(),service=String(serviceResidences[String(e?.shift||'').trim().toUpperCase()]||e?.serviceResidence||'').trim().toUpperCase();return e?.travel===true||home&&service&&home!==service?120:0};
   const holiday=e=>e.holidayWorked===undefined?(day.getDay()===0||holidays.has(`${String(day.getMonth()+1).padStart(2,'0')}-${String(day.getDate()).padStart(2,'0')}`)):!!e.holidayWorked;
   const ticket=e=>e.ticketPresence===undefined?!!e.mealUsed:!!e.ticketPresence;
-  const ticketDue=e=>working(e)&&!!opts.shiftFor(e.shift,e.date).meal;
+  const ticketDue=e=>working(e)&&(e?.ticketDue!==undefined?!!e.ticketDue:!!opts.shiftFor(e.shift,e.date).meal);
   const ticketLabel=e=>ticketDue(e)?(ticket(e)?'USATO':'NON USATO'):'NON DOVUTO';
   const hydro=e=>e.hydrofoil===undefined?working(e)&&(globalThis.NaviShiftCompetence?.aliscafo ? globalThis.NaviShiftCompetence.aliscafo(e.shift, e.date, typeof SHIFTS !== 'undefined' ? SHIFTS : undefined) : String(e.shift).toUpperCase() === 'SR1'):Number(e.hydrofoil)>0;
   const refuel=e=>Math.max(0,Number(opts.refuelSuggestionMinutes?.(e.date,e.shift))||0);
   const refuelDone=e=>e?.refuelDone===true||refuelMinutesOf(e)>0;
   const refuelMinutesOf=e=>typeof e?.refuel==='number'?Math.max(0,Math.round(e.refuel)):(e?.refuel?(String(e?.shift).toUpperCase()==='DT'?60:30):0);
-  function modal(){let m=document.getElementById('monthlyDayBubbleDialog');if(m)return m;if(!document.getElementById('naviDayOvertimeStyle')){const style=document.createElement('style');style.id='naviDayOvertimeStyle';style.textContent='.day-overtime-card{grid-column:1/-1;display:grid;gap:8px;padding:12px;border:1px solid rgba(250,204,21,.34);border-radius:14px;background:rgba(250,204,21,.07)}.day-overtime-card>small{color:#facc15;font:900 .72rem Manrope,sans-serif;letter-spacing:.06em}.day-overtime-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.day-overtime-line{display:grid;place-items:center;gap:2px;min-height:54px;padding:5px 6px;border:1px solid rgba(114,160,170,.28);border-radius:12px;background:rgba(255,255,255,.045)}.day-overtime-line span{color:#94adb5;font:800 .72rem Manrope,sans-serif;text-transform:uppercase}.day-overtime-line input,.day-overtime-line select{width:100%;min-height:26px;border:0;background:transparent;color:#fff;font:900 1rem Manrope,sans-serif;text-align:center;padding:0;appearance:none;-webkit-appearance:none}.day-overtime-line input:focus,.day-overtime-line select:focus{outline:none}.day-overtime-line select{cursor:pointer}.day-overtime-totals{display:flex;justify-content:space-between;gap:10px;padding-top:4px;color:#dffaf7;font:800 .78rem DM Sans,sans-serif}.day-overtime-totals strong{color:#facc15;font-size:.94rem}.day-popup-save-error{margin:0;color:#fca5a5;font:800 .76rem DM Sans,sans-serif}.monthly-bubble-actions{grid-template-columns:1fr!important}.bubble-spinner{display:none;width:16px;height:16px;margin-left:8px;border:2px solid rgba(255,255,255,.28);border-top-color:#2dd4bf;border-radius:50%;vertical-align:middle;animation:bubble-spin .7s linear infinite}.monthly-bubble-dialog[data-bubble-state="saving"] .bubble-spinner{display:inline-block}.monthly-bubble-dialog[data-bubble-state="saving"] [data-bubble-title]::after{content:" · salvataggio…";color:#7fd8cf;font-weight:700}@keyframes bubble-spin{to{transform:rotate(360deg)}}';document.head.appendChild(style)}m=document.createElement('div');m.id='monthlyDayBubbleDialog';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<section class="weekly-edit-dialog monthly-bubble-dialog"><button type="button" class="weekly-edit-close" data-bubble-close aria-label="Chiudi (salva)">✕</button><small>GIORNATA</small><h3 data-bubble-title></h3><span class="bubble-spinner" data-bubble-spinner aria-hidden="true"></span><button type="button" class="weekly-service" data-bubble-field="shift"></button><div class="weekly-bubble-grid" data-bubble-grid></div><p class="day-popup-save-error" data-bubble-save-error hidden aria-live="polite"></p><div class="monthly-bubble-actions" data-bubble-actions><button type="button" class="weekly-edit-save" data-bubble-diaria hidden>Diaria</button></div></section>';m.onclick=handleClick;document.body.appendChild(m);return m}
+  function modal(){let m=document.getElementById('monthlyDayBubbleDialog');if(m)return m;if(!document.getElementById('naviDayOvertimeStyle')){const style=document.createElement('style');style.id='naviDayOvertimeStyle';style.textContent='.day-overtime-card{grid-column:1/-1;display:grid;gap:8px;padding:12px;border:1px solid rgba(250,204,21,.34);border-radius:14px;background:rgba(250,204,21,.07)}.day-overtime-card>small{color:#facc15;font:900 .72rem Manrope,sans-serif;letter-spacing:.06em}.day-overtime-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.day-overtime-line{display:grid;place-items:center;gap:2px;min-height:54px;padding:5px 6px;border:1px solid rgba(114,160,170,.28);border-radius:12px;background:rgba(255,255,255,.045)}.day-overtime-line span{color:#94adb5;font:800 .72rem Manrope,sans-serif;text-transform:uppercase}.day-overtime-line input,.day-overtime-line select{width:100%;min-height:26px;border:0;background:transparent;color:#fff;font:900 1rem Manrope,sans-serif;text-align:center;padding:0;appearance:none;-webkit-appearance:none}.day-overtime-line input:focus,.day-overtime-line select:focus{outline:none}.day-overtime-line select{cursor:pointer}.day-overtime-totals{display:flex;justify-content:space-between;gap:10px;padding-top:4px;color:#dffaf7;font:800 .78rem DM Sans,sans-serif}.day-overtime-totals strong{color:#facc15;font-size:.94rem}.day-popup-save-error{margin:0;color:#fca5a5;font:800 .76rem DM Sans,sans-serif}.monthly-bubble-actions{grid-template-columns:1fr!important}.bubble-spinner{display:none;width:16px;height:16px;margin-left:8px;border:2px solid rgba(255,255,255,.28);border-top-color:#2dd4bf;border-radius:50%;vertical-align:middle;animation:bubble-spin .7s linear infinite}.monthly-bubble-dialog[data-bubble-state="saving"] .bubble-spinner{display:inline-block}.monthly-bubble-dialog[data-bubble-state="saving"] [data-bubble-title]::after{content:" · salvataggio…";color:#7fd8cf;font-weight:700}.bubble-disp-wrapper{grid-column:1/-1;margin-top:10px}.bubble-disp-btn{width:100%;min-height:42px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:8px 14px;border:1px dashed rgba(45,212,191,.5);border-radius:12px;background:rgba(45,212,191,.09);color:#2dd4bf;font:800 .86rem Manrope,sans-serif;cursor:pointer;transition:all .2s ease}.bubble-disp-btn:hover{background:rgba(45,212,191,.18);border-color:#2dd4bf;color:#e6fffa}.bubble-disp-icon{font-size:17px}.disp-modal-overlay{position:fixed;inset:0;background:rgba(2,10,16,.85);backdrop-filter:blur(4px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:14px;box-sizing:border-box}.disp-modal-card{width:100%;max-width:540px;max-height:90vh;overflow-y:auto;background:#0d232e;border:1px solid #1f4250;border-radius:18px;padding:18px;box-shadow:0 12px 36px rgba(0,0,0,.6);color:#eaf2f4;display:flex;flex-direction:column;gap:14px}.disp-modal-header{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(45,212,191,.2);padding-bottom:10px}.disp-modal-header h3{margin:0;font:800 1.15rem Manrope,sans-serif;color:#2dd4bf;display:flex;align-items:center;gap:8px}.disp-modal-close{background:none;border:none;color:#9fb8c2;font-size:22px;cursor:pointer;padding:0 4px}.disp-modal-field{display:flex;flex-direction:column;gap:4px}.disp-modal-field label{font:800 .75rem Manrope,sans-serif;color:#9fb8c2;text-transform:uppercase}.disp-modal-field input,.disp-modal-field textarea{width:100%;border:1px solid #1f4250;border-radius:8px;background:#061720;color:#eaf2f4;padding:8px 10px;font-family:inherit;font-size:.9rem;box-sizing:border-box}.disp-modal-table-wrap{border:1px solid #1f4250;border-radius:12px;overflow:hidden;background:#061720}.disp-modal-table{width:100%;border-collapse:collapse;font-size:.85rem}.disp-modal-table th{background:#102b38;color:#9fb8c2;font:800 .72rem Manrope,sans-serif;padding:8px 8px;text-align:left;border-bottom:1px solid #1f4250}.disp-modal-table td{padding:8px 8px;border-bottom:1px solid rgba(31,66,80,.5);vertical-align:middle}.disp-modal-table input[type="text"]{width:100%;max-width:70px;background:#0d232e;border:1px solid #285560;border-radius:6px;color:#facc15;font-weight:800;padding:4px 6px;text-align:center}.disp-modal-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:6px}.disp-modal-btn{padding:10px 16px;border-radius:10px;font:800 .85rem Manrope,sans-serif;cursor:pointer}.disp-modal-btn.primary{background:#2dd4bf;border:none;color:#06231f}.disp-modal-btn.secondary{background:#16323f;border:1px solid #285560;color:#cfe3ea}.disp-spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.3);border-top-color:#2dd4bf;border-radius:50%;animation:bubble-spin .6s linear infinite}@keyframes bubble-spin{to{transform:rotate(360deg)}}';document.head.appendChild(style)}m=document.createElement('div');m.id='monthlyDayBubbleDialog';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<section class="weekly-edit-dialog monthly-bubble-dialog"><button type="button" class="weekly-edit-close" data-bubble-close aria-label="Chiudi (salva)">✕</button><small>GIORNATA</small><h3 data-bubble-title></h3><span class="bubble-spinner" data-bubble-spinner aria-hidden="true"></span><button type="button" class="weekly-service" data-bubble-field="shift"></button><div class="bubble-disp-wrapper"><button type="button" class="bubble-disp-btn" data-bubble-upload-disp><span class="bubble-disp-icon">📄</span><span>Carica Disposizione (PDF)</span></button><input type="file" accept="application/pdf" data-bubble-disp-file style="display:none"></div><div class="weekly-bubble-grid" data-bubble-grid></div><p class="day-popup-save-error" data-bubble-save-error hidden aria-live="polite"></p><div class="monthly-bubble-actions" data-bubble-actions><button type="button" class="weekly-edit-save" data-bubble-diaria hidden>Diaria</button></div></section>';m.onclick=handleClick;document.body.appendChild(m);return m}
   const snapshot=value=>JSON.stringify(value||null);
   function syncDraftFromDom(){
     if(!draft)return;
@@ -161,7 +161,7 @@
     })().finally(()=>{saveLoop=null;if(pendingSave)save().catch(error=>setSaveError(error))});
     return saveLoop;
   }
-  function toggle(row){if(!draft)return;if(row.kind==='holiday')draft.holidayWorked=!holiday(draft);else if(row.kind==='ticket'){if(!ticketDue(draft))return;draft.ticketPresence=!ticket(draft);draft.mealUsed=draft.ticketPresence}else if(row.kind==='hydrofoil')draft.hydrofoil=hydro(draft)?0:1;else if(row.key==='secondMeal')draft.secondMeal=Number(draft.secondMeal)>0?0:1;else draft[row.field]=!draft[row.field];render()}
+  function toggle(row){if(!draft)return;if(row.kind==='holiday')draft.holidayWorked=!holiday(draft);else if(row.kind==='ticket'){const isSpecial=/^S\.?S\.?$/i.test(String(draft.shift||'').trim());if(!ticketDue(draft)){draft.ticketDue=true;draft.ticketPresence=true;draft.mealUsed=true}else if(ticket(draft)){draft.ticketPresence=false;draft.mealUsed=false}else{if(isSpecial||draft.ticketDue!==undefined){draft.ticketDue=false;draft.ticketPresence=false;draft.mealUsed=false}else{draft.ticketPresence=true;draft.mealUsed=true}}}else if(row.kind==='hydrofoil')draft.hydrofoil=hydro(draft)?0:1;else if(row.key==='secondMeal')draft.secondMeal=Number(draft.secondMeal)>0?0:1;else draft[row.field]=!draft[row.field];render()}
   function bankHoursModal(){let m=document.getElementById('naviBankHoursEditor');if(m)return m;if(!document.getElementById('naviBankHoursEditorStyle')){const style=document.createElement('style');style.id='naviBankHoursEditorStyle';style.textContent='.bank-hours-dialog{width:min(390px,100%)}.bank-hours-quick{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.bank-hours-quick button{min-height:44px;border:1px solid rgba(45,212,191,.38);border-radius:12px;background:rgba(45,212,191,.1);color:#dffaf7;font:900 .8rem Manrope,sans-serif;cursor:pointer}.bank-hours-quick button.active{border-color:#facc15;background:rgba(250,204,21,.2);color:#fff3b0;box-shadow:0 0 0 2px rgba(250,204,21,.12)}.bank-hours-custom[hidden],.bank-hours-actions[hidden]{display:none!important}.bank-hours-custom{display:grid;gap:7px;color:#9db7bf;font:800 .7rem DM Sans,sans-serif}.bank-hours-custom input{width:100%;height:49px;box-sizing:border-box;padding:8px 12px;border:1px solid #386370;border-radius:11px;background:#061d26;color:#fff;font:800 1rem DM Sans,sans-serif;outline:0}.bank-hours-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}';document.head.appendChild(style)}m=document.createElement('div');m.id='naviBankHoursEditor';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<form class="weekly-edit-dialog bank-hours-dialog"><button type="button" class="weekly-edit-close" data-bank-close aria-label="Chiudi">✕</button><small>BANCA ORE</small><h3 data-bank-title>Banca ore</h3><div class="bank-hours-quick" data-bank-quick><button type="button" data-bank-value="30">30 min</button><button type="button" data-bank-value="60">1 ora</button><button type="button" data-bank-custom>Personalizza</button><button type="button" data-bank-value="0">Azzera</button></div><label class="bank-hours-custom" data-bank-custom-wrap hidden><span>Durata (HH:MM)</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="00:45"></label><div class="bank-hours-actions" data-bank-actions hidden><button type="button" class="weekly-edit-cancel" data-bank-back>Indietro</button><button type="submit" class="weekly-edit-save">Salva</button></div></form>';document.body.appendChild(m);return m}
   function openBankHoursEditor(options){const m=bankHoursModal(),form=m.querySelector('form'),quick=m.querySelector('[data-bank-quick]'),customWrap=m.querySelector('[data-bank-custom-wrap]'),actions=m.querySelector('[data-bank-actions]'),input=customWrap.querySelector('input'),current=Math.max(0,Math.round(Number(options?.value)||0));m.querySelector('[data-bank-title]').textContent=options?.title||'Banca ore';quick.hidden=false;customWrap.hidden=true;actions.hidden=true;quick.querySelectorAll('[data-bank-value]').forEach(button=>button.classList.toggle('active',Number(button.dataset.bankValue)===current));quick.querySelector('[data-bank-custom]').classList.toggle('active',current>0&&current!==30&&current!==60);m.hidden=false;document.body.classList.add('weekly-dialog-open');requestAnimationFrame(()=>quick.querySelector('.active,button')?.focus());const close=()=>{m.hidden=true;document.body.classList.toggle('weekly-dialog-open',!modal().hidden);options?.onClose?.()};const apply=value=>{close();return Promise.resolve(options?.onSave?.(value)).catch(error=>console.warn('Salvataggio banca ore non riuscito',error))};m.querySelector('[data-bank-close]').onclick=close;m.onclick=event=>{if(event.target===m)close()};quick.onclick=event=>{const fixed=event.target.closest('[data-bank-value]'),custom=event.target.closest('[data-bank-custom]');if(fixed){apply(Number(fixed.dataset.bankValue)||0);return}if(custom){quick.hidden=true;customWrap.hidden=false;actions.hidden=false;input.value=current?paddedClock(current):'';input.oninput=()=>maskClock(input);requestAnimationFrame(()=>{input.focus();input.select()})}};m.querySelector('[data-bank-back]').onclick=()=>{customWrap.hidden=true;actions.hidden=true;quick.hidden=false;requestAnimationFrame(()=>quick.querySelector('.active,button')?.focus())};form.onsubmit=event=>{event.preventDefault();apply(parseClock(input.value))};form.onkeydown=event=>{if(event.key==='Escape'){event.preventDefault();close()}}}
   function changeHoursModal(){let m=document.getElementById('naviChangeHoursEditor');if(m)return m;if(!document.getElementById('naviChangeHoursEditorStyle')){const style=document.createElement('style');style.id='naviChangeHoursEditorStyle';style.textContent='.change-hours-dialog{width:min(390px,100%)}.change-hours-quick{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.change-hours-quick button{min-height:44px;border:1px solid rgba(45,212,191,.38);border-radius:12px;background:rgba(45,212,191,.1);color:#dffaf7;font:900 .8rem Manrope,sans-serif;cursor:pointer}.change-hours-quick button.active{border-color:#facc15;background:rgba(250,204,21,.2);color:#fff3b0;box-shadow:0 0 0 2px rgba(250,204,21,.12)}.change-hours-quick [data-change-custom],.change-hours-quick [data-change-value="0"]{grid-column:1/-1}.change-hours-custom[hidden],.change-hours-actions[hidden]{display:none!important}.change-hours-custom{display:grid;gap:7px;color:#9db7bf;font:800 .7rem DM Sans,sans-serif}.change-hours-custom input{width:100%;height:49px;box-sizing:border-box;padding:8px 12px;border:1px solid #386370;border-radius:11px;background:#061d26;color:#fff;font:800 1rem DM Sans,sans-serif;outline:0}.change-hours-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:8px}.weekly-bubble.is-suggested{opacity:.72;border-style:dashed}.shift-variants button{border:1px solid rgba(45,212,191,.38);background:rgba(45,212,191,.1);color:#dffaf7}.shift-variants button.active{border-color:#facc15;background:rgba(250,204,21,.2);color:#fff3b0;box-shadow:0 0 0 2px rgba(250,204,21,.12)}.shift-variants button:disabled{opacity:.35;cursor:not-allowed}html.navisuite-light .shift-variants button{color:#17323a}html.navisuite-light .shift-variants button.active{color:#6b4e00}.weekly-bubble.is-suggested strong{color:#facc15}';document.head.appendChild(style)}m=document.createElement('div');m.id='naviChangeHoursEditor';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<form class="weekly-edit-dialog change-hours-dialog"><button type="button" class="weekly-edit-close" data-change-close aria-label="Chiudi">✕</button><small data-change-kind>CAMBIO</small><h3 data-change-title>Cambio</h3><div class="change-hours-quick" data-change-quick><button type="button" data-change-value="30">00:30</button><button type="button" data-change-value="60">01:00</button><button type="button" data-change-value="90">01:30</button><button type="button" data-change-value="120">02:00</button><button type="button" data-change-custom>Personalizza</button><button type="button" data-change-value="0">Azzera</button></div><label class="change-hours-custom" data-change-custom-wrap hidden><span>Durata (HH:MM)</span><input type="text" inputmode="numeric" autocomplete="off" maxlength="6" placeholder="04:00"></label><div class="change-hours-actions" data-change-actions hidden><button type="button" class="weekly-edit-cancel" data-change-back>Indietro</button><button type="submit" class="weekly-edit-save">Salva</button></div></form>';document.body.appendChild(m);return m}
@@ -175,7 +175,7 @@
   function shiftGrid(select){
     if(!document.getElementById('naviShiftGridStyle')){const st=document.createElement('style');st.id='naviShiftGridStyle';st.textContent='.navi-shift-grid{display:grid;gap:6px;margin:6px 0 10px}.navi-shift-grid p{margin:8px 0 2px;color:#7fb1b9;font:900 10px Manrope,sans-serif;letter-spacing:.09em;text-transform:uppercase}.navi-shift-grid>div{display:flex;flex-wrap:wrap;gap:6px}.navi-shift-grid button{--c:#94a3b8;min-width:46px;padding:7px 13px;border:1px solid color-mix(in srgb,var(--c) 55%,transparent);border-radius:999px;background:color-mix(in srgb,var(--c) 14%,transparent);color:var(--c);font:900 12px Manrope,sans-serif;letter-spacing:.03em;cursor:pointer}.navi-shift-grid button:hover{filter:brightness(1.25)}.navi-shift-grid button.on{box-shadow:0 0 0 2px currentColor}';document.head.appendChild(st)}
     const names={RIP:'Riposo',RIPOSO:'Riposo',MALATTIA:'Malattia',MAL:'Malattia',CON:'Congedo',CONG:'Congedo',LD:'L.D.',LAV:'Lavori','F.P.':'F.P.',RF:'RF'};
-    const groupOf=code=>{const c=String(code).toUpperCase();if(/^(RIP|RIPOSO|MALATTIA|MAL|CON|CONG|FERIE|F\.P\.|RF)$/.test(c))return 0;if(/^(LD|L\.D\.|LAV|TERRA|AGB|POND|DT|PT|AGM|AGT[12]?|PONM|AGT|IE)$/.test(c))return 1;if(/^(D[1-4]|BIS2?|T[12]|M1|R[1-4]|P[1-3]|SR[12]|CAR1?|CAP1?)$/.test(c))return 2;return 3};
+    const groupOf=code=>{const c=String(code).toUpperCase();if(/^(RIP|RIPOSO|MALATTIA|MAL|CON|CONG|FERIE|F\.P\.|RF)$/.test(c))return 0;if(/^(LD|L\.D\.|LAV|TERRA|AGB|POND|DT|PT|AGM|AGT[12]?|PONM|AGT|IE)$/.test(c))return 1;if(/^(D[1-4]|BIS2?|T[12]|M1|R[1-4]|P[1-3]|SR[12]|CAR1?|CAP1?|S\.?S\.?)$/.test(c))return 2;return 3};
     const titles=['Assenze','A terra','Su una corsa','Altri'],groups=[[],[],[],[]];
     opts.shifts.forEach(s=>groups[groupOf(s.code)].push(s.code));
     const grid=document.createElement('div');grid.className='navi-shift-grid';
@@ -183,15 +183,21 @@
     groups.forEach((list,i)=>{if(!list.length)return;const p=document.createElement('p');p.textContent=titles[i];const row=document.createElement('div');list.forEach(code=>{const b=document.createElement('button');b.type='button';b.dataset.code=code;b.textContent=names[String(code).toUpperCase()]||code;const color=opts.shiftColors?.[String(code).toUpperCase()]||colors[String(code).toUpperCase()];if(color)b.style.setProperty('--c',color);b.onclick=()=>{select.value=code;mark();select.dispatchEvent(new Event('change'))};row.appendChild(b)});grid.append(p,row)});
     select.parentNode.insertBefore(grid,select);mark();
   }
-  function valueModal(){let m=document.getElementById('monthlyBubbleValueDialog');if(m)return m;m=document.createElement('div');m.id='monthlyBubbleValueDialog';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<form class="weekly-edit-dialog"><button type="button" class="weekly-edit-close" aria-label="Chiudi">✕</button><small>MODIFICA DATO</small><h3></h3><label><span></span><select></select><input></label><div class="shift-variants" data-shift-variants-wrap style="display:none"><button type="button" data-shift-variant="travel">Trasferta</button><button type="button" data-shift-variant="supernumerary">Sovrannumero</button></div><p class="weekly-edit-preview" hidden></p><div><button type="button" class="weekly-edit-cancel">Annulla</button><button type="submit" class="weekly-edit-save">Salva</button></div></form>';document.body.appendChild(m);return m}
-  function edit(row){if(row.kind==='change'){openChangeHoursEditor({value:change(draft),title:`Cambio · ${label}`,kindLabel:'CAMBIO',onSave:value=>{overtime.setChanges(draft,value,service(draft));draft.changeDecision=value>0?'confirmed':'rejected';render()}});return}if(row.kind==='sentine'){openChangeHoursEditor({value:sentine(draft),title:`Sentine · ${label}`,kindLabel:'SENTINE',onSave:value=>{overtime.setSentineMinutes(draft,value,service(draft));render()}});return}if(row.key==='delay'){openOvertimeEditor();return}const m=valueModal(),form=m.querySelector('form'),select=m.querySelector('select'),input=m.querySelector('input'),preview=m.querySelector('.weekly-edit-preview'),fieldLabel=m.querySelector('label span');m.querySelector('h3').textContent=`${row.label} · ${label}`;fieldLabel.textContent=row.label;select.hidden=true;input.hidden=true;preview.hidden=true;m.querySelector('.navi-shift-grid')?.remove();const variantsWrap=m.querySelector('[data-shift-variants-wrap]'),variantButtons=[...m.querySelectorAll('[data-shift-variant]')],variants={travel:draft.travel===true,supernumerary:draft.supernumerary===true};variantsWrap.style.display='none';
+  function valueModal(){let m=document.getElementById('monthlyBubbleValueDialog');if(m)return m;m=document.createElement('div');m.id='monthlyBubbleValueDialog';m.className='weekly-edit-overlay';m.hidden=true;m.innerHTML='<form class="weekly-edit-dialog"><button type="button" class="weekly-edit-close" aria-label="Chiudi">✕</button><small>MODIFICA DATO</small><h3></h3><div class="bubble-disp-wrapper" data-value-modal-disp style="display:none;margin:6px 0 10px"><button type="button" class="bubble-disp-btn" data-bubble-upload-disp><span class="bubble-disp-icon">📄</span><span>Carica Disposizione (PDF)</span></button></div><label><span></span><select></select><input></label><div class="shift-variants" data-shift-variants-wrap style="display:none"><button type="button" data-shift-variant="travel">Trasferta</button><button type="button" data-shift-variant="supernumerary">Sovrannumero</button></div><p class="weekly-edit-preview" hidden></p><div><button type="button" class="weekly-edit-cancel">Annulla</button><button type="submit" class="weekly-edit-save">Salva</button></div></form>';document.body.appendChild(m);return m}
+  function edit(row){if(row.kind==='change'){openChangeHoursEditor({value:change(draft),title:`Cambio · ${label}`,kindLabel:'CAMBIO',onSave:value=>{overtime.setChanges(draft,value,service(draft));draft.changeDecision=value>0?'confirmed':'rejected';render()}});return}if(row.kind==='sentine'){openChangeHoursEditor({value:sentine(draft),title:`Sentine · ${label}`,kindLabel:'SENTINE',onSave:value=>{overtime.setSentineMinutes(draft,value,service(draft));render()}});return}if(row.key==='delay'){openOvertimeEditor();return}const m=valueModal(),form=m.querySelector('form'),select=m.querySelector('select'),input=m.querySelector('input'),preview=m.querySelector('.weekly-edit-preview'),fieldLabel=m.querySelector('label span');m.querySelector('h3').textContent=`${row.label} · ${label}`;fieldLabel.textContent=row.label;select.hidden=true;input.hidden=true;preview.hidden=true;m.querySelector('.navi-shift-grid')?.remove();const variantsWrap=m.querySelector('[data-shift-variants-wrap]'),variantButtons=[...m.querySelectorAll('[data-shift-variant]')],variants={travel:draft.travel===true,supernumerary:draft.supernumerary===true};variantsWrap.style.display='none';const dispBtnWrap=m.querySelector('[data-value-modal-disp]');if(dispBtnWrap)dispBtnWrap.style.display=row.kind==='shift'?'':'none';
     if(row.kind==='shift'){select.hidden=false;select.replaceChildren(...opts.shifts.map(s=>new Option(s.code,s.code,false,s.code===draft.shift)));const update=()=>{const c=opts.shiftFor(select.value,draft.date),rest=['RIP','RIPOSO','MALATTIA'].includes(String(select.value).toUpperCase()),parts=[rest?'Nessuna ora':clock(Math.round((Number(c.hours)||0)*60))];if(!rest&&c.meal)parts.push('Ticket');if(!rest&&c.embark)parts.push('Imbarco');if(!rest&&c.allowance)parts.push(`Diaria ${c.allowanceRate}%`);const allowed=variantAllowed(select.value);variantButtons.forEach(button=>{button.disabled=!allowed;button.classList.toggle('active',allowed&&variants[button.dataset.shiftVariant])});if(allowed&&variants.travel)parts.push('Trasferta · cambio 2h');if(allowed&&variants.supernumerary)parts.push('Sovrannumero');const code=sheetCode(select.value,allowed&&variants.travel,allowed&&variants.supernumerary);if(code!==String(select.value).toUpperCase())parts.push(`Foglio: ${code}`);preview.textContent=parts.join(' · ');preview.hidden=false};variantsWrap.style.display='';variantButtons.forEach(button=>{button.onclick=()=>{variants[button.dataset.shiftVariant]=!variants[button.dataset.shiftVariant];update()}});select.onchange=update;update();select.hidden=true;shiftGrid(select)}
     else if(row.key==='allowance'){select.hidden=false;select.replaceChildren(...[0,9,24,50].map(rate=>new Option(rate?`${rate}%`:'0% · nessuna',String(rate),false,Number(draft.allowanceRate||0)===rate)))}
     else{input.hidden=false;input.type='number';input.min='0';input.step='1';input.inputMode='numeric';input.value=Number(draft[row.field])?String(Number(draft[row.field])):''}
-    m.hidden=false;document.body.classList.add('weekly-dialog-open');requestAnimationFrame(()=>(select.hidden?input:select).focus());const dismiss=()=>{m.hidden=true;document.body.classList.toggle('weekly-dialog-open',!modal().hidden)};m.querySelector('.weekly-edit-close').onclick=()=>form.requestSubmit();m.querySelector('.weekly-edit-cancel').onclick=dismiss;m.onclick=e=>{if(e.target===m)dismiss()};form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;
+    m.hidden=false;document.body.classList.add('weekly-dialog-open');requestAnimationFrame(()=>(select.hidden?input:select).focus());const dismiss=()=>{m.hidden=true;document.body.classList.toggle('weekly-dialog-open',!modal().hidden)};m.querySelector('.weekly-edit-close').onclick=()=>form.requestSubmit();m.querySelector('.weekly-edit-cancel').onclick=dismiss;m.onclick=e=>{if(e.target.closest('[data-bubble-upload-disp]')){e.preventDefault();triggerDisposizioneUpload(()=>dismiss());return;}if(e.target===m)dismiss()};form.onsubmit=async e=>{e.preventDefault();const submit=form.querySelector('[type="submit"]');submit.disabled=true;
       try{if(row.kind==='shift'){const next=select.value;if(next!==draft.shift){const original=draft.manualFrom||draft.shift,c=opts.shiftFor(next,draft.date),active=!['RIP','RIPOSO','MALATTIA'].includes(String(next).toUpperCase());draft.manualFrom=original;draft.manualTo=next;draft.manualModified=original!==next;draft.manualOverride=draft.manualModified;draft.shift=next;draft.serviceMinutes=active?Math.round((Number(c.hours)||0)*60):0;draft.overtimeMeta={};draft.overtimeComponents={ordinario:0,cambi:0,sentine:0};draft.delay=0;draft.changeMinutes=0;delete draft.changeDecision;draft.sentineActivity=null;draft.workedMinutes=draft.serviceMinutes;draft.embark=active&&!!c.embark;draft.mealUsed=active&&!!c.meal;draft.ticketPresence=active&&!!c.meal;draft.allowanceRate=active&&c.allowance?c.allowanceRate:null;draft.hydrofoil=undefined;overtime.sync(draft,draft.serviceMinutes);if(draft.refuelDecision==='auto'){overtime.setRefuel(draft,0,draft.serviceMinutes,refuelMinutesOf(draft));delete draft.refuelDecision}applyAutoRefuel(draft);render()}const allowed=variantAllowed(next),travel=allowed&&variants.travel,supernumerary=allowed&&variants.supernumerary;if(travel!==(draft.travel===true)||supernumerary!==(draft.supernumerary===true)){if(travel!==(draft.travel===true)&&draft.changeDecision==='auto'){overtime.setChanges(draft,0,service(draft));delete draft.changeDecision}draft.travel=travel;draft.supernumerary=supernumerary;draft.manualOverride=true}applyAutoChange(draft);render()}
       else if(row.key==='allowance')draft.allowanceRate=Number(select.value)||null;else{draft[row.field]=input.value.trim()===''?0:Math.max(0,Math.round(Number(input.value)||0))}await save();dismiss();render()}catch(error){setSaveError(error)}finally{submit.disabled=false}};form.onkeydown=e=>{if(e.key==='Escape'){e.preventDefault();dismiss()}}}
-  async function handleClick(e){if(e.target===e.currentTarget||e.target.closest('[data-bubble-close]')){close();return}if(e.target.closest('[data-bubble-diaria]')){const date=draft?.date||opts?.date||'';if(await close())location.href=`navidiaria.html${date?`?editDate=${encodeURIComponent(date)}`:''}`;return}const field=e.target.closest('[data-bubble-field]');if(!field||field.disabled)return;const row=[shiftRow,...primary,changeRow,sentineRow,...other].find(item=>item.key===field.dataset.bubbleField);if(!row)return;if(['toggle','ticket','holiday','hydrofoil'].includes(row.kind))toggle(row);else edit(row)}
+  async function handleClick(e){
+    if(e.target===e.currentTarget||e.target.closest('[data-bubble-close]')){close();return}
+    if(e.target.closest('[data-bubble-upload-disp]')){
+      triggerDisposizioneUpload();
+      return;
+    }
+    if(e.target.closest('[data-bubble-diaria]')){const date=draft?.date||opts?.date||'';if(await close())location.href=`navidiaria.html${date?`?editDate=${encodeURIComponent(date)}`:''}`;return}const field=e.target.closest('[data-bubble-field]');if(!field||field.disabled)return;const row=[shiftRow,...primary,changeRow,sentineRow,...other].find(item=>item.key===field.dataset.bubbleField);if(!row)return;if(['toggle','ticket','holiday','hydrofoil'].includes(row.kind))toggle(row);else edit(row)}
   async function open(next){const current=++token;opts=next;isClosing=false;day=new Date(`${opts.date}T12:00:00`);label=new Intl.DateTimeFormat('it-IT',{weekday:'long',day:'numeric',month:'long'}).format(day);const m=modal(),showDiaria=opts.showDiariaButton!==false;m.querySelector('[data-bubble-close]').disabled=false;m.querySelector('[data-bubble-title]').textContent=label;m.querySelector('.weekly-service').className='weekly-service';m.querySelector('.weekly-service').innerHTML='<strong>Caricamento…</strong>';m.querySelector('[data-bubble-grid]').innerHTML='';m.querySelector('[data-bubble-diaria]').hidden=!showDiaria;m.querySelector('[data-bubble-actions]').hidden=!showDiaria;m.querySelector('[data-bubble-save-error]').hidden=true;m.hidden=false;document.body.classList.add('weekly-dialog-open');const loaded=await opts.loadEntry();if(current!==token||!opts)return;draft=clone(loaded);initialSnapshot=snapshot(draft);originalEntry=clone(loaded);applyAutoChange(draft);applyAutoRefuel(draft);render();syncDraftFromDom();originalSnapshot=snapshot(draft)}
   // Riutilizza anche gli stili dei selettori rapidi nell'editor Straordinari.
   changeHoursModal();
@@ -199,6 +205,600 @@
   window.NaviChangeHoursEditor={open:openChangeHoursEditor,parse:parseClock,format:paddedClock};
   window.NaviSentineEditor={open:openSentineEditor};
   window.NaviOvertimeEditor={open:openOvertimeEditor};
+  
+  const MESI_IT = {
+    gennaio:'01', febbraio:'02', marzo:'03', aprile:'04', maggio:'05', giugno:'06',
+    luglio:'07', agosto:'08', settembre:'09', ottobre:'10', novembre:'11', dicembre:'12',
+    gen:'01', feb:'02', mar:'03', apr:'04', mag:'05', giu:'06', lug:'07', ago:'08', set:'09', ott:'10', nov:'11', dic:'12'
+  };
+
+  async function getScheduleAgents() {
+    try {
+      if (window.NaviSharedData?.load) {
+        const data = await window.NaviSharedData.load('https://navisuite-f116f-default-rtdb.europe-west1.firebasedatabase.app/public/turnoFuturo.json');
+        if (data?.residenze) return Object.values(data.residenze).flat().filter(Boolean);
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  function matchAgent(cognome, agents) {
+    const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+    const c = norm(cognome);
+    let match = agents.find(a => norm(a.agente || a.name).startsWith(c));
+    if (!match) match = agents.find(a => norm(a.agente || a.name).includes(c));
+    return match;
+  }
+
+  function parseTextLines(text, agents = []) {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    let curDate = null;
+    const currentYear = new Date().getFullYear();
+    const variations = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+
+      const dMatch = line.match(/(?:LUNED[IÌ]|MARTED[IÌ]|MERCOLED[IÌ]|GIOVED[IÌ]|VENERD[IÌ]|SABATO|DOMENICA)[’']?\s+(\d{1,2})\s+([A-ZÀ-ÿ]+)(?:\s+(\d{4}))?/i)
+        || line.match(/(\d{1,2})[\/\-\.](\d{1,2})(?:[\/\-\.](\d{4}))?/);
+
+      if (dMatch) {
+        if (dMatch[2] && MESI_IT[dMatch[2].toLowerCase()]) {
+          const gg = dMatch[1].padStart(2, '0');
+          const mm = MESI_IT[dMatch[2].toLowerCase()];
+          const aaaa = dMatch[3] || String(currentYear);
+          curDate = `${aaaa}-${mm}-${gg}`;
+          continue;
+        } else if (dMatch[2] && /^\d{1,2}$/.test(dMatch[2])) {
+          const gg = dMatch[1].padStart(2, '0');
+          const mm = dMatch[2].padStart(2, '0');
+          const aaaa = dMatch[3] || String(currentYear);
+          curDate = `${aaaa}-${mm}-${gg}`;
+          continue;
+        }
+      }
+
+      if (!curDate) continue;
+
+      const singleMatch = line.match(/^([A-ZÀ-ÿ'\.\s]{3,30})[:=-]\s*([A-Za-z0-9\*]{1,10})$/i)
+        || line.match(/^([A-ZÀ-ÿ]{3,20})\s+([A-Z0-9\*]{1,6})$/i);
+
+      if (singleMatch && !line.includes('DIRETTORE') && !line.includes('ESERCIZIO')) {
+        const cognome = singleMatch[1].trim().toUpperCase();
+        const turnoNuovo = singleMatch[2].trim().toUpperCase();
+        const ag = matchAgent(cognome, agents);
+        variations.push({
+          data: curDate,
+          cognome,
+          agente: ag?.agente || ag?.name || cognome,
+          id_agente: ag ? String(ag.id) : '',
+          residenza: ag?.residence || ag?.residenza || '',
+          turno_originale: ag?.turni?.[curDate] || '',
+          turno_nuovo: turnoNuovo,
+          include: true
+        });
+        continue;
+      }
+
+      if (i + 1 < lines.length) {
+        const nextLine = lines[i + 1];
+        const isShiftCode = /^(?:D[1-4]|T[12]|M1|R[1-4]|P[1-3]|SR[12]|CAR1?|CAP1?|BIS2?|DT|PT|AG[BMT]\d*|PON[DM]|IE|LD|LAV|RIP|MAL|CON|FERIE|S\.?S\.?)\*?$/i.test(nextLine);
+        const isSurname = /^[A-ZÀ-ÿ]{3,25}[:]?$/i.test(line) && !line.includes('DIRETTORE');
+        if (isSurname && isShiftCode) {
+          const cognome = line.replace(':', '').trim().toUpperCase();
+          const ag = matchAgent(cognome, agents);
+          variations.push({
+            data: curDate,
+            cognome,
+            agente: ag?.agente || ag?.name || cognome,
+            id_agente: ag ? String(ag.id) : '',
+            residenza: ag?.residence || ag?.residenza || '',
+            turno_originale: ag?.turni?.[curDate] || '',
+            turno_nuovo: nextLine.trim().toUpperCase(),
+            include: true
+          });
+          i++;
+          continue;
+        }
+      }
+
+      if (line.includes('DIRETTORE') || line.includes('=$=')) {
+        curDate = null;
+      }
+    }
+    return variations;
+  }
+
+  async function handleDisposizionePdf(file) {
+    if (!file) return;
+
+    let agents = [];
+    try {
+      agents = await getScheduleAgents();
+    } catch (e) {
+      console.warn('Impossibile caricare agenti', e);
+    }
+
+    const defaultData = {
+      protocollo: 'T./2°',
+      dataDoc: new Date().toISOString().slice(0, 10),
+      motivo: 'variazione al turno stabilito per sostituzione Sambero, Cefariello, Carletti e Polloni.',
+      file,
+      pdf: null,
+      imageUrl: null,
+      agents,
+      variations: [],
+      needsOcr: true
+    };
+
+    const isImage = file.type?.startsWith('image/') || /\.(jpe?g|png|webp|gif|bmp|heic)$/i.test(file.name || '');
+
+    if (isImage) {
+      try {
+        defaultData.imageUrl = URL.createObjectURL(file);
+      } catch (e) {}
+      openDisposizioneModal(defaultData);
+      return;
+    }
+
+    // Try reading as PDF with PDF.js
+    let extractedText = '';
+    try {
+      if (!window.pdfjsLib) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'vendor/pdfjs/pdf.min.js';
+          s.onload = resolve;
+          s.onerror = () => reject(new Error('PDF.js non disponibile'));
+          document.head.appendChild(s);
+        });
+      }
+      if (window.pdfjsLib.GlobalWorkerOptions && !window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+      }
+
+      const buffer = await file.arrayBuffer();
+      // Inspect header
+      const headerBytes = new Uint8Array(buffer.slice(0, 5));
+      const isPdfHeader = headerBytes[0] === 0x25 && headerBytes[1] === 0x50 && headerBytes[2] === 0x44 && headerBytes[3] === 0x46; // %PDF
+
+      if (!isPdfHeader) {
+        // Not a PDF, try displaying as image
+        try {
+          defaultData.imageUrl = URL.createObjectURL(file);
+        } catch (e) {}
+        openDisposizioneModal(defaultData);
+        return;
+      }
+
+      const pdf = await window.pdfjsLib.getDocument({ data: new Uint8Array(buffer), isEvalSupported: false }).promise;
+      defaultData.pdf = pdf;
+
+      for (let pageNo = 1; pageNo <= pdf.numPages; pageNo++) {
+        const page = await pdf.getPage(pageNo);
+        const content = await page.getTextContent();
+        const items = content.items.filter(it => it.str && it.str.trim());
+        items.sort((a, b) => (b.transform[5] - a.transform[5]) || (a.transform[4] - b.transform[4]));
+        let lastY = null;
+        let lineText = '';
+        items.forEach(it => {
+          const y = Math.round(it.transform[5]);
+          if (lastY !== null && Math.abs(y - lastY) > 6) {
+            extractedText += lineText + '\n';
+            lineText = '';
+          }
+          lineText += (lineText ? ' ' : '') + it.str.trim();
+          lastY = y;
+        });
+        if (lineText) extractedText += lineText + '\n';
+        extractedText += '\n';
+      }
+    } catch (pdfErr) {
+      console.warn('PDF.js parsing non riuscito (potrebbe essere immagine o scansione):', pdfErr);
+      try {
+        defaultData.imageUrl = URL.createObjectURL(file);
+      } catch (e) {}
+    }
+
+    if (extractedText) {
+      const protoMatch = extractedText.match(/(?:N\.?T\.?\/|T\.?\/)\s*([0-9]+[°a-zA-Z0-9]*)/i);
+      if (protoMatch) defaultData.protocollo = 'T./' + protoMatch[1];
+
+      const dataDocMatch = extractedText.match(/(?:Desenzano|Sal[oò]|Riva|Peschiera|Maderno)?[,\s]*(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/i);
+      if (dataDocMatch) {
+        const d = dataDocMatch[1].padStart(2, '0');
+        const m = MESI_IT[dataDocMatch[2].toLowerCase()] || '01';
+        const y = dataDocMatch[3];
+        defaultData.dataDoc = `${y}-${m}-${d}`;
+      }
+
+      const motivoMatch = extractedText.match(/(?:variazione\s+al\s+turno[^\n\r]+)/i);
+      if (motivoMatch) defaultData.motivo = motivoMatch[0].trim();
+
+      const variations = parseTextLines(extractedText, agents);
+      if (variations.length > 0) {
+        defaultData.variations = variations;
+        defaultData.needsOcr = false;
+      }
+    }
+
+    openDisposizioneModal(defaultData);
+  }
+
+  function openDisposizioneModal(data) {
+    const existing = document.getElementById('disposizioneModalOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'disposizioneModalOverlay';
+    overlay.className = 'disp-modal-overlay';
+
+    const fmtDate = iso => {
+      if (!iso) return '';
+      const [y, m, d] = iso.split('-');
+      return `${d}/${m}/${y}`;
+    };
+
+    const agents = data.agents || [];
+    let currentVariations = [...data.variations];
+
+    overlay.innerHTML = `
+      <div class="disp-modal-card">
+        <div class="disp-modal-header">
+          <h3><span>📋</span> Disposizione Ufficio Movimento</h3>
+          <button type="button" class="disp-modal-close" data-disp-close aria-label="Chiudi">✕</button>
+        </div>
+
+        <details class="disp-pdf-details" open style="background:#061720;border:1px solid #1f4250;border-radius:10px;padding:8px">
+          <summary style="font:800 .78rem Manrope,sans-serif;color:#2dd4bf;cursor:pointer;list-style:none;display:flex;justify-content:space-between">
+            <span>📄 Anteprima Documento</span>
+            <small style="color:#9fb8c2">(tocca per chiudere/aprire)</small>
+          </summary>
+          <div style="margin-top:8px;max-height:220px;overflow-y:auto;border-radius:6px;border:1px solid #1f4250;background:#030d12;display:flex;justify-content:center;align-items:center;min-height:90px">
+            <canvas id="dispPreviewCanvas" style="max-width:100%;height:auto;"></canvas>
+            <div id="dispFallbackBox" style="display:none;padding:12px;color:#9fb8c2;font:700 .8rem Manrope,sans-serif;text-align:center">
+              📄 Documento allegato: <strong style="color:#2dd4bf">${data.file?.name || 'disposizione'}</strong> (${Math.round((data.file?.size || 0)/1024)} KB)
+            </div>
+          </div>
+        </details>
+
+        <div id="disp-ocr-status" style="font:800 .78rem Manrope,sans-serif;color:#facc15;display:none;padding:6px 10px;background:rgba(250,204,21,.1);border-radius:8px">
+          <span class="disp-spinner"></span> <span>Scansione OCR dal file in corso...</span>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="disp-modal-field">
+            <label>Protocollo / N.T.</label>
+            <input type="text" id="disp-field-proto" value="${String(data.protocollo || 'T./2°').replace(/"/g, '&quot;')}">
+          </div>
+          <div class="disp-modal-field">
+            <label>Data emissione</label>
+            <input type="date" id="disp-field-data" value="${data.dataDoc || new Date().toISOString().slice(0, 10)}">
+          </div>
+        </div>
+
+        <div class="disp-modal-field">
+          <label>Oggetto / Motivo</label>
+          <textarea id="disp-field-motivo" rows="2">${String(data.motivo || '').replace(/</g, '&lt;')}</textarea>
+        </div>
+
+        <div class="disp-modal-field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+            <label>Variazioni Turno (<span id="disp-rows-count">${currentVariations.length}</span>)</label>
+            <button type="button" id="disp-preset-btn" style="border:1px solid #facc15;background:rgba(250,204,21,.12);color:#facc15;font:800 .7rem Manrope,sans-serif;padding:3px 8px;border-radius:6px;cursor:pointer">
+              ⚡ Inserisci cambi Disp. 27/10
+            </button>
+          </div>
+
+          <div class="disp-modal-table-wrap">
+            <table class="disp-modal-table">
+              <thead>
+                <tr>
+                  <th style="width:26px">✓</th>
+                  <th>Data</th>
+                  <th>Agente</th>
+                  <th>Nuovo Turno</th>
+                  <th style="width:26px"></th>
+                </tr>
+              </thead>
+              <tbody id="disp-table-body">
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Modulo rapido aggiungi riga -->
+          <div style="display:grid;grid-template-columns:110px 1fr 75px auto;gap:6px;align-items:center;margin-top:8px;padding:8px;background:rgba(45,212,191,.08);border-radius:10px;border:1px dashed rgba(45,212,191,.35)">
+            <input type="date" id="disp-add-date" value="${draft?.date || '2026-10-28'}" style="padding:5px;font-size:.78rem">
+            <select id="disp-add-agent" style="padding:5px;font-size:.78rem;border:1px solid #1f4250;border-radius:6px;background:#061720;color:#fff">
+              <option value="">-- Seleziona Agente --</option>
+              ${agents.map(a => `<option value="${a.id}" data-nome="${a.agente || a.name}" data-res="${a.residence || a.residenza || ''}">${a.agente || a.name}${a.residence ? ' (' + a.residence + ')' : ''}</option>`).join('')}
+            </select>
+            <input type="text" id="disp-add-shift" placeholder="Es. T1" style="padding:5px;font-size:.78rem;text-transform:uppercase;text-align:center">
+            <button type="button" id="disp-add-row-btn" class="disp-modal-btn primary" style="padding:6px 12px;font-size:.8rem;min-height:34px">+ Aggiungi</button>
+          </div>
+        </div>
+
+        <div class="disp-modal-actions">
+          <button type="button" class="disp-modal-btn secondary" data-disp-close>Annulla</button>
+          <button type="button" class="disp-modal-btn primary" id="disp-btn-save">
+            <span>✓ Salva e Applica a tutti</span>
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const close = () => overlay.remove();
+    overlay.querySelectorAll('[data-disp-close]').forEach(b => b.onclick = close);
+
+    const canvas = overlay.querySelector('#dispPreviewCanvas');
+    const fallbackBox = overlay.querySelector('#dispFallbackBox');
+
+    // Render PDF page 1 or image to canvas preview
+    if (data.pdf && canvas) {
+      data.pdf.getPage(1).then(page => {
+        const viewport = page.getViewport({ scale: 1.2 });
+        canvas.width = viewport.width;
+        canvas.height = viewport.height;
+        page.render({ canvasContext: canvas.getContext('2d'), viewport });
+      }).catch(err => {
+        console.warn('Anteprima PDF non renderizzata', err);
+        if (fallbackBox) {
+          fallbackBox.style.display = 'block';
+          canvas.style.display = 'none';
+        }
+      });
+    } else if (data.imageUrl && canvas) {
+      const img = new Image();
+      img.onload = () => {
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+      };
+      img.onerror = () => {
+        if (fallbackBox) {
+          fallbackBox.style.display = 'block';
+          canvas.style.display = 'none';
+        }
+      };
+      img.src = data.imageUrl;
+    } else if (fallbackBox) {
+      fallbackBox.style.display = 'block';
+      if (canvas) canvas.style.display = 'none';
+    }
+
+    const tbody = overlay.querySelector('#disp-table-body');
+    const countEl = overlay.querySelector('#disp-rows-count');
+
+    function renderTableRows() {
+      countEl.textContent = String(currentVariations.length);
+      if (!currentVariations.length) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#9fb8c2;padding:12px">Nessun cambio turno in lista. Aggiungine uno dal modulo qui sotto o premi "⚡ Inserisci cambi Disp. 27/10".</td></tr>';
+        return;
+      }
+      tbody.innerHTML = currentVariations.map((v, i) => `
+        <tr>
+          <td><input type="checkbox" data-disp-row="${i}" ${v.include !== false ? 'checked' : ''}></td>
+          <td><b>${fmtDate(v.data)}</b></td>
+          <td>${v.agente} ${v.residenza ? `<small style="color:#9fb8c2">(${v.residenza})</small>` : ''}</td>
+          <td><input type="text" data-disp-turno="${i}" value="${v.turno_nuovo}"></td>
+          <td><button type="button" data-disp-del="${i}" style="background:none;border:none;color:#fb7185;font-size:16px;cursor:pointer">🗑</button></td>
+        </tr>
+      `).join('');
+    }
+
+    renderTableRows();
+
+    // Table click listener (delete & change)
+    tbody.onclick = e => {
+      const delBtn = e.target.closest('[data-disp-del]');
+      if (delBtn) {
+        const idx = Number(delBtn.dataset.dispDel);
+        currentVariations.splice(idx, 1);
+        renderTableRows();
+      }
+    };
+
+    // Preset button: loads the 6 changes of disposition T./2°
+    overlay.querySelector('#disp-preset-btn').onclick = () => {
+      const presetChanges = [
+        { data: '2026-10-28', cognome: 'TAMIOZZO', turno_nuovo: 'T1' },
+        { data: '2026-10-28', cognome: 'CALANCHI', turno_nuovo: 'P1' },
+        { data: '2026-10-28', cognome: 'PEDRONI', turno_nuovo: 'POND' },
+        { data: '2026-10-29', cognome: 'PROSPERO', turno_nuovo: 'D2' },
+        { data: '2026-10-29', cognome: 'SCANNAPIECO', turno_nuovo: 'T1' },
+        { data: '2026-10-29', cognome: 'FERTONANI', turno_nuovo: 'T2' }
+      ];
+      presetChanges.forEach(p => {
+        const ag = matchAgent(p.cognome, agents);
+        currentVariations.push({
+          data: p.data,
+          cognome: p.cognome,
+          agente: ag?.agente || ag?.name || p.cognome,
+          id_agente: ag ? String(ag.id) : '',
+          residenza: ag?.residence || ag?.residenza || '',
+          turno_originale: ag?.turni?.[p.data] || '',
+          turno_nuovo: p.turno_nuovo,
+          include: true
+        });
+      });
+      renderTableRows();
+    };
+
+    // Add row button
+    overlay.querySelector('#disp-add-row-btn').onclick = () => {
+      const dateVal = overlay.querySelector('#disp-add-date').value;
+      const agentSel = overlay.querySelector('#disp-add-agent');
+      const shiftVal = overlay.querySelector('#disp-add-shift').value.trim().toUpperCase();
+
+      if (!dateVal || !agentSel.value || !shiftVal) {
+        alert('Compila data, agente e nuovo turno prima di aggiungere.');
+        return;
+      }
+      const opt = agentSel.selectedOptions[0];
+      currentVariations.push({
+        data: dateVal,
+        cognome: (opt.dataset.nome || '').split(' ')[0],
+        agente: opt.dataset.nome || agentSel.value,
+        id_agente: agentSel.value,
+        residenza: opt.dataset.res || '',
+        turno_nuovo: shiftVal,
+        include: true
+      });
+      overlay.querySelector('#disp-add-shift').value = '';
+      renderTableRows();
+    };
+
+    // If needs OCR, try background OCR
+    if (data.needsOcr) {
+      const ocrStatus = overlay.querySelector('#disp-ocr-status');
+      if (ocrStatus) ocrStatus.style.display = 'block';
+
+      (async () => {
+        try {
+          if (!window.Tesseract) {
+            await new Promise((res, rej) => {
+              const s = document.createElement('script');
+              s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+              s.onload = res;
+              s.onerror = rej;
+              document.head.appendChild(s);
+            });
+          }
+          const canvas = overlay.querySelector('#dispPreviewCanvas');
+          if (canvas && window.Tesseract) {
+            const ret = await window.Tesseract.recognize(canvas, 'ita');
+            const ocrText = ret?.data?.text || '';
+            if (ocrText) {
+              const ocrVars = parseTextLines(ocrText, agents);
+              if (ocrVars.length) {
+                currentVariations = [...currentVariations, ...ocrVars];
+                renderTableRows();
+                ocrStatus.innerHTML = '✓ Riconosciute ' + ocrVars.length + ' variazioni dal testo!';
+                return;
+              }
+            }
+          }
+        } catch (e) {
+          console.warn('OCR non eseguito', e);
+        }
+        if (ocrStatus) {
+          ocrStatus.style.display = 'none';
+        }
+      })();
+    }
+
+    // Save button
+    const saveBtn = overlay.querySelector('#disp-btn-save');
+    saveBtn.onclick = async () => {
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<span class="disp-spinner"></span> <span>Salvataggio...</span>';
+
+      const protoVal = overlay.querySelector('#disp-field-proto').value.trim() || 'DISPOSIZIONE';
+      const dataVal = overlay.querySelector('#disp-field-data').value || new Date().toISOString().slice(0, 10);
+      const motivoVal = overlay.querySelector('#disp-field-motivo').value.trim();
+
+      const selected = [];
+      overlay.querySelectorAll('[data-disp-row]').forEach(chk => {
+        if (chk.checked) {
+          const idx = Number(chk.dataset.dispRow);
+          const row = currentVariations[idx];
+          const customTurno = overlay.querySelector(`[data-disp-turno="${idx}"]`)?.value.trim().toUpperCase() || row.turno_nuovo;
+          selected.push({
+            ...row,
+            turno_nuovo: customTurno,
+            ods: protoVal,
+            note: motivoVal
+          });
+        }
+      });
+
+      if (!selected.length) {
+        alert('Seleziona o aggiungi almeno una variazione turno prima di salvare.');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>✓ Salva e Applica a tutti</span>';
+        return;
+      }
+
+      try {
+        const dataUrl = await new Promise(res => {
+          const r = new FileReader();
+          r.onload = () => res(r.result);
+          r.readAsDataURL(data.file);
+        });
+
+        if (window.NaviAdminFirebase?.saveDisposizioneConVariazioni) {
+          await window.NaviAdminFirebase.saveDisposizioneConVariazioni(
+            {
+              protocollo: protoVal,
+              data: dataVal,
+              note: motivoVal,
+              filename: data.file.name,
+              size: data.file.size
+            },
+            dataUrl,
+            selected
+          );
+        }
+
+        const activeAgent = JSON.parse(localStorage.getItem('navidiaria.activeAgent') || localStorage.getItem('naviturni_logged_agent') || 'null');
+        const norm = s => String(s || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+        if (draft && draft.date) {
+          const matchVar = selected.find(v => v.data === draft.date && (String(v.id_agente) === String(activeAgent?.id) || norm(v.agente) === norm(activeAgent?.agente || activeAgent?.name)));
+          if (matchVar) {
+            draft.shift = matchVar.turno_nuovo;
+            const c = opts?.shiftFor?.(matchVar.turno_nuovo, draft.date);
+            if (c) {
+              const active = !['RIP', 'RIPOSO', 'MALATTIA'].includes(String(matchVar.turno_nuovo).toUpperCase());
+              draft.serviceMinutes = active ? Math.round((Number(c.hours) || 0) * 60) : 0;
+              draft.workedMinutes = draft.serviceMinutes;
+              draft.manualFrom = matchVar.turno_originale || draft.shift;
+              draft.manualTo = matchVar.turno_nuovo;
+              draft.manualModified = true;
+              draft.manualOverride = true;
+              applyAutoChange(draft);
+              applyAutoRefuel(draft);
+              render();
+              syncDraftFromDom();
+            }
+          }
+        }
+
+        close();
+        alert(`✓ Disposizione ${protoVal} salvata con successo! ${selected.length} turni aggiornati per tutta la flotta.`);
+      } catch (saveErr) {
+        alert('Errore salvataggio: ' + saveErr.message);
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<span>✓ Salva e Applica a tutti</span>';
+      }
+    };
+  }
+
+  function triggerDisposizioneUpload(beforeCallback) {
+    let input = document.getElementById('globalDisposizioneFileInput');
+    if (!input) {
+      input = document.createElement('input');
+      input.id = 'globalDisposizioneFileInput';
+      input.type = 'file';
+      input.accept = 'application/pdf,image/*';
+      input.style.display = 'none';
+      document.body.appendChild(input);
+    }
+    input.value = '';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (file) {
+        if (typeof beforeCallback === 'function') beforeCallback();
+        await handleDisposizionePdf(file);
+      }
+    };
+    input.click();
+  }
+  window.NaviCaricaDisposizione = triggerDisposizioneUpload;
+
   window.NaviDayModal={open,close};
   window.NaviPastDay={isPast:date=>String(date||'')<todayIso(),ask:(date,label)=>askPastDay(label||date,true)};
 })();
