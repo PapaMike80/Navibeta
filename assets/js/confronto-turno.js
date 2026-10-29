@@ -16,6 +16,7 @@
   let onlyDiff = false;
   let resFilter = 'TUTTE';
   let profili = {};
+  let importato = false;
 
   // Stesse classi colore della pagina Turni (naviturni-page.js: classify / pill)
   const isRip = v => ['', 'RIP', 'RIP.', 'RIPOSO', '----'].includes(String(v || '').toUpperCase().trim().replace(/\*/g, '').replace(/--/g, ''));
@@ -88,6 +89,20 @@
 
 
   const iso = d => d.toLocaleDateString('sv-SE');
+  const giornoDopo = isoDate => { const d = new Date(`${isoDate}T12:00:00`); d.setDate(d.getDate() + 1); return iso(d); };
+
+  // Periodo bozza dopo l'importazione. Bozza: il periodo diventa quello del PDF.
+  // Turno ufficiale: dal periodo bozza si tolgono i giorni coperti dal turno (null = nessuna bozza residua).
+  function periodoBozza(attuale, inizio, fine, tipo) {
+    if (tipo === 'bozza') return { start: inizio, end: fine };
+    if (!attuale?.start || !attuale?.end) return null;
+    let { start, end } = attuale;
+    if (end < inizio || start > fine) return { start, end };       // nessuna sovrapposizione
+    if (start >= inizio && end <= fine) return null;               // tutta coperta dal turno
+    if (start < inizio && end > fine) return { start, end: giornoPrima(inizio) }; // turno in mezzo: resta la parte iniziale
+    if (start >= inizio) return { start: giornoDopo(fine), end };
+    return { start, end: giornoPrima(inizio) };
+  }
   const giornoPrima = isoDate => { const d = new Date(`${isoDate}T12:00:00`); d.setDate(d.getDate() - 1); return iso(d); };
   const itData = v => String(v || '').split('-').reverse().join('/');
 
@@ -126,6 +141,38 @@
     window.NaviSharedData?.clear?.();
     btn.disabled = false;
     avviso(`${ok} agenti impostati come stagionali con fine contratto.${errori.length ? ` Non salvati: ${errori.join('; ')}` : ''}`, errori.length ? 'warn' : 'ok');
+  }
+
+
+  function pannelloImporta() {
+    if (!view) return '';
+    const { batch } = view, tipo = $('cmp-tipo').value, ufficiale = tipo !== 'bozza';
+    return `<article class="card full cmp-importa"><h3>Importa il nuovo turno</h3>
+      <p>Verrà importato come <b>${ufficiale ? 'turno ufficiale' : 'bozza'}</b> dal ${esc(itData(batch.inizio))} al ${esc(itData(batch.fine))}: ${esc(ufficiale ? 'i giorni del periodo non risultano più in bozza.' : 'i giorni del periodo vengono segnati come bozza.')} Il tipo si cambia nel campo "Tipo" in alto.</p>
+      <div class="actions"><button id="cmp-importa" class="primary" type="button"${importato ? ' disabled' : ''}>${importato ? 'Già importato' : 'Conferma e importa'}</button></div><div id="cmp-importa-esito" class="cmp-esito"></div></article>`;
+  }
+
+  async function importa() {
+    const esito = $('cmp-importa-esito'), btn = $('cmp-importa');
+    const avviso = (t, k) => { esito.textContent = t; esito.className = `cmp-esito ${k}`; };
+    if (window.__naviBetaReadOnly) return avviso('NaviBeta è in sola lettura: l’importazione si fa da NaviSuite.', 'warn');
+    const hook = window.NaviConfrontoHook, file = $('cmp-file').files?.[0];
+    if (!hook?.importa || !file || !view) return avviso('Carica e confronta prima il PDF.', 'warn');
+    const tipo = $('cmp-tipo').value, { batch } = view;
+    if (!confirm(`Importo il turno dal ${itData(batch.inizio)} al ${itData(batch.fine)} come ${tipo === 'bozza' ? 'BOZZA' : 'TURNO UFFICIALE'}?`)) return;
+    btn.disabled = true; avviso('Importazione in corso…', 'ok');
+    try {
+      await hook.importa(file, batch, tipo, $('cmp-titolo')?.value);
+      const fb = window.NaviAdminFirebase;
+      let attuale = null;
+      try { attuale = await fb.getDraftPeriod?.(); } catch (_) {}
+      const nuovo = periodoBozza(attuale, batch.inizio, batch.fine, tipo);
+      if (nuovo) await fb.saveDraftPeriod({ start: nuovo.start, end: nuovo.end });
+      else if (attuale?.start) await fb.resetDraftPeriod();
+      window.NaviSharedData?.clear?.();
+      importato = true;
+      avviso(`✓ Turno importato come ${tipo === 'bozza' ? 'bozza' : 'turno ufficiale'}: ${batch.rows.length} agenti, ${batch.dates.length} giornate.${tipo === 'bozza' ? '' : nuovo ? ` Resta in bozza dal ${itData(nuovo.start)} al ${itData(nuovo.end)}.` : ' Nessuna bozza residua.'}`, 'ok');
+    } catch (e) { btn.disabled = false; avviso(`Importazione non riuscita: ${e.message}`, 'warn'); }
   }
 
   function intestazioneMesi(cols) {
@@ -181,8 +228,9 @@
         <div class="cmp-res">${['TUTTE', ...groups.map(g => g.res)].map(r => `<button type="button" class="${r === resFilter ? 'active' : ''}" data-res="${esc(r)}">${esc(r || '—')}</button>`).join('')}</div>
       </div>
       <div class="scroll-wrap"><table class="cmp-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-      <div class="cmp-legend"><span class="legend-item"><span class="legend-dot cmp-dot-diff"></span>Diverso dalla bozza (sotto: com'era)</span><span class="legend-item"><span class="legend-dot cmp-dot-new"></span>Agente non presente in anagrafica</span><span class="legend-item"><span class="legend-dot cmp-dot-nobozza"></span>Giornata non ancora in bozza</span></div></article>${pannelloAssenti()}`;
+      <div class="cmp-legend"><span class="legend-item"><span class="legend-dot cmp-dot-diff"></span>Diverso dalla bozza (sotto: com'era)</span><span class="legend-item"><span class="legend-dot cmp-dot-new"></span>Agente non presente in anagrafica</span><span class="legend-item"><span class="legend-dot cmp-dot-nobozza"></span>Giornata non ancora in bozza</span></div></article>${pannelloAssenti()}${pannelloImporta()}`;
     $('cmp-stagionali')?.addEventListener('click', applicaStagionali);
+    $('cmp-importa')?.addEventListener('click', importa);
     $('cmp-only').addEventListener('change', e => { onlyDiff = e.target.checked; disegna(); });
     box.querySelectorAll('[data-res]').forEach(b => b.addEventListener('click', () => { resFilter = b.dataset.res; disegna(); }));
   }
@@ -199,6 +247,8 @@
       if (inferred?.inizio && !$('cmp-start').value) $('cmp-start').value = inferred.inizio;
       if (inferred?.fine && !$('cmp-end').value) $('cmp-end').value = inferred.fine;
       try { profili = (await window.NaviAdminFirebase?.getAgentAdminData?.())?.profiles || {}; } catch (_) { profili = {}; }
+      if (inferred?.tipo) $('cmp-tipo').value = inferred.tipo;
+      importato = false;
       view = costruisci(batch, hook);
       onlyDiff = false; resFilter = 'TUTTE';
       disegna();
@@ -225,5 +275,7 @@
   document.querySelectorAll('[data-agg-tab]').forEach(b => b.addEventListener('click', () => mostraTab(b.dataset.aggTab)));
   $('cmp-file').addEventListener('change', () => { $('cmp-run').disabled = !$('cmp-file').files?.[0]; view = null; disegna(); });
   $('cmp-run').addEventListener('click', esegui);
+  $('cmp-tipo').addEventListener('change', () => { if (view) disegna(); });
+  window.NaviConfrontoTurno = { periodoBozza };
   if (location.hash === '#confronto') mostraTab('confronto');
 })();

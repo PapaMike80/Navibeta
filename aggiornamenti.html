@@ -69,6 +69,7 @@
         <div class="document-upload-fields cmp-dates">
           <div class="field"><label for="cmp-start">Dal</label><input id="cmp-start" type="date"></div>
           <div class="field"><label for="cmp-end">Al</label><input id="cmp-end" type="date"></div>
+          <div class="field"><label for="cmp-tipo">Tipo</label><select id="cmp-tipo"><option value="turno">Turno ufficiale</option><option value="bozza">Bozza</option></select></div>
         </div>
         <div class="actions"><button id="cmp-run" class="primary" type="button" disabled>Leggi e confronta</button></div>
       </article>
@@ -1119,7 +1120,21 @@
       },
       agents:()=>agents(),
       schedule:()=>schedule,
-      shift:normalizeImportedShift
+      shift:normalizeImportedShift,
+      // Importa il turno confrontato (stessa logica di "Salva settimane e documento").
+      async importa(file,batch,tipo,titolo){
+        if(file.size>2*1024*1024)throw new Error('Il PDF supera 2 MB. Riducilo prima di caricarlo.');
+        if(!batch?.rows?.length)throw new Error('Nessun agente da salvare');
+        const inizio=batch.inizio,fine=batch.fine,name=titolo||file.name;
+        const id=`DOC_${Date.now()}_${normalize(file.name).slice(0,32)}`;
+        await window.NaviAdminFirebase.saveAdminDocument({id,tipo,titolo:name,inizio,fine,filename:file.name,size:file.size,mimeType:file.type||'application/pdf'},await fileAsDataUrl(file));
+        const saved={...batch,tipo,id:`TURN_${Date.now()}_${normalize(file.name).slice(0,24)}`,documentId:id,titolo:name,importedAt:new Date().toISOString(),attiva:true};
+        state.scheduleImports.push(saved);
+        await save();
+        adminDocuments=await window.NaviAdminFirebase.getAdminDocuments();
+        renderUploadedDocuments();renderResidenceMoveDebug();
+        return saved;
+      }
     };
     function renderPending(kind){
       const rows=kind==='ods'?pendingOds:kind==='nave'?pendingNavi:pendingBaristas,result=$('import-result');
