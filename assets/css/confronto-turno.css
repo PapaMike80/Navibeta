@@ -58,3 +58,7 @@ html.navisuite-light .cmp-table td.cmp-cell-diff{background:rgba(220,38,38,.12)!
 html.navisuite-light .cmp-was,html.navisuite-light .cmp-red{color:#b91c1c}
 html.navisuite-light #confronto-turno input[type=file]{background:#f8fcfc;color:#31545c;border-color:#9fc8ce}
 @media(max-width:700px){.cmp-table .td-name,.cmp-table thead th:first-child{min-width:112px;max-width:130px}.cmp-dates{max-width:none}}
+.cmp-assenti h3{margin:0 0 4px}.cmp-assenti p{margin:0 0 10px;color:#9eb9c1;font-size:12px}
+.cmp-assenti-table th,.cmp-assenti-table td{text-align:left;min-width:0;font-size:12px;padding:7px 8px}
+.cmp-assenti-table small{display:block;color:#86aab3}.cmp-assenti-table input[type=date]{border:1px solid #315b66;border-radius:6px;background:#071b24;color:#fff;padding:5px}
+.cmp-esito{margin-top:10px;font-size:12px}.cmp-esito.ok{color:#5eead4}.cmp-esito.warn{color:#fde047}

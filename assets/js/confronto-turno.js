@@ -15,6 +15,7 @@
   let view = null; // { cols, groups, stats } dell'ultimo confronto
   let onlyDiff = false;
   let resFilter = 'TUTTE';
+  let profili = {};
 
   // Stesse classi colore della pagina Turni (naviturni-page.js: classify / pill)
   const isRip = v => ['', 'RIP', 'RIP.', 'RIPOSO', '----'].includes(String(v || '').toUpperCase().trim().replace(/\*/g, '').replace(/--/g, ''));
@@ -66,7 +67,7 @@
       const cells = cols.map(c => {
         const nuovo = row.turni[c.i] ?? 'RIP';
         const vecchio = current && c.inBozza ? hook.shift(current.turni?.[c.iso]) : null;
-        return { nuovo, vecchio, diff: current ? (c.inBozza ? !sameShift(nuovo, vecchio) : false) : true };
+        return { nuovo, vecchio, diff: current && !row.assente ? (c.inBozza ? !sameShift(nuovo, vecchio) : false) : !current };
       });
       const nDiff = cells.filter(c => c.diff).length;
       if (!current) newAgents++;
@@ -83,6 +84,48 @@
       return (x < 0 ? 99 : x) - (y < 0 ? 99 : y) || a.localeCompare(b);
     }).map(res => ({ res, rows: groups.get(res) }));
     return { cols, groups: ordered, stats: { diffCells, diffAgents, newAgents, missing, newDays, agents: batch.rows.length, days: cols.length }, batch };
+  }
+
+
+  const iso = d => d.toLocaleDateString('sv-SE');
+  const giornoPrima = isoDate => { const d = new Date(`${isoDate}T12:00:00`); d.setDate(d.getDate() - 1); return iso(d); };
+  const itData = v => String(v || '').split('-').reverse().join('/');
+
+  function pannelloAssenti() {
+    if (!view) return '';
+    const lista = view.groups.flatMap(g => g.rows).filter(r => r.row.assente && r.current);
+    if (!lista.length) return '';
+    const fine = giornoPrima(view.cols[0].iso);
+    const righe = lista.map(r => {
+      const sv = profili[String(r.current.id)]?.servizio || {};
+      const gia = sv.categoria === 'stagionali' && sv.fine && sv.fine <= fine;
+      return `<tr data-id="${esc(r.current.id)}" data-inizio="${esc(sv.inizio || '')}"><td><input type="checkbox" data-use ${gia ? '' : 'checked'}></td><td><strong>${esc(r.row.agente)}</strong><small>${esc(r.res)}</small></td><td>${gia ? `già stagionale · fino al ${esc(itData(sv.fine))}` : esc(sv.categoria && sv.categoria !== 'stabili' ? sv.categoria : 'stabile')}</td><td><input type="date" data-fine value="${esc(gia ? sv.fine : fine)}"></td></tr>`;
+    }).join('');
+    return `<article class="card full cmp-assenti"><h3>Agenti non nel PDF (${lista.length})</h3><p>Sono stagionali con il contratto finito. Imposta la categoria <b>Stagionali</b> e la data di fine contratto: dopo quel giorno risultano fuori servizio.</p>
+      <div class="scroll-wrap"><table class="cmp-table cmp-assenti-table"><thead><tr><th>Usa</th><th>Agente</th><th>Categoria attuale</th><th>Fine contratto</th></tr></thead><tbody>${righe}</tbody></table></div>
+      <div class="actions"><button id="cmp-stagionali" class="primary" type="button">Imposta stagionali e termina il contratto</button></div><div id="cmp-stagionali-esito" class="cmp-esito"></div></article>`;
+  }
+
+  async function applicaStagionali() {
+    const esito = $('cmp-stagionali-esito');
+    const avviso = (t, k) => { esito.textContent = t; esito.className = `cmp-esito ${k}`; };
+    if (window.__naviBetaReadOnly) return avviso('NaviBeta è in sola lettura: qui controlli l’elenco, la categoria si salva solo da NaviSuite.', 'warn');
+    const righe = [...document.querySelectorAll('.cmp-assenti-table tbody tr')].filter(tr => tr.querySelector('[data-use]').checked);
+    if (!righe.length) return avviso('Nessun agente selezionato.', 'warn');
+    if (righe.some(tr => !/^\d{4}-\d{2}-\d{2}$/.test(tr.querySelector('[data-fine]').value))) return avviso('Indica la data di fine contratto per tutti gli agenti selezionati.', 'warn');
+    if (!confirm(`Imposto ${righe.length} agenti come stagionali con fine contratto?`)) return;
+    const btn = $('cmp-stagionali'); btn.disabled = true;
+    let ok = 0; const errori = [];
+    for (const tr of righe) {
+      const id = tr.dataset.id, vecchio = profili[id]?.servizio || {};
+      try {
+        const saved = await window.NaviAdminFirebase.saveAgentServizio(id, { categoria: 'stagionali', inizio: tr.dataset.inizio || vecchio.inizio || '', fine: tr.querySelector('[data-fine]').value, accessoForzato: false });
+        profili[id] = { ...(profili[id] || { id }), servizio: saved }; ok++;
+      } catch (e) { errori.push(`${tr.querySelector('strong').textContent}: ${e.message}`); }
+    }
+    window.NaviSharedData?.clear?.();
+    btn.disabled = false;
+    avviso(`${ok} agenti impostati come stagionali con fine contratto.${errori.length ? ` Non salvati: ${errori.join('; ')}` : ''}`, errori.length ? 'warn' : 'ok');
   }
 
   function intestazioneMesi(cols) {
@@ -111,7 +154,7 @@
       rows.forEach(r => {
         const badges = [
           !r.current && '<span class="cmp-badge cmp-new">nuovo agente</span>',
-          r.row.assente && '<span class="cmp-badge cmp-warn">non nel PDF</span>',
+          r.row.assente && '<span class="cmp-badge cmp-warn">non nel PDF · fine contratto</span>',
           r.row.residenzaNuova && `<span class="cmp-badge cmp-move">da ${esc(r.row.residenzaPrecedente)}</span>`,
           r.nDiff && r.current && `<span class="cmp-badge cmp-diff">${r.nDiff} diff.</span>`
         ].filter(Boolean).join('');
@@ -138,7 +181,8 @@
         <div class="cmp-res">${['TUTTE', ...groups.map(g => g.res)].map(r => `<button type="button" class="${r === resFilter ? 'active' : ''}" data-res="${esc(r)}">${esc(r || '—')}</button>`).join('')}</div>
       </div>
       <div class="scroll-wrap"><table class="cmp-table"><thead>${head}</thead><tbody>${body}</tbody></table></div>
-      <div class="cmp-legend"><span class="legend-item"><span class="legend-dot cmp-dot-diff"></span>Diverso dalla bozza (sotto: com'era)</span><span class="legend-item"><span class="legend-dot cmp-dot-new"></span>Agente non presente in anagrafica</span><span class="legend-item"><span class="legend-dot cmp-dot-nobozza"></span>Giornata non ancora in bozza</span></div></article>`;
+      <div class="cmp-legend"><span class="legend-item"><span class="legend-dot cmp-dot-diff"></span>Diverso dalla bozza (sotto: com'era)</span><span class="legend-item"><span class="legend-dot cmp-dot-new"></span>Agente non presente in anagrafica</span><span class="legend-item"><span class="legend-dot cmp-dot-nobozza"></span>Giornata non ancora in bozza</span></div></article>${pannelloAssenti()}`;
+    $('cmp-stagionali')?.addEventListener('click', applicaStagionali);
     $('cmp-only').addEventListener('change', e => { onlyDiff = e.target.checked; disegna(); });
     box.querySelectorAll('[data-res]').forEach(b => b.addEventListener('click', () => { resFilter = b.dataset.res; disegna(); }));
   }
@@ -154,6 +198,7 @@
       const { batch, inferred } = await hook.parse(file, $('cmp-start').value, $('cmp-end').value);
       if (inferred?.inizio && !$('cmp-start').value) $('cmp-start').value = inferred.inizio;
       if (inferred?.fine && !$('cmp-end').value) $('cmp-end').value = inferred.fine;
+      try { profili = (await window.NaviAdminFirebase?.getAgentAdminData?.())?.profiles || {}; } catch (_) { profili = {}; }
       view = costruisci(batch, hook);
       onlyDiff = false; resFilter = 'TUTTE';
       disegna();
