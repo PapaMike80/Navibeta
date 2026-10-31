@@ -1,7 +1,7 @@
 services:
   ponteradio-worker:
     build: .
-    container_name: navibeta-ponteradio-worker
+    container_name: navisuite-ponteradio-worker
     restart: unless-stopped
     env_file:
       - .env

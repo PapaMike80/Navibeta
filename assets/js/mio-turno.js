@@ -43,8 +43,10 @@
   const admin = !!window.NaviRoles?.isAdminAgent?.(profile());
   const state = { comitive: [], day: '', schedule: null, firebaseNavi: [], showPast: false, test: admin ? String(params.get('turno') || '') : '', sections: { turno: true, corse: false, mappa: false, collegamenti: true }, originalShift: null, currentShift: null, isModified: false, modifiedBy: null };
   if (!admin) document.querySelector('.mt-test')?.remove();
-  if (/^\d{4}-\d{2}-\d{2}$/.test(params.get('day') || '') && params.get('day') !== iso(new Date())) state.day = params.get('day');
-  const today = () => state.day || iso(new Date());
+  const simDate = window.NaviDate?.getSimulatedDate?.();
+  const defaultToday = simDate || iso(new Date());
+  if (/^\d{4}-\d{2}-\d{2}$/.test(params.get('day') || '') && params.get('day') !== defaultToday) state.day = params.get('day');
+  const today = () => state.day || defaultToday;
 
   function card(title, side, body, cls = '', section = 'turno') {
     return `<details class="terra-card ${cls}" data-mt-section="${section}"${state.sections[section] ? ' open' : ''}><summary class="terra-card-head"><h2>${esc(title)}</h2>${side ? `<small>${esc(side)}</small>` : ''}</summary><div class="terra-card-body">${body}</div></details>`;
@@ -68,14 +70,15 @@
   };
 
   // Scheda Turno: ore del servizio, inizio e fine e sotto l'equipaggio.
-  function turnoCard(code, day, { inizio = '', fine = '', crewHtml = '', nave = '' } = {}) {
+  function turnoCard(code, day, { inizio = '', fine = '', crewHtml = '', nave = '', variazioniHtml = '' } = {}) {
     const comp = C?.shiftForCode(code === 'RIP' ? 'Riposo' : code, day) || {};
     const lavoro = code !== 'RIP' && Number(comp.hours) > 0;
     const orario = inizio && fine ? `<span class="mt-orario">${esc(ora(inizio))} → ${esc(ora(fine))}</span>` : '';
     // niente riquadro «Modificato da / Ripristina turno originale»: il cambio turno si vede nella striscia dei giorni
     const head = `<div class="mt-turno">${chip(code === 'RIP' ? 'Riposo' : code)}` +
       `${nave ? `<b class="mt-nave">${esc(nave)}</b>` : ''}${orario}` +
-      `${lavoro ? `<span class="mt-ore">${oreMinuti(comp.hours)}</span>` : ''}</div>`;
+      `${lavoro ? `<span class="mt-ore">${oreMinuti(comp.hours)}</span>` : ''}</div>` +
+      (variazioniHtml ? `<div class="mt-crew-variazioni">${variazioniHtml}</div>` : '');
     // con l'equipaggio la riga del turno non serve (e' gia' nell'intestazione); senza (riposo) resta la pastiglia
     return crewHtml ? card('Equipaggio', '', crewHtml) : card('Il mio turno', '', head);
   }
@@ -213,20 +216,24 @@
     const C = window.NaviCollegamenti;
     const oraA = ct.andata ? C.ora(ct.andata.parte) : '';
     const oraR = ct.ritorno ? C.ora(ct.ritorno.parte) : '';
+    const haPernotto = ct.competenze?.pernottoPrima || ct.competenze?.pernottoSera;
+    const ha2Ticket = ct.competenze?.secondoTicket;
+
     let testo = '', cls = 'mt-head-mezzo';
     if (oraA && oraR) {
-      testo = '🚌 ' + oraA + ' · rientro ' + oraR;
+      testo = '🚌 ' + oraA + ' · rientro ' + oraR + (ha2Ticket ? ' · 2° ticket' : '');
     } else if (oraA) {
-      testo = '🚌 ' + oraA + ' · ⚠ no rientro';
+      testo = '🚌 ' + oraA + ' · 🏨 pernotto' + (ha2Ticket ? ' · 2° ticket' : '');
       cls += ' warn';
     } else if (oraR) {
-      testo = '⚠ No andata · rientro ' + oraR;
+      testo = '🏨 pernotto prima · rientro ' + oraR + (ha2Ticket ? ' · 2° ticket' : '');
       cls += ' warn';
     } else {
-      testo = '⚠ No mezzi';
+      testo = '🏨 pernotto · ⚠ no mezzi';
       cls += ' warn';
     }
-    return '<span class="' + cls + '" role="button" tabindex="0" title="Mezzi pubblici: tocca per vedere i dettagli">' + esc(testo) + '</span>';
+    const tooltip = 'Trasferta: Diaria 50%' + (haPernotto ? ', Pernotto 40%' : '') + (ha2Ticket ? ', 2° Ticket' : '') + ' (tocca per dettagli)';
+    return '<span class="' + cls + '" role="button" tabindex="0" title="' + esc(tooltip) + '">' + esc(testo) + '</span>';
   }
   function impostaContesto(testoBase, ct) {
     const el = $('turno-context');
@@ -244,38 +251,110 @@
     return '';
   }
 
-  function cardCollegamenti(day, turnoCode, sedeTurno, casaAgente, inizio, fine) {
+  function cardCollegamenti(day, turnoCode, sedeTurno, casaAgente, inizio, fine, meta = {}) {
     const C = window.NaviCollegamenti;
     if (!C?.cercaTurno) return '';
     const casa = C.normalizzaResidenza(casaAgente);
     const sede = C.normalizzaResidenza(sedeTurno);
     if (!casa || !sede || casa === sede) return '';
-    const ct = C.cercaTurno({ casa, turnoResidenza: sede, iso: day, inizio, fine });
+    const inizioClean = String(inizio || '').split(/[-–]/)[0].trim();
+    const fineClean = String(fine || '').split(/[-–]/).pop().trim();
+    const ct = C.cercaTurno({
+      casa,
+      turnoResidenza: sede,
+      iso: day,
+      inizio: inizioClean,
+      fine: fineClean,
+      shift: turnoCode,
+      tipo: meta.tipo,
+      orarioServizio: meta.orarioServizio,
+      anticipoMin: meta.anticipoMin
+    });
     if (!ct || ct.stessaResidenza) return '';
     const badge = ct.fattibile
       ? 'Fattibile coi mezzi'
       : 'Serve auto o pernotto';
+
+    const infoDettaglio = meta.tipo === 'corsa' && meta.orarioServizio
+      ? 'arrivo entro ore ' + esc(ora(inizioClean)) + ' <span style="font-weight:normal">(1h 30m prima della partenza delle ' + esc(ora(meta.orarioServizio)) + ')</span>'
+      : meta.tipo === 'terra' && meta.orarioServizio
+        ? 'arrivo entro ore ' + esc(ora(inizioClean)) + ' <span style="font-weight:normal">(30 min prima dell\'inizio delle ' + esc(ora(meta.orarioServizio)) + ')</span>'
+        : 'inizio turno ore ' + esc(ora(inizioClean));
+
     let htmlAndata = '';
     if (ct.andata) {
-      htmlAndata = '<div class="mt-col-sezione"><div class="mt-col-titolo">▲ Andata: <b>' + esc(ct.casa) + ' → ' + esc(ct.lavoro) + '</b> <small>(inizio turno ore ' + esc(ora(inizio)) + ')</small></div>' +
+      htmlAndata = '<div class="mt-col-sezione"><div class="mt-col-titolo">▲ Andata: <b>' + esc(ct.casa) + ' → ' + esc(ct.lavoro) + '</b> <small>(' + infoDettaglio + ')</small></div>' +
         C.disegnaViaggio(ct.andata, ct.inizio, 'arrivo') + '</div>';
     } else if (ct.inizio != null) {
-      htmlAndata = '<div class="mt-col-sezione"><div class="mt-col-titolo">▲ Andata: <b>' + esc(ct.casa) + ' → ' + esc(ct.lavoro) + '</b> <small>(inizio turno ore ' + esc(ora(inizio)) + ')</small></div>' +
-        '<p class="col-no">✕ Nessun mezzo pubblico arriva a ' + esc(ct.lavoro) + ' entro le ' + esc(ora(inizio)) + ': serve auto o pernotto.</p>' +
+      htmlAndata = '<div class="mt-col-sezione"><div class="mt-col-titolo">▲ Andata: <b>' + esc(ct.casa) + ' → ' + esc(ct.lavoro) + '</b> <small>(' + infoDettaglio + ')</small></div>' +
+        '<p class="col-no">✕ Nessun mezzo pubblico arriva a ' + esc(ct.lavoro) + ' entro le ' + esc(ora(inizioClean)) + ': serve pernotto la sera prima (40%).</p>' +
         (ct.andataPrimoDopo ? '<p class="col-info">Primo arrivo possibile:</p>' + C.disegnaViaggio(ct.andataPrimoDopo, ct.inizio, 'arrivo') : '') + '</div>';
     }
     let htmlRitorno = '';
     if (ct.ritorno) {
-      htmlRitorno = '<div class="mt-col-sezione" style="margin-top:10px"><div class="mt-col-titolo">▼ Rientro: <b>' + esc(ct.lavoro) + ' → ' + esc(ct.casa) + '</b> <small>(fine turno ore ' + esc(ora(fine)) + ')</small></div>' +
+      htmlRitorno = '<div class="mt-col-sezione" style="margin-top:10px"><div class="mt-col-titolo">▼ Rientro: <b>' + esc(ct.lavoro) + ' → ' + esc(ct.casa) + '</b> <small>(fine turno ore ' + esc(ora(fineClean)) + ')</small></div>' +
         C.disegnaViaggio(ct.ritorno, ct.fine, 'ritorno') + '</div>';
     } else if (ct.fine != null) {
-      htmlRitorno = '<div class="mt-col-sezione" style="margin-top:10px"><div class="mt-col-titolo">▼ Rientro: <b>' + esc(ct.lavoro) + ' → ' + esc(ct.casa) + '</b> <small>(fine turno ore ' + esc(ora(fine)) + ')</small></div>' +
-        '<p class="col-no">✕ Nessun mezzo pubblico parte da ' + esc(ct.lavoro) + ' dopo le ' + esc(ora(fine)) + ': serve auto o pernotto.</p></div>';
+      htmlRitorno = '<div class="mt-col-sezione" style="margin-top:10px"><div class="mt-col-titolo">▼ Rientro: <b>' + esc(ct.lavoro) + ' → ' + esc(ct.casa) + '</b> <small>(fine turno ore ' + esc(ora(fineClean)) + ')</small></div>' +
+        '<p class="col-no">✕ Nessun mezzo pubblico parte da ' + esc(ct.lavoro) + ' dopo le ' + esc(ora(fineClean)) + ': serve pernotto la sera del turno (40%).</p></div>';
     }
+
+    // Sezione Competenze Trasferta (Diaria 50%, Pernotto 40%, 2° Ticket dopo 20:45 o con pernotto)
+    const comp = ct.competenze || {};
+    let chipsHtml = '<span class="mt-comp-chip ok" title="Trasferta fuori residenza: diaria al 50%">💰 Diaria 50%</span>';
+    if (comp.pernottoPrima) {
+      chipsHtml += '<span class="mt-comp-chip warn" title="Manca mezzo di andata: pernotto la sera prima del turno">🏨 Pernotto 40% (sera prima)</span>';
+    }
+    if (comp.pernottoSera) {
+      chipsHtml += '<span class="mt-comp-chip warn" title="Manca mezzo di rientro: pernotto la sera del turno">🏨 Pernotto 40% (sera turno)</span>';
+    }
+    if (comp.secondoTicket) {
+      const causaleTicket = comp.pernottoSera ? 'pernotto fuori' : ('rientro ore ' + C.ora(comp.rientroMin) + ' > 20:45');
+      chipsHtml += '<span class="mt-comp-chip ok" title="Secondo ticket pasto spettante: ' + causaleTicket + '">🍽️ 2° Ticket (' + causaleTicket + ')</span>';
+    }
+    if (!comp.pernottoPrima && !comp.pernottoSera) {
+      chipsHtml += '<span class="mt-comp-chip ghost" title="Orari coperti da mezzi pubblici: nessun pernotto necessario">🏨 Pernotto: no</span>';
+    }
+
+    // Controllo se le competenze sono gia' salvate nella distinta per questo giorno
+    const me = profile();
+    const entriesKey = 'navidiaria.entries.v1.' + (me?.id || 'guest');
+    let giaRegistrato = false;
+    try {
+      const arr = JSON.parse(localStorage.getItem(entriesKey) || '[]');
+      const ent = arr.find(e => e.date === day);
+      if (ent) {
+        const okDiaria = Number(ent.allowanceRate) === 50;
+        const okTicket = !comp.secondoTicket || Number(ent.secondMeal) > 0;
+        const okPernotto = !comp.pernottoSera || Boolean(ent.overnight40);
+        giaRegistrato = okDiaria && okTicket && okPernotto;
+      }
+    } catch (_) {}
+
+    const actionHtml = '<div class="mt-comp-action">' +
+      '<button type="button" class="mt-comp-btn' + (giaRegistrato ? ' ok' : '') + '" id="btn-riporta-distinta" ' +
+        'data-day="' + esc(day) + '" data-shift="' + esc(turnoCode || '') + '" ' +
+        'data-casa="' + esc(casa) + '" data-sede="' + esc(sede) + '" ' +
+        'data-inizio="' + esc(inizioClean) + '" data-fine="' + esc(fineClean) + '">' +
+        (giaRegistrato ? '✓ Riportato nella Distinta' : '📋 Riporta nella Distinta') +
+      '</button>' +
+      '<div id="mt-comp-feedback" class="mt-comp-feedback" style="display:' + (giaRegistrato ? 'flex' : 'none') + '">' +
+        '<span class="mt-fb-ok">✓ Competenze salvate nella Distinta</span> ' +
+        '<a href="navidiaria.html?editDate=' + encodeURIComponent(day) + '" class="mt-fb-link">Apri in Distinta ↗</a>' +
+      '</div>' +
+    '</div>';
+
+    const htmlCompetenze = '<div class="mt-col-competenze">' +
+      '<div class="mt-col-titolo">💼 Competenze trasferta</div>' +
+      '<div class="mt-comp-chips">' + chipsHtml + '</div>' +
+      actionHtml +
+    '</div>';
+
     const note = '<div class="mt-col-foot" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;padding-top:8px;border-top:1px dashed #1f4250">' +
       '<small style="color:#9fb8c2">Residenza: <b>' + esc(ct.casa) + '</b> · Sede turno: <b>' + esc(ct.lavoro) + '</b></small>' +
       '<a href="collegamenti.html" style="color:#2dd4bf;font-size:11.5px;font-weight:700;text-decoration:none">Collegamenti completi ↗</a></div>';
-    return card('Mezzi pubblici · ' + ct.casa + ' ⇄ ' + ct.lavoro, badge, htmlAndata + htmlRitorno + note, 'mt-collegamenti-card ' + (ct.fattibile ? 'mt-col-ok' : 'mt-col-warn'), 'collegamenti');
+
+    return card('Mezzi pubblici · ' + ct.casa + ' ⇄ ' + ct.lavoro, badge, htmlAndata + htmlRitorno + htmlCompetenze + note, 'mt-collegamenti-card ' + (ct.fattibile ? 'mt-col-ok' : 'mt-col-warn'), 'collegamenti');
   }
   function renderNave(code, day, me, found) {
     const turniNavi = [...(state.schedule?.turni_navi || []), ...state.firebaseNavi];
@@ -299,10 +378,14 @@
     $('turno-context').textContent = [G.comandante(crew), info.trips ? `corse ${info.trips}` : ''].filter(Boolean).join(' · ');
 
 
-    const equipaggio = crew.length
+    const vars = G.variazioniTurno ? G.variazioniTurno(state.schedule, code, day, crew, { currentUserShift: found, currentUserName: me?.name }) : [];
+    const varHtml = G.formattaPastiglieVariazioni ? G.formattaPastiglieVariazioni(vars, 'mt') : '';
+    const crewVarsWrap = varHtml ? `<div class="mt-crew-variazioni">${varHtml}</div>` : '';
+
+    const equipaggio = (crew.length
       ? `<ul class="mt-crew">${crew.map(member => `<li class="${member.id && member.id === String(me?.id || '') ? 'me' : ''}" style="color:${member.grado[1]}">` +
         `<b>${esc(member.name)}</b><small>${esc(member.grado[0] || '')}</small></li>`).join('')}</ul>`
-      : `<p class="legend">${state.schedule ? 'Equipaggio non disponibile.' : 'Caricamento equipaggio…'}</p>`;
+      : `<p class="legend">${state.schedule ? 'Equipaggio non disponibile.' : 'Caricamento equipaggio…'}</p>`) + crewVarsWrap;
 
     // Corse e scali come l'orario di Servizi a terra: una riga per scalo. Prima di ogni corsa (anche
     // la prima) una linea con il suo numero; se la corsa riparte subito dallo scalo d'arrivo della
@@ -359,10 +442,31 @@
     const right = card(code === 'BIS' && !rows.length ? 'Servizio' : 'Corse e scali', corse.length ? `${corse.length} corse` : '', listaCorse + regola, 'mt-corse-card', 'corse');
     const sedeNave = residenzaDiNave(code);
     const casa = residenzaAgente(me, found, state.schedule) || (sedeNave === 'Maderno' ? 'Desenzano' : 'Maderno');
+    const isTrasfNave = Boolean(casa && sedeNave && casa !== sedeNave);
+    const startNaveMin = window.NaviCollegamenti?.minuti?.(info.firstDeparture);
+    // Fuori residenza: arrivo 90 min (1h30) prima della prima partenza corsa (es. R1 08:45 -> 07:15)
+    const inizioAndataNave = (isTrasfNave && startNaveMin != null)
+      ? window.NaviCollegamenti.ora(Math.max(0, startNaveMin - 90))
+      : info.presentation;
+
     let coll = '', ct = null;
     try {
-      ct = window.NaviCollegamenti?.cercaTurno?.({ casa, turnoResidenza: sedeNave, iso: day, inizio: info.presentation, fine: info.lastArrival });
-      coll = cardCollegamenti(day, code, sedeNave, casa, info.presentation, info.lastArrival);
+      ct = window.NaviCollegamenti?.cercaTurno?.({
+        casa,
+        turnoResidenza: sedeNave,
+        iso: day,
+        inizio: inizioAndataNave,
+        fine: info.lastArrival,
+        shift: code,
+        tipo: 'corsa',
+        orarioServizio: info.firstDeparture,
+        anticipoMin: 90
+      });
+      coll = cardCollegamenti(day, code, sedeNave, casa, inizioAndataNave, info.lastArrival, {
+        tipo: 'corsa',
+        orarioServizio: info.firstDeparture,
+        anticipoMin: 90
+      });
     } catch (e) {
       console.warn('Collegamenti nave non calcolati', e);
     }
@@ -383,15 +487,38 @@
     if (servizio) servizioHeader(inizioClean, fineClean, day, code);
     const sedeTerra = residenza === 'MADERNO' ? 'Maderno' : 'Desenzano';
     const casa = residenzaAgente(me, found, state.schedule) || (sedeTerra === 'Maderno' ? 'Desenzano' : 'Maderno');
+    const isTrasfTerra = Boolean(casa && sedeTerra && casa !== sedeTerra);
+    const startTerraMin = window.NaviCollegamenti?.minuti?.(inizioClean);
+    // Fuori residenza: arrivo 30 min prima dell'inizio servizio a terra (es. PonD 09:30 -> 09:00)
+    const inizioAndataTerra = (isTrasfTerra && startTerraMin != null)
+      ? window.NaviCollegamenti.ora(Math.max(0, startTerraMin - 30))
+      : inizioClean;
+
     let coll = '', ct = null;
     try {
-      ct = window.NaviCollegamenti?.cercaTurno?.({ casa, turnoResidenza: sedeTerra, iso: day, inizio: inizioClean, fine: fineClean });
-      coll = cardCollegamenti(day, code, sedeTerra, casa, inizioClean, fineClean);
+      ct = window.NaviCollegamenti?.cercaTurno?.({
+        casa,
+        turnoResidenza: sedeTerra,
+        iso: day,
+        inizio: inizioAndataTerra,
+        fine: fineClean,
+        shift: code,
+        tipo: 'terra',
+        orarioServizio: inizioClean,
+        anticipoMin: 30
+      });
+      coll = cardCollegamenti(day, code, sedeTerra, casa, inizioAndataTerra, fineClean, {
+        tipo: 'terra',
+        orarioServizio: inizioClean,
+        anticipoMin: 30
+      });
     } catch (e) {
       console.warn('Collegamenti terra non calcolati', e);
     }
     impostaContesto(sedeTerra, ct);
-    $('turno-after').innerHTML = `<div class="terra-col">${coll}${turnoCard(code, day, servizio ? { inizio: inizioClean, fine: fineClean } : {})}</div>`;
+    const terraVars = G.variazioniTurno ? G.variazioniTurno(state.schedule, code, day, [], { currentUserShift: found, currentUserName: me?.name }) : [];
+    const terraVarHtml = G.formattaPastiglieVariazioni ? G.formattaPastiglieVariazioni(terraVars, 'mt') : '';
+    $('turno-after').innerHTML = `<div class="terra-col">${coll}${turnoCard(code, day, servizio ? { inizio: inizioClean, fine: fineClean, variazioniHtml: terraVarHtml } : { variazioniHtml: terraVarHtml })}</div>`;
     $('turno-scali').hidden = false;
     window.NaviOrarioPage?.show({ modo: 'terra', scalo: residenza === 'MADERNO' ? 'Maderno' : 'Desenzano', day, turno: code, inizio: servizio ? servizio[1].split(' – ')[0] : '' });
   }
@@ -409,14 +536,16 @@
     const venerdi = parseIso(day).getDay() === 5 && !window.NaviDistintaTotals?.isHoliday?.(parseIso(day));
     return { mattina: o.mattina, pomeriggio: [o.pomeriggio[0], venerdi ? o.venerdi : o.pomeriggio[1]] };
   }
-  function renderAltro(turno, day, residenza = '') {
+  function renderAltro(turno, day, residenza = '', me = null, found = null) {
+    const altroVars = G.variazioniTurno ? G.variazioniTurno(state.schedule, turno, day, [], { currentUserShift: found, currentUserName: me?.name }) : [];
+    const altroVarHtml = G.formattaPastiglieVariazioni ? G.formattaPastiglieVariazioni(altroVars, 'mt') : '';
     const lav = lavoroDi(turno);
     if (lav) {
       const o = orarioLavori(residenza, day), dove = String(residenza || '').toLowerCase().replace(/^./, c => c.toUpperCase());
       $('turno-title').textContent = lav === 'LAV' ? 'LAV · Lavori' : 'L.D.';
       $('turno-context').textContent = `${dove ? `${dove} · ` : ''}${o.mattina.join('–')} e ${o.pomeriggio.join('–')} (O.d.S. 39/2026)`;
       servizioHeader(o.mattina[0], o.pomeriggio[1], day, 'LAV');
-      $('turno-content').innerHTML = `<div class="terra-col">${turnoCard('LAV', day, { inizio: o.mattina[0], fine: o.pomeriggio[1] })}</div>`;
+      $('turno-content').innerHTML = `<div class="terra-col">${turnoCard('LAV', day, { inizio: o.mattina[0], fine: o.pomeriggio[1], variazioniHtml: altroVarHtml })}</div>`;
       return;
     }
     const label = turno ? String(turno).toUpperCase() : '';
@@ -431,7 +560,7 @@
     const riposo = !label || /^(R|RIP|RIPOSO|CON|F\.?P\.?|MALATTIA)$/.test(label);
     $('turno-title').textContent = riposo ? (label && !['R', 'RIP', 'RIPOSO'].includes(label) ? label : 'Riposo') : label;
     $('turno-context').textContent = riposo ? 'Nessuna corsa in questo giorno' : 'Turno senza corse in orario';
-    $('turno-content').innerHTML = `<div class="terra-col">${turnoCard(riposo ? 'RIP' : label, day)}</div>`;
+    $('turno-content').innerHTML = `<div class="terra-col">${turnoCard(riposo ? 'RIP' : label, day, { variazioniHtml: altroVarHtml })}</div>`;
   }
 
   function renderTestSelect(myShift) {
@@ -612,24 +741,9 @@
     // Le corse sospese dall'Ufficio Movimento non hanno un avviso in alto: restano segnate «SOSPESA» nell'elenco delle corse
     notice(messages.join(' · '));
     const dispEl = $('turno-disposizione');
-    const vInfo = found?.variazioneInfo;
     if (dispEl) {
-      if (vInfo && (vInfo.note || vInfo.ods || vInfo.protocollo)) {
-        dispEl.hidden = false;
-        dispEl.innerHTML = `
-          <div class="mt-disp-header">
-            <span class="mt-disp-badge"><span class="mt-disp-badge-icon">📋</span> Variazione ${esc(vInfo.ods || 'Ufficio Movimento')}${vInfo.protocollo ? ` (${esc(vInfo.protocollo)})` : ''}</span>
-            ${vInfo.docId ? `<button type="button" class="mt-disp-open-pdf" data-doc-id="${esc(vInfo.docId)}">📄 Vedi PDF Disposizione</button>` : ''}
-          </div>
-          ${vInfo.note ? `<div class="mt-disp-note">${esc(vInfo.note)}</div>` : ''}
-          <div class="mt-disp-meta">
-            Turno assegnato: <strong>${esc(turno)}</strong>
-            ${found.originalShift?.turno && found.originalShift.turno !== turno ? `<span>(turno originale: <s>${esc(found.originalShift.turno)}</s>)</span>` : ''}
-          </div>`;
-      } else {
-        dispEl.hidden = true;
-        dispEl.innerHTML = '';
-      }
+      dispEl.hidden = true;
+      dispEl.innerHTML = '';
     }
     if (!nave && !terra) window.NaviOrarioPage?.hide();
     if (nave) {
@@ -639,7 +753,7 @@
       window.NaviOrarioPage?.show({ modo: 'nave', turno: nave, day });
     }
     else if (terra) renderTerra(terra, G.terraResidenza(terra) || String(found?.residenza || 'DESENZANO').toUpperCase(), day, me, found);
-    else renderAltro(turno, day, String(found?.residenza || '').toUpperCase());
+    else renderAltro(turno, day, String(found?.residenza || '').toUpperCase(), me, found);
     const url = new URL(location.href);
     url.searchParams.delete('auto');
     if (state.day) url.searchParams.set('day', state.day); else url.searchParams.delete('day');
@@ -705,6 +819,118 @@
     }
   });
   $('turno-title').addEventListener('click', apriDistinta);
+  function riportaInDistinta(day, shiftCode, ct) {
+    const me = profile();
+    const id = me?.id || 'guest';
+    const entriesKey = 'navidiaria.entries.v1.' + id;
+    let list = [];
+    try {
+      list = JSON.parse(localStorage.getItem(entriesKey) || '[]');
+    } catch (_) {
+      list = [];
+    }
+    if (!Array.isArray(list)) list = [];
+
+    const comp = ct?.competenze || {};
+    let entry = list.find(e => e.date === day);
+    const now = Date.now();
+
+    if (!entry) {
+      entry = {
+        id: 'naviturni-' + day,
+        date: day,
+        shift: shiftCode || 'PonD',
+        delay: 0,
+        bank: 0,
+        rf: false,
+        embark: false,
+        cashHandling: false,
+        mealUsed: true,
+        ticketPresence: true,
+        note: '',
+        imported: true
+      };
+      list.push(entry);
+    }
+
+    entry.travel = true;
+    entry.allowanceRate = comp.diariaRate || 50;
+    if (comp.secondoTicket) {
+      entry.secondMeal = 1;
+    }
+    if (comp.pernottoSera) {
+      entry.overnight40 = true;
+    }
+    entry.manualOverride = true;
+    entry.manualModified = true;
+    entry.modificatoIl = now;
+
+    let pernottoPrimaInfo = '';
+    if (comp.pernottoPrima) {
+      const dt = new Date(day + 'T12:00:00');
+      dt.setDate(dt.getDate() - 1);
+      const ieriIso = dt.toISOString().slice(0, 10);
+      let entryIeri = list.find(e => e.date === ieriIso);
+      if (entryIeri) {
+        entryIeri.overnight40 = true;
+        entryIeri.manualOverride = true;
+        entryIeri.modificatoIl = now;
+      } else {
+        list.push({
+          id: 'naviturni-' + ieriIso,
+          date: ieriIso,
+          shift: 'Riposo',
+          overnight40: true,
+          manualOverride: true,
+          modificatoIl: now,
+          imported: false
+        });
+      }
+      pernottoPrimaInfo = ' · Pernotto 40% sera prima (' + ieriIso + ')';
+    }
+
+    list.sort((a, b) => String(a.date || '').localeCompare(String(b.date || '')));
+    localStorage.setItem(entriesKey, JSON.stringify(list));
+    localStorage.setItem('navidiaria.cloudDirty.' + id, '1');
+
+    if (window.NaviAdminFirebase?.saveDiaria) {
+      window.NaviAdminFirebase.saveDiaria(String(id), list).catch(err => {
+        console.warn('Sync Firebase distinta non riuscito:', err);
+      });
+    }
+
+    window.dispatchEvent(new CustomEvent('navisuite-distinta-updated', { detail: { date: day, entries: list } }));
+
+    const btn = document.getElementById('btn-riporta-distinta');
+    if (btn) {
+      btn.classList.add('ok');
+      btn.innerHTML = '✓ Riportato nella Distinta';
+    }
+    const fb = document.getElementById('mt-comp-feedback');
+    if (fb) {
+      let dettagli = ['Diaria 50%'];
+      if (comp.pernottoSera) dettagli.push('Pernotto 40%');
+      if (comp.secondoTicket) dettagli.push('2° Ticket');
+      fb.innerHTML = '<span class="mt-fb-ok">✓ Salvato in Distinta: ' + dettagli.join(', ') + pernottoPrimaInfo + '</span> ' +
+        '<a href="navidiaria.html?editDate=' + encodeURIComponent(day) + '" class="mt-fb-link">Apri in Distinta ↗</a>';
+      fb.style.display = 'flex';
+    }
+  }
+
+  document.addEventListener('click', e => {
+    const btn = e.target.closest('#btn-riporta-distinta');
+    if (!btn) return;
+    const day = btn.dataset.day;
+    const shift = btn.dataset.shift;
+    const casa = btn.dataset.casa;
+    const sede = btn.dataset.sede;
+    const inizio = btn.dataset.inizio;
+    const fine = btn.dataset.fine;
+    const C = window.NaviCollegamenti;
+    const ct = C?.cercaTurno?.({ casa, turnoResidenza: sede, iso: day, inizio, fine });
+    riportaInDistinta(day, shift, ct);
+  });
+
 
   document.addEventListener('click', async event => {
     const btn = event.target.closest('[data-doc-id]');
@@ -807,5 +1033,16 @@
   // tornando con «Indietro» la pagina puo' essere ripresa dalla memoria del browser: ricarico i cambi
   window.addEventListener('pageshow', event => { if (event.persisted) aggiornaModifiche(); });
   window.addEventListener('storage', event => { if (String(event.key || '').startsWith('navidiaria.entries.v1.')) aggiornaModifiche(); });
+  // Clic su pastiglia variazione: apre eventuale documento allegato / ODS
+  document.addEventListener('click', async e => {
+    const chip = e.target.closest('.mt-var-chip');
+    if (!chip) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (G?.apriDocumentoVariazione) {
+      await G.apriDocumentoVariazione(chip.dataset);
+    }
+  });
+
   setInterval(() => { if (state.schedule) aggiornaModifiche(); }, 60000);
 })();

@@ -1,6 +1,7 @@
 (function(){
   // memoria delle sezioni aperte/chiuse, per tutte le pagine col menu
   if(!document.querySelector('script[src*="section-memory.js"]')){const m=document.createElement('script');m.src='assets/js/section-memory.js?v=2';m.defer=true;document.head.appendChild(m);}
+  if(!document.querySelector('script[src*="doc-viewer.js"]')){const d=document.createElement('script');d.src='assets/js/doc-viewer.js?v=3';d.defer=true;document.head.appendChild(d);}
   const APP_VERSION='v1.48';
   const NAVISUITE_KOFI_URL='https://ko-fi.com/papamike80';
   function installSupportFooter(){
@@ -79,7 +80,7 @@
     const file=(location.pathname.split('/').pop()||'index.html').toLowerCase();
     const onTurni=file==='naviturni.html';
     // Alle bariste (tranne Hiba) Oggi rimanda a Turni: la voce non viene mostrata.
-    const MENU_SCALO={'oggi.html':['☀','Oggi'],'naviturni.html':['▦','Turni'],'navidiaria.html':['≈','Distinta'],'documenti.html':['▤','Documenti'],'mio-turno.html':['⚑','Il mio turno'],'orario.html':['⚓','Scali'],'orari.html':['🕒','Orari'],'cambi_turno.html':['⇄','Cambio'],'quiz.html':['✎','Quiz'],'impostazioni.html':['⚙','Impostazioni'],'verifica-busta.html':['✓','Verifica busta'],'controllo_cassa.html':['¤','Cassa']};
+    const MENU_SCALO={'oggi.html':['☀','Oggi'],'naviturni.html':['▦','Turni'],'navidiaria.html':['≈','Distinta'],'documenti.html':['▤','Documenti'],'mio-turno.html':['⚑','Il mio turno'],'orario.html':['⚓','Scali'],'orari.html':['🕒','Orari'],'cambi_turno.html':['⇄','Cambio'],'quiz.html':['🏆','Concorsi'],'impostazioni.html':['⚙','Impostazioni'],'verifica-busta.html':['✓','Verifica busta'],'controllo_cassa.html':['¤','Cassa']};
     const entries=roles.isScaloAgent?.(agent)?(roles.pagineAperte?.(agent)||['orario.html']).map(f=>[f,...(MENU_SCALO[f]||['•',f])]):[
       // pagine principali: Il mio turno e Scali
       ...(isBarista&&!isHiba?[]:[['mio-turno.html','⚑','Il mio turno'],['orario.html','⚓','Scali'],['orari.html','🕒','Orari'],['oggi.html','☀','Oggi']]),
@@ -89,13 +90,13 @@
       ['cambi_turno.html','⇄','Cambio'],
       ['battaglia-garda.html','⛴','Battaglia sul Garda'],
       ['controllo_cassa.html','$','Cassa'],
-      ...(isAdmin?[['quiz.html','✎','Quiz']]:[]),
+      ['quiz.html','🏆','Concorsi'],
       ['backup-dati.html','⤓','Backup'],
       ['impostazioni.html','⚙','Impostazioni'],
       ...(roles.puoAprire?.('comitive.html',agent)?[['comitive.html','⛴','Comitive']]:[]),
       ...(roles.puoAprire?.('verifica-busta.html',agent)?[['verifica-busta.html','✔','Verifica busta']]:[]),
       ...(roles.puoAprire?.('agenti.html',agent)?[['agenti.html','♙','Agenti']]:[]),
-      ...(isAdmin?[['aggiornamenti.html','↻','Aggiornamenti']]:[]),
+      ...(isAdmin?[['aggiornamenti.html','↻','Aggiornamenti'],['impostazioni.html#simulated-date-setting','📅','Data test']]:[]),
       ...(roles.puoAprire?.('movimento.html',agent)?[['movimento.html','⚓','Movimento']]:[]),
       ...(roles.puoAprire?.('collegamenti.html',agent)?[['collegamenti.html','⇆','Collegamenti']]:[])
     ];
@@ -292,9 +293,10 @@
     window.NaviSuiteMenu={open,close,condividi:apriCondividi};
     // Pulsante ☰ nell'intestazione della pagina; Quiz e Cambia PIN non hanno
     // un'intestazione adatta e lo ricevono fisso in alto a destra.
-    const host=document.querySelector('.page-header,.archive-header,.diaria-header,main>header,body.impostazioni-page>header');
-    const floating=!host&&(file==='quiz.html'||file==='cambia-pin.html');
-    if(host||floating){
+    const host=document.querySelector('.page-header,.archive-header,.diaria-header,main>header,body.impostazioni-page>header,.top-nav-inner');
+    const isSpecialWithoutHeader=file==='quiz.html'||file==='cambia-pin.html'||file.startsWith('concorso-')||file.startsWith('dispensa');
+    const floating=!host&&isSpecialWithoutHeader;
+    if((host||floating)&&!document.getElementById('navisuite-header-menu')){
       const button=document.createElement('button');
       button.type='button';button.id='navisuite-header-menu';button.setAttribute('aria-label','Apri menu');button.textContent='☰';
       button.style.cssText=`position:${floating?'fixed':'absolute'};right:12px;top:${floating?'calc(12px + env(safe-area-inset-top,0px))':'12px'};z-index:${floating?9000:30};width:44px;height:44px;border:1px solid #2dd4bf;border-radius:13px;background:#103a3d;color:#a7fff0;font-size:25px;font-weight:900;cursor:pointer`;
@@ -305,9 +307,8 @@
   }
   const sidebar=document.querySelector('.app-sidebar');
   if(!sidebar){
-    // Pagine senza sidebar: Quiz e Cambia PIN ricevono comunque il menu, solo con sessione attiva.
-    const file=(location.pathname.split('/').pop()||'').toLowerCase();
-    if(sessionAgent?.id&&(file==='quiz.html'||file==='cambia-pin.html'))setTimeout(()=>installUnifiedMenu(sessionAgent),0);
+    // Pagine senza sidebar (Quiz, Concorsi, Cambia PIN, Dispense, ecc.) ricevono comunque il menu universale
+    setTimeout(()=>installUnifiedMenu(sessionAgent),0);
     return;
   }
   if('serviceWorker' in navigator){

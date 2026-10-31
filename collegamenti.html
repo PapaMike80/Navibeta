@@ -7,11 +7,10 @@
   <link rel="manifest" href="manifest.json">
   <link rel="shortcut icon" href="assets/images/favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="assets/images/icona_apple_180.png">
-  <title>NaviBeta Collegamenti</title>
+  <title>NaviSuite Collegamenti</title>
   <link rel="stylesheet" href="assets/css/navi-shared.css">
   <link rel="stylesheet" href="assets/css/shared-menu.css?v=2">
   <link rel="stylesheet" href="assets/css/collegamenti.css?v=1">
-<script src="assets/js/beta-readonly.js?v=2"></script>
 </head>
 <body class="collegamenti-page">
   <aside class="app-sidebar" id="admin-sidebar"></aside>
@@ -19,7 +18,7 @@
     <header class="hero"><div class="eyebrow">NAVISUITE ADMIN</div><h1>Collegamenti pubblici</h1><p>Bus, treni e battelli tra le residenze, per capire se un cambio è fattibile o serve il pernotto. Gli orari si modificano qui sotto per la stagione invernale ed estiva e valgono per tutti.</p></header>
 
     <section class="section">
-      <div class="section-head"><div><h2>Trova collegamento</h2><p>Da quale residenza parti, dove devi arrivare e entro che ora (inizio del turno).</p></div><span id="col-status" class="col-status" aria-live="polite"></span></div>
+      <div class="section-head"><div><h2>Trova collegamento</h2><p>Da quale residenza parti, dove devi arrivare e entro che ora (inizio del turno).</p><p class="col-regola-anticipo" style="margin:6px 0 0;font-size:0.83rem;color:var(--text-muted,#94a3b8);line-height:1.4">⏱️ <b>Regola fuori residenza:</b> per un servizio a terra arrivare <b>30 min prima</b> dell’inizio; per una corsa arrivare <b>1:30 prima</b> della prima partenza (es. per la R1 che parte alle 08:45 l’arrivo deve essere entro le 07:15).</p></div><span id="col-status" class="col-status" aria-live="polite"></span></div>
       <div class="toolbar col-cerca">
         <label>Da<select id="col-da"></select></label>
         <button type="button" class="btn" id="col-inverti" aria-label="Inverti">⇄</button>
@@ -48,7 +47,7 @@
   <script src="assets/js/firebase-auth.js?v=2"></script>
   <script src="assets/js/shared-menu.js?v=1.99"></script>
   <script src="assets/js/offline.js?v=2"></script>
-  <script src="assets/js/collegamenti-dati.js?v=2"></script>
+  <script src="assets/js/collegamenti-dati.js?v=3"></script>
   <script src="assets/js/collegamenti.js?v=3"></script>
 </body>
 </html>

@@ -8,14 +8,18 @@
  * - aggiornare gli asset in background quando la rete e' disponibile.
  */
 
-const CACHE_VERSION = 'navibeta-v684-elimina-turno-terra';
+const CACHE_VERSION = 'navisuite-v755-data-simulata-sync-completo';
 // JS e CSS estratti da naviturni.html e cambi_turno.html. Sono legati al markup
 // della pagina: l'URL comprende ?v= e deve coincidere con quello scritto
 // nell'HTML, altrimenti il precache non viene usato.
 const PAGE_ASSETS = [
   './assets/css/naviturni-page.css?v=4',
   './assets/css/naviturni-page-fixes.css?v=1',
-  './assets/js/naviturni-page.js?v=22', './assets/js/naviturni-vista.js?v=48', './assets/css/naviturni-vista.css?v=51',
+  './assets/js/naviturni-page.js?v=23', './assets/js/naviturni-vista.js?v=51', './assets/css/naviturni-vista.css?v=53',
+  './assets/css/turni-common.css?v=2',
+  './assets/js/turni-giorno.js?v=16',
+  './assets/css/mio-turno.css?v=26',
+  './assets/js/mio-turno.js?v=74',
   './assets/js/naviturni-change-requests.js?v=1',
   './assets/css/cambi-turno-page.css?v=3',
   './assets/css/cambi-turno-page-fixes.css?v=1',
@@ -45,6 +49,10 @@ const CORE_ASSETS = [
   './navidistinta.html',
   './verifica-busta.html',
   './backup-dati.html',
+  './quiz.html',
+  './concorso-controllo.html',
+  './concorso-naviganti.html',
+  './concorso-movimento.html',
   './stampa-partenze.html',
   './orari.html',
   './assets/js/orario-corse-estate.js',
@@ -70,7 +78,11 @@ const CORE_ASSETS = [
   './assets/js/shared-roles.js',
   './assets/js/portal.js',
   './assets/js/shared-menu.js',
+  './assets/js/simulated-date.js',
   './assets/js/section-memory.js',
+  './assets/js/doc-viewer.js',
+  './vendor/pdfjs/pdf.min.js',
+  './vendor/pdfjs/pdf.worker.min.js',
   './assets/js/oggi.js',
   './assets/js/course-info.js',
   './assets/js/announcements-recovered.js',
@@ -229,7 +241,7 @@ self.addEventListener('activate', event => {
   event.waitUntil((async () => {
     const names = await caches.keys();
     await Promise.all(names
-      .filter(name => name.startsWith('navisuite-') && name !== CACHE_VERSION)
+      .filter(name => (name.startsWith('navisuite-') || name.startsWith('navibeta-')) && name !== CACHE_VERSION)
       .map(name => caches.delete(name)));
     await self.clients.claim();
   })());
